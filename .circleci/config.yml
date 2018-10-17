@@ -252,10 +252,12 @@ jobs:
           name: Run fMRIPrep tests
           no_output_timeout: 2h
           command: |
+            mkdir /tmp/data/reports && \
             docker run -ti --rm=false \
               -v /tmp/data:/tmp/data \
               -e FMRIPREP_REGRESSION_SOURCE=/tmp/data/fmriprep_bold_truncated \
               -e FMRIPREP_REGRESSION_TARGETS=/tmp/data/fmriprep_bold_mask \
+              -e FMRIPREP_REGRESSION_REPORTS=/tmp/data/reports \
               --entrypoint="py.test" poldracklab/fmriprep:latest \
               /root/src/fmriprep/ \
               --doctest-modules --ignore=/root/src/fmriprep/docs --ignore=setup.py
@@ -284,7 +286,7 @@ jobs:
             fmriprep-docker -i poldracklab/fmriprep:latest --help
             fmriprep-docker -i poldracklab/fmriprep:latest --version
       - store_artifacts:
-          path: /home/circleci/out/tests
+          path: /tmp/data/reports
 
 
   build_docs:
@@ -350,10 +352,10 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - ds005-anat-v7-{{ .Branch }}-{{ epoch }}
-            - ds005-anat-v7-{{ .Branch }}
-            - ds005-anat-v7-master
-            - ds005-anat-v7-
+            - ds005-anat-v8-{{ .Branch }}-{{ epoch }}
+            - ds005-anat-v8-{{ .Branch }}
+            - ds005-anat-v8-master
+            - ds005-anat-v8-
       - run:
           name: Setting up test
           command: |
@@ -387,7 +389,7 @@ jobs:
                 --debug --write-graph --mem_mb 4096 \
                 --nthreads 2 --anat-only -vv
       - save_cache:
-         key: ds005-anat-v7-{{ .Branch }}-{{ epoch }}
+         key: ds005-anat-v8-{{ .Branch }}-{{ epoch }}
          paths:
             - /tmp/ds005/work
             - /tmp/ds005/derivatives/fmriprep
@@ -479,10 +481,10 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - ds054-anat-v5-{{ .Branch }}-{{ epoch }}
-            - ds054-anat-v5-{{ .Branch }}
-            - ds054-anat-v5-master
-            - ds054-anat-v5-
+            - ds054-anat-v6-{{ .Branch }}-{{ epoch }}
+            - ds054-anat-v6-{{ .Branch }}
+            - ds054-anat-v6-master
+            - ds054-anat-v6-
       - run:
           name: Setting up test
           command: |
@@ -516,7 +518,7 @@ jobs:
                 --fs-no-reconall --debug --write-graph \
                 --mem_mb 4096 --nthreads 2 --anat-only -vv
       - save_cache:
-         key: ds054-anat-v5-{{ .Branch }}-{{ epoch }}
+         key: ds054-anat-v6-{{ .Branch }}-{{ epoch }}
          paths:
             - /tmp/ds054/work
             - /tmp/ds054/derivatives
@@ -597,8 +599,8 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - ds210-anat-v2-{{ epoch }}
-            - ds210-anat-v2-
+            - ds210-anat-v3-{{ epoch }}
+            - ds210-anat-v3-
       - run:
           name: Setting up test
           command: |
@@ -632,7 +634,7 @@ jobs:
                 --fs-no-reconall --debug --write-graph \
                 --mem_mb 4096 --nthreads 2 --anat-only -vv
       - save_cache:
-         key: ds210-anat-v2-{{ epoch }}
+         key: ds210-anat-v3-{{ epoch }}
          paths:
             - /tmp/ds210/work
             - /tmp/ds210/derivatives

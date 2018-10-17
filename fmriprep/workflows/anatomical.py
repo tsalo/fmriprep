@@ -44,11 +44,18 @@ from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransf
 
 from ..engine import Workflow
 from ..interfaces import (
-    DerivativesDataSink, MakeMidthickness, FSInjectBrainExtracted,
+    DerivativesDataSink, StructuralReference, MakeMidthickness, FSInjectBrainExtracted,
     FSDetectInputs, NormalizeSurf, GiftiNameSource, TemplateDimensions, Conform,
     ConcatAffines, RefineBrainMask,
 )
 from ..utils.misc import fix_multi_T1w_source_name, add_suffix
+from ..interfaces.freesurfer import (
+        PatchedLTAConvert as LTAConvert,
+        PatchedRobustRegister as RobustRegister)
+
+TEMPLATE_MAP = {
+    'MNI152NLin2009cAsym': 'mni_icbm152_nlin_asym_09c',
+    }
 
 
 #  pylint: disable=R0914
@@ -330,7 +337,7 @@ and used as T1w-reference throughout the workflow.
     )
 
     if 'template' in output_spaces:
-        template_str = nid.TEMPLATE_MAP[template]
+        template_str = TEMPLATE_MAP[template]
         ref_img = op.join(nid.get_dataset(template_str), '1mm_T1.nii.gz')
 
         t1_2_mni.inputs.template = template_str
@@ -514,22 +521,23 @@ A T1w-reference map was computed after registration of
         N4BiasFieldCorrection(dimension=3, copy_header=True),
         iterfield='input_image', name='n4_correct',
         n_procs=1)  # n_procs=1 for reproducibility
+    # StructuralReference is fs.RobustTemplate if > 1 volume, copying otherwise
     t1_merge = pe.Node(
-        fs.RobustTemplate(auto_detect_sensitivity=True,
-                          initial_timepoint=1,      # For deterministic behavior
-                          intensity_scaling=True,   # 7-DOF (rigid + intensity)
-                          subsample_threshold=200,
-                          fixed_timepoint=not longitudinal,
-                          no_iteration=not longitudinal,
-                          transform_outputs=True,
-                          ),
+        StructuralReference(auto_detect_sensitivity=True,
+                            initial_timepoint=1,      # For deterministic behavior
+                            intensity_scaling=True,   # 7-DOF (rigid + intensity)
+                            subsample_threshold=200,
+                            fixed_timepoint=not longitudinal,
+                            no_iteration=not longitudinal,
+                            transform_outputs=True,
+                            ),
         mem_gb=2 * num_t1w - 1,
         name='t1_merge')
 
     # 2. Reorient template to RAS, if needed (mri_robust_template may set to LIA)
     t1_reorient = pe.Node(image.Reorient(), name='t1_reorient')
 
-    lta_to_fsl = pe.MapNode(fs.utils.LTAConvert(out_fsl=True), iterfield=['in_lta'],
+    lta_to_fsl = pe.MapNode(LTAConvert(out_fsl=True), iterfield=['in_lta'],
                             name='lta_to_fsl')
 
     concat_affines = pe.MapNode(
@@ -809,9 +817,9 @@ gray-matter of Mindboggle [RRID:SCR_002438, @mindboggle].
 
     skull_strip_extern = pe.Node(FSInjectBrainExtracted(), name='skull_strip_extern')
 
-    fsnative_2_t1_xfm = pe.Node(fs.RobustRegister(auto_sens=True, est_int_scale=True),
+    fsnative_2_t1_xfm = pe.Node(RobustRegister(auto_sens=True, est_int_scale=True),
                                 name='fsnative_2_t1_xfm')
-    t1_2_fsnative_xfm = pe.Node(fs.utils.LTAConvert(out_lta=True, invert=True),
+    t1_2_fsnative_xfm = pe.Node(LTAConvert(out_lta=True, invert=True),
                                 name='t1_2_fsnative_xfm')
 
     autorecon_resume_wf = init_autorecon_resume_wf(omp_nthreads=omp_nthreads)
@@ -1275,7 +1283,7 @@ def init_anat_derivatives_wf(output_dir, output_spaces, template, freesurfer,
         DerivativesDataSink(base_directory=output_dir, suffix=suffix_fmt(template, 'warp')),
         name='ds_t1_mni_warp', run_without_submitting=True)
 
-    lta_2_itk = pe.Node(fs.utils.LTAConvert(out_itk=True), name='lta_2_itk')
+    lta_2_itk = pe.Node(LTAConvert(out_itk=True), name='lta_2_itk')
 
     ds_t1_fsnative = pe.Node(
         DerivativesDataSink(base_directory=output_dir, suffix=suffix_fmt('fsnative', 'affine')),

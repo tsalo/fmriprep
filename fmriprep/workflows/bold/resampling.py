@@ -27,8 +27,10 @@ from ...interfaces.nilearn import Merge
 from ...interfaces.freesurfer import (
     MedialNaNs,
     # See https://github.com/poldracklab/fmriprep/issues/768
-    PatchedConcatenateLTA as ConcatenateLTA
+    PatchedConcatenateLTA as ConcatenateLTA,
+    PatchedLTAConvert as LTAConvert
 )
+from ..anatomical import TEMPLATE_MAP
 
 from .util import init_bold_reference_wf
 
@@ -115,7 +117,7 @@ spaces: {out_spaces}.
                             mem_gb=DEFAULT_MEMORY_MIN_GB)
     rename_src.inputs.subject = spaces
 
-    resampling_xfm = pe.Node(fs.utils.LTAConvert(in_lta='identity.nofile', out_lta=True),
+    resampling_xfm = pe.Node(LTAConvert(in_lta='identity.nofile', out_lta=True),
                              name='resampling_xfm')
     set_xfm_source = pe.Node(ConcatenateLTA(out_type='RAS2RAS'), name='set_xfm_source')
 
@@ -225,6 +227,8 @@ def init_bold_mni_trans_wf(template, mem_gb, omp_nthreads,
 
         bold_mni
             BOLD series, resampled to template space
+        bold_mni_ref
+            Reference, contrast-enhanced summary of the BOLD series, resampled to template space
         bold_mask_mni
             BOLD series mask in template space
 
@@ -249,7 +253,7 @@ generating a *preprocessed BOLD run in {tpl} space*.
     )
 
     outputnode = pe.Node(
-        niu.IdentityInterface(fields=['bold_mni', 'bold_mask_mni']),
+        niu.IdentityInterface(fields=['bold_mni', 'bold_mni_ref', 'bold_mask_mni']),
         name='outputnode')
 
     def _aslist(in_value):
@@ -259,7 +263,7 @@ generating a *preprocessed BOLD run in {tpl} space*.
 
     gen_ref = pe.Node(GenerateSamplingReference(), name='gen_ref',
                       mem_gb=0.3)  # 256x256x256 * 64 / 8 ~ 150MB)
-    template_str = nid.TEMPLATE_MAP[template]
+    template_str = TEMPLATE_MAP[template]
     gen_ref.inputs.fixed_image = op.join(nid.get_dataset(template_str), '1mm_T1.nii.gz')
 
     mask_mni_tfm = pe.Node(
@@ -296,6 +300,9 @@ generating a *preprocessed BOLD run in {tpl} space*.
     merge = pe.Node(Merge(compress=use_compression), name='merge',
                     mem_gb=mem_gb * 3)
 
+    # Generate a reference on the target T1w space
+    gen_final_ref = init_bold_reference_wf(omp_nthreads)
+
     workflow.connect([
         (inputnode, merge_xforms, [('t1_2_mni_forward_transform', 'in1'),
                                    (('itk_bold_to_t1', _aslist), 'in2')]),
@@ -303,7 +310,9 @@ generating a *preprocessed BOLD run in {tpl} space*.
         (inputnode, merge, [('name_source', 'header_source')]),
         (inputnode, bold_to_mni_transform, [('bold_split', 'input_image')]),
         (bold_to_mni_transform, merge, [('out_files', 'in_files')]),
+        (merge, gen_final_ref, [('out_file', 'inputnode.bold_file')]),
         (merge, outputnode, [('out_file', 'bold_mni')]),
+        (gen_final_ref, outputnode, [('outputnode.ref_image', 'bold_mni_ref')]),
     ])
 
     if template_out_grid == 'native':

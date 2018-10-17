@@ -94,16 +94,17 @@ REQUIRES = [
     'sklearn',
     'nibabel>=2.2.1',
     'pandas',
-    'grabbit',
-    'pybids>=0.6.3',
+    'grabbit==0.2.3',
+    'pybids==0.6.5',
     'nitime',
-    'nipype>=1.1.1',
-    'niworkflows>=0.4.2',
+    'nipype>=1.1.3',
+    'niworkflows>=0.4.3',
     'statsmodels',
     'seaborn',
     'indexed_gzip>=0.8.2',
     'scikit-image',
     'versioneer',
+    'pyyaml',
 ]
 
 LINKS_REQUIRES = [
