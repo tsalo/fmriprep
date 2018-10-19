@@ -7,7 +7,7 @@ Miscellaneous utilities
 """
 
 
-def fix_multi_T1w_source_name(in_files):
+def fix_multi_T1w_source_name(in_files, session):
     """
     Make up a generic source name when there are multiple T1s
 
@@ -18,10 +18,18 @@ def fix_multi_T1w_source_name(in_files):
 
     """
     import os
+    import re
     from nipype.utils.filemanip import filename_to_list
     base, in_file = os.path.split(filename_to_list(in_files)[0])
     subject_label = in_file.split("_", 1)[0].split("-")[1]
-    return os.path.join(base, "sub-%s_T1w.nii.gz" % subject_label)
+    if session:
+        temp = re.search('ses-[0-9a-zA-Z]_', in_file).group()
+        session_id = temp.split('ses-')[1].split('_')[0]
+        filename = os.path.join(
+            base, "sub-{0}_ses-{1}_T1w.nii.gz".format(subject_label, session_id))
+    else:
+        filename = os.path.join(base, "sub-{}_T1w.nii.gz".format(subject_label))
+    return filename
 
 
 def add_suffix(in_files, suffix):

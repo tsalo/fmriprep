@@ -33,7 +33,8 @@ from .anatomical import init_anat_preproc_wf
 from .bold import init_func_preproc_wf
 
 
-def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids_dir,
+def init_fmriprep_wf(subject_list, task_id, session_id, run_uuid, work_dir,
+                     output_dir, bids_dir, analysis_level,
                      ignore, debug, low_mem, anat_only, longitudinal, t2s_coreg,
                      omp_nthreads, skull_strip_template, skull_strip_fixed_seed,
                      freesurfer, output_spaces, template, medial_surface_nan, cifti_output, hires,
@@ -93,6 +94,8 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
             List of subject labels
         task_id : str or None
             Task ID of BOLD series to preprocess, or ``None`` to preprocess all
+        session_id : str or None
+            Session ID of BOLD series to preprocess, or ``None`` to preprocess all
         run_uuid : str
             Unique identifier for execution instance
         work_dir : str
@@ -179,10 +182,12 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
     for subject_id in subject_list:
         single_subject_wf = init_single_subject_wf(subject_id=subject_id,
                                                    task_id=task_id,
+                                                   session_id=session_id,
                                                    name="single_subject_" + subject_id + "_wf",
                                                    reportlets_dir=reportlets_dir,
                                                    output_dir=output_dir,
                                                    bids_dir=bids_dir,
+                                                   analysis_level=analysis_level,
                                                    ignore=ignore,
                                                    debug=debug,
                                                    low_mem=low_mem,
@@ -223,7 +228,8 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
     return fmriprep_wf
 
 
-def init_single_subject_wf(subject_id, task_id, name, reportlets_dir, output_dir, bids_dir,
+def init_single_subject_wf(subject_id, task_id, session_id, name,
+                           reportlets_dir, output_dir, bids_dir, analysis_level,
                            ignore, debug, low_mem, anat_only, longitudinal, t2s_coreg,
                            omp_nthreads, skull_strip_template, skull_strip_fixed_seed,
                            freesurfer, output_spaces, template, medial_surface_nan,
@@ -251,6 +257,7 @@ def init_single_subject_wf(subject_id, task_id, name, reportlets_dir, output_dir
                                     reportlets_dir='.',
                                     output_dir='.',
                                     bids_dir='.',
+                                    analysis_level='participant',
                                     ignore=[],
                                     debug=False,
                                     low_mem=False,
@@ -368,7 +375,8 @@ def init_single_subject_wf(subject_id, task_id, name, reportlets_dir, output_dir
         }
         layout = None
     else:
-        subject_data, layout = collect_data(bids_dir, subject_id, task_id)
+        subject_data, layout = collect_data(bids_dir, subject_id, task_id,
+                                            session_id)
 
     # Make sure we always go through these two checks
     if not anat_only and subject_data['bold'] == []:
@@ -437,16 +445,22 @@ to workflows in *fMRIPrep*'s documentation]\
                                            template=template,
                                            debug=debug,
                                            longitudinal=longitudinal,
+                                           analysis_level=analysis_level,
                                            omp_nthreads=omp_nthreads,
                                            freesurfer=freesurfer,
                                            hires=hires,
                                            reportlets_dir=reportlets_dir,
                                            output_dir=output_dir,
                                            num_t1w=len(subject_data['t1w']))
+    t1_name = pe.Node(niu.Function(function=fix_multi_T1w_source_name,
+                                   input_names=['in_files', 'session']),
+                      name='t1_name')
+    t1_name.inputs.session = analysis_level == 'session'
 
     workflow.connect([
         (inputnode, anat_preproc_wf, [('subjects_dir', 'inputnode.subjects_dir')]),
-        (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
+        (bidssrc, t1_name, [('t1w', 'inputnode.in_files')]),
+        (t1_name, bids_info, [('out', 'in_file')]),
         (inputnode, summary, [('subjects_dir', 'subjects_dir')]),
         (bidssrc, summary, [('t1w', 't1w'),
                             ('t2w', 't2w'),
@@ -457,9 +471,9 @@ to workflows in *fMRIPrep*'s documentation]\
                                     ('roi', 'inputnode.roi'),
                                     ('flair', 'inputnode.flair')]),
         (summary, anat_preproc_wf, [('subject_id', 'inputnode.subject_id')]),
-        (bidssrc, ds_report_summary, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+        (t1_name, ds_report_summary, [('out', 'source_file')]),
         (summary, ds_report_summary, [('out_report', 'in_file')]),
-        (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+        (t1_name, ds_report_about, [('out', 'source_file')]),
         (about, ds_report_about, [('out_report', 'in_file')]),
     ])
 

@@ -60,7 +60,8 @@ TEMPLATE_MAP = {
 
 #  pylint: disable=R0914
 def init_anat_preproc_wf(skull_strip_template, output_spaces, template, debug,
-                         freesurfer, longitudinal, omp_nthreads, hires, reportlets_dir,
+                         freesurfer, longitudinal, analysis_level,
+                         omp_nthreads, hires, reportlets_dir,
                          output_dir, num_t1w,
                          skull_strip_fixed_seed=False, name='anat_preproc_wf'):
     r"""
@@ -88,6 +89,7 @@ def init_anat_preproc_wf(skull_strip_template, output_spaces, template, debug,
                                   skull_strip_template='OASIS',
                                   freesurfer=True,
                                   longitudinal=False,
+                                  analysis_level='participant',
                                   debug=False,
                                   hires=True,
                                   num_t1w=1)
@@ -366,14 +368,20 @@ and used as T1w-reference throughout the workflow.
 
     seg2msks = pe.Node(niu.Function(function=_seg2msks), name='seg2msks')
     seg_rpt = pe.Node(ROIsPlot(colors=['r', 'magenta', 'b', 'g']), name='seg_rpt')
+    t1_name = pe.Node(niu.Function(function=fix_multi_T1w_source_name,
+                                   input_names=['in_files', 'session']),
+                      name='t1_name')
+    t1_name.inputs.session = analysis_level == 'session'
     anat_reports_wf = init_anat_reports_wf(
         reportlets_dir=reportlets_dir, output_spaces=output_spaces, template=template,
         freesurfer=freesurfer)
     workflow.connect([
-        (inputnode, anat_reports_wf, [
-            (('t1w', fix_multi_T1w_source_name), 'inputnode.source_file')]),
         (anat_template_wf, anat_reports_wf, [
             ('outputnode.out_report', 'inputnode.t1_conform_report')]),
+        (inputnode, t1_name, [
+            ('t1w', 'inputnode.in_files')]),
+        (t1_name, anat_reports_wf, [
+            ('out', 'inputnode.source_file')]),
         (anat_template_wf, seg_rpt, [
             ('outputnode.t1_template', 'in_file')]),
         (t1_seg, seg2msks, [('tissue_class_map', 'in_file')]),
@@ -395,7 +403,8 @@ and used as T1w-reference throughout the workflow.
     anat_derivatives_wf = init_anat_derivatives_wf(output_dir=output_dir,
                                                    output_spaces=output_spaces,
                                                    template=template,
-                                                   freesurfer=freesurfer)
+                                                   freesurfer=freesurfer,
+                                                   analysis_level=analysis_level)
 
     workflow.connect([
         (anat_template_wf, anat_derivatives_wf, [
@@ -1208,7 +1217,7 @@ def init_anat_reports_wf(reportlets_dir, output_spaces,
 
 
 def init_anat_derivatives_wf(output_dir, output_spaces, template, freesurfer,
-                             name='anat_derivatives_wf'):
+                             analysis_level, name='anat_derivatives_wf'):
     """
     Set up a battery of datasinks to store derivatives in the right location
     """
@@ -1224,7 +1233,10 @@ def init_anat_derivatives_wf(output_dir, output_spaces, template, freesurfer,
                     't1_fs_aseg', 't1_fs_aparc']),
         name='inputnode')
 
-    t1_name = pe.Node(niu.Function(function=fix_multi_T1w_source_name), name='t1_name')
+    t1_name = pe.Node(niu.Function(function=fix_multi_T1w_source_name,
+                                   input_names=['in_files', 'session']),
+                      name='t1_name')
+    t1_name.inputs.session = analysis_level == 'session'
 
     ds_t1_preproc = pe.Node(
         DerivativesDataSink(base_directory=output_dir, suffix='preproc'),

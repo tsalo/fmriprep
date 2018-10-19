@@ -58,7 +58,7 @@ def get_parser():
     parser.add_argument('output_dir', action='store',
                         help='the output path for the outcomes of preprocessing and visual '
                              'reports')
-    parser.add_argument('analysis_level', choices=['participant'],
+    parser.add_argument('analysis_level', choices=['participant', 'session'],
                         help='processing stage to be run, only "participant" in the case of '
                              'FMRIPREP (see BIDS-Apps specification).')
 
@@ -69,9 +69,8 @@ def get_parser():
     g_bids.add_argument('--participant_label', '--participant-label', action='store', nargs='+',
                         help='a space delimited list of participant identifiers or a single '
                              'identifier (the sub- prefix can be removed)')
-    # Re-enable when option is actually implemented
-    # g_bids.add_argument('-s', '--session-id', action='store', default='single_session',
-    #                     help='select a specific session to be processed')
+    g_bids.add_argument('-s', '--session-id', action='store',
+                        help='select a specific session to be processed')
     # Re-enable when option is actually implemented
     # g_bids.add_argument('-r', '--run-id', action='store', default='single_run',
     #                     help='select a specific run to be processed')
@@ -521,6 +520,7 @@ def build_workflow(opts, retval):
     retval['workflow'] = init_fmriprep_wf(
         subject_list=subject_list,
         task_id=opts.task_id,
+        session_id=opts.session_id,
         run_uuid=run_uuid,
         ignore=opts.ignore,
         debug=opts.debug,
@@ -534,6 +534,7 @@ def build_workflow(opts, retval):
         work_dir=work_dir,
         output_dir=output_dir,
         bids_dir=bids_dir,
+        analysis_level=opts.analysis_level,
         freesurfer=opts.run_reconall,
         output_spaces=output_spaces,
         template=opts.template,

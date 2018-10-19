@@ -118,7 +118,7 @@ def collect_participants(bids_dir, participant_label=None, strict=False):
     return found_label
 
 
-def collect_data(dataset, participant_label, task=None):
+def collect_data(dataset, participant_label, task=None, session=None):
     """
     Uses grabbids to retrieve the input data for a given participant
 
@@ -172,6 +172,15 @@ def collect_data(dataset, participant_label, task=None):
 
     if task:
         queries['bold']['task'] = task
+
+    if session:
+        queries['fmap']['session'] = session
+        queries['bold']['session'] = session
+        queries['sbref']['session'] = session
+        queries['flair']['session'] = session
+        queries['t2w']['session'] = session
+        queries['t1w']['session'] = session
+        queries['roi']['session'] = session
 
     subj_data = {modality: [x.filename for x in layout.get(**query)]
                  for modality, query in queries.items()}
