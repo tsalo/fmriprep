@@ -165,8 +165,8 @@ jobs:
     steps:
       - restore_cache:
           keys:
-            - regression-v0-{{ epoch }}
-            - regression-v0-
+            - regression-v2-{{ epoch }}
+            - regression-v2-
       - run:
           name: Get truncated BOLD series
           command: |
@@ -193,7 +193,7 @@ jobs:
           paths:
             - data
       - save_cache:
-         key: regression-v0-{{ epoch }}
+         key: regression-v2-{{ epoch }}
          paths:
             - /tmp/data
 
@@ -227,10 +227,6 @@ jobs:
             fi
       - attach_workspace:
           at: /tmp
-      - restore_cache:
-          keys:
-            - regression-v0-{{ epoch }}
-            - regression-v0-
       - run:
           name: Check PyPi preconditions
           command: |
@@ -260,7 +256,13 @@ jobs:
               -e FMRIPREP_REGRESSION_REPORTS=/tmp/data/reports \
               --entrypoint="py.test" poldracklab/fmriprep:latest \
               /root/src/fmriprep/ \
-              --doctest-modules --ignore=/root/src/fmriprep/docs --ignore=setup.py
+              -svx --doctest-modules --ignore=/root/src/fmriprep/docs --ignore=setup.py
+      - run:
+          name: Package new masks
+          no_output_timeout: 10m
+          working_directory: /tmp/data/reports
+          command: |
+            tar cfz fmriprep_bold_mask.tar.gz fmriprep_bold_mask/*/*.nii.gz
       - run:
           name: Test fmriprep-wrapper (Python 2)
           command: |
@@ -352,10 +354,10 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - ds005-anat-v8-{{ .Branch }}-{{ epoch }}
-            - ds005-anat-v8-{{ .Branch }}
-            - ds005-anat-v8-master
-            - ds005-anat-v8-
+            - ds005-anat-v9-{{ .Branch }}-{{ epoch }}
+            - ds005-anat-v9-{{ .Branch }}
+            - ds005-anat-v9-master
+            - ds005-anat-v9-
       - run:
           name: Setting up test
           command: |
@@ -389,7 +391,7 @@ jobs:
                 --debug --write-graph --mem_mb 4096 \
                 --nthreads 2 --anat-only -vv
       - save_cache:
-         key: ds005-anat-v8-{{ .Branch }}-{{ epoch }}
+         key: ds005-anat-v9-{{ .Branch }}-{{ epoch }}
          paths:
             - /tmp/ds005/work
             - /tmp/ds005/derivatives/fmriprep
@@ -481,10 +483,10 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - ds054-anat-v6-{{ .Branch }}-{{ epoch }}
-            - ds054-anat-v6-{{ .Branch }}
-            - ds054-anat-v6-master
-            - ds054-anat-v6-
+            - ds054-anat-v7-{{ .Branch }}-{{ epoch }}
+            - ds054-anat-v7-{{ .Branch }}
+            - ds054-anat-v7-master
+            - ds054-anat-v7-
       - run:
           name: Setting up test
           command: |
@@ -518,7 +520,7 @@ jobs:
                 --fs-no-reconall --debug --write-graph \
                 --mem_mb 4096 --nthreads 2 --anat-only -vv
       - save_cache:
-         key: ds054-anat-v6-{{ .Branch }}-{{ epoch }}
+         key: ds054-anat-v7-{{ .Branch }}-{{ epoch }}
          paths:
             - /tmp/ds054/work
             - /tmp/ds054/derivatives
@@ -599,8 +601,8 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - ds210-anat-v3-{{ epoch }}
-            - ds210-anat-v3-
+            - ds210-anat-v4-{{ epoch }}
+            - ds210-anat-v4-
       - run:
           name: Setting up test
           command: |
@@ -634,7 +636,7 @@ jobs:
                 --fs-no-reconall --debug --write-graph \
                 --mem_mb 4096 --nthreads 2 --anat-only -vv
       - save_cache:
-         key: ds210-anat-v3-{{ epoch }}
+         key: ds210-anat-v4-{{ epoch }}
          paths:
             - /tmp/ds210/work
             - /tmp/ds210/derivatives
@@ -719,7 +721,9 @@ workflows:
       - get_data:
           filters:
             branches:
-              ignore: /docs?\/.*/
+              ignore:
+                - /docs?\/.*/
+                - /tests?\/.*/
             tags:
               only: /.*/
 
@@ -732,6 +736,8 @@ workflows:
           requires:
             - build
           filters:
+            branches:
+              ignore: /tests?\/.*/
             tags:
               only: /.*/
 
@@ -740,7 +746,9 @@ workflows:
             - build
           filters:
             branches:
-              ignore: /docs?\/.*/
+              ignore:
+                - /docs?\/.*/
+                - /tests?\/.*/
             tags:
               only: /.*/
 
@@ -760,7 +768,9 @@ workflows:
             - build
           filters:
             branches:
-              ignore: /docs?\/.*/
+              ignore:
+                - /docs?\/.*/
+                - /tests?\/.*/
             tags:
               only: /.*/
 
@@ -770,7 +780,9 @@ workflows:
             - build
           filters:
             branches:
-              ignore: /docs?\/.*/
+              ignore:
+                - /docs?\/.*/
+                - /tests?\/.*/
             tags:
               only: /.*/
 
@@ -781,7 +793,9 @@ workflows:
           filters:
             branches:
               # only: /meepi.*/
-              ignore: /docs?\/.*/
+              ignore:
+                - /docs?\/.*/
+                - /tests?\/.*/
             tags:
               only: /.*/
 
