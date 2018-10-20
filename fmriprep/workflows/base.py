@@ -180,10 +180,14 @@ def init_fmriprep_wf(subject_list, task_id, session_id, run_uuid, work_dir,
 
     reportlets_dir = os.path.join(work_dir, 'reportlets')
     for subject_id in subject_list:
+        if session_id:
+            name = "single_subject_{0}_session_{1}_wf".format(subject_id, session_id)
+        else:
+            name = "single_subject_{0}_wf".format(subject_id)
         single_subject_wf = init_single_subject_wf(subject_id=subject_id,
                                                    task_id=task_id,
                                                    session_id=session_id,
-                                                   name="single_subject_" + subject_id + "_wf",
+                                                   name=name,
                                                    reportlets_dir=reportlets_dir,
                                                    output_dir=output_dir,
                                                    bids_dir=bids_dir,
@@ -459,7 +463,7 @@ to workflows in *fMRIPrep*'s documentation]\
 
     workflow.connect([
         (inputnode, anat_preproc_wf, [('subjects_dir', 'inputnode.subjects_dir')]),
-        (bidssrc, t1_name, [('t1w', 'inputnode.in_files')]),
+        (bidssrc, t1_name, [('t1w', 'in_files')]),
         (t1_name, bids_info, [('out', 'in_file')]),
         (inputnode, summary, [('subjects_dir', 'subjects_dir')]),
         (bidssrc, summary, [('t1w', 't1w'),

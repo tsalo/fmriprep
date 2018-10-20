@@ -379,7 +379,7 @@ and used as T1w-reference throughout the workflow.
         (anat_template_wf, anat_reports_wf, [
             ('outputnode.out_report', 'inputnode.t1_conform_report')]),
         (inputnode, t1_name, [
-            ('t1w', 'inputnode.in_files')]),
+            ('t1w', 'in_files')]),
         (t1_name, anat_reports_wf, [
             ('out', 'inputnode.source_file')]),
         (anat_template_wf, seg_rpt, [
