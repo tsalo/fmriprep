@@ -1,3 +1,98 @@
+1.2.5 (December 4, 2018)
+========================
+
+Hotfix release.
+
+* [FIX] Breadcrumb reporting (#1435) @chrisfilo
+
+
+1.2.4 (December 3, 2018)
+========================
+
+Bugfixes, an additional iteration over Sentry reporting and some relevant ME-EPI updates 
+(with thanks to @emdupre).
+
+* [ENH] Update ME-EPI workflow to create optimal combination (#1263) @emdupre
+* [MAINT] Merge master into multiecho (#1324) @effigies
+* [ENH] Add echo-idx flag (#1355) @emdupre
+* [FIX] Always run FreeSurfer interfaces that sink outside working directory (#1397) @effigies
+* [ENH] Use Python 3.7 in Dockerfile (#1398) @effigies
+* [DOC] Update contributing guide and add code of conduct (#1404) @emdupre
+* [FIX] Calculate template transforms explicitly as RAS2RAS (#1399) @effigies
+* [MAINT] Replace ``img.get_affine()`` -> ``img.affine`` (#1414) @oesteban
+* [FIX] Truncating of sentry messages (#1417) @chrisfilo
+* [ENH] Add fmriprep-docker execution environment (#1416) @chrisfilo
+* [MAINT] Update indexed_gzip to handle small .nii.gz (#1421) @effigies
+* [ENH] Group common issues with fingerprints (#1418) @chrisfilo
+* [ENH] adding memory and cpu info to sentry logs (#1420) @chrisfilo
+* [ENH] Use standard T2* map as coregistration target (#1383) @emdupre
+* [ENH] Handle FreeSurfer subject directory preparation gracefully when run in parallel (#1413) @effigies
+* [ENH] Make sure inputs are BIDS compliant before running fmriprep (#1419) @chrisfilo
+* [ENH] Sentry event categorization propagation (#1422) @chrisfilo
+* [MAINT] Require nipype >= 1.1.6 (#1426) @effigies
+* [ENH] Omnibus multi-echo pull request (#1296) @effigies
+* [ENH] Report memory overcommit policies (#1429) @effigies
+
+
+1.2.3 (November 16, 2018)
+=========================
+
+Refactor of Sentry reporting, bug fixes and added tests. With thanks to @sebnaze for contributions.
+
+* [TEST] Utility functions for skipping/re-inserting non-steady-state volumes (#1382) @jdkent
+* [FIX] Correctly populate right-hemisphere time series in CIFTI derivatives (#1378) @sebnaze
+* [FIX] Restore original contour colors in reports (#1385) @oesteban
+* [ENH] New sentry SDK (#1381) @chrisfilo
+* [ENH] Sentry refinement (#1394) @chrisfilo
+
+
+1.2.2 (November 9, 2018)
+========================
+
+Several bug fixes. With thanks to Franz Liem, Nir Jacoby and Markus Handal Sneve for contributions.
+
+* [FIX] Do not show --debug deprecation warning unless used (#1361) @effigies
+* [FIX] Select consistent parcellation for producing aparcaseg derivatives (#1369) @nirjacoby
+* [FIX] Count non-steady-state volumes even if sbref is passed (#1373) @effigies
+* [ENH] Respect SliceEncodingDirection metadata (#1350) @fliem
+* [ENH] Set maximum MELODIC components to 200 by default (#1366) @markushs
+* [TEST] Verify LegacyMultiProc functionality (#1368) @effigies
+
+1.2.1 (November 1, 2018)
+========================
+
+Hotfix release (deployment system)
+
+1.2.0 (October 31, 2018)
+========================
+
+This release marks a substantial renaming of derivatives to conform to the BIDS Derivatives specification [release candidate](https://docs.google.com/document/d/17ebopupQxuRwp7U7TFvS6BH03ALJOgGHufxK8ToAvyI/).
+
+The most significant additional change is a substantial revision of BOLD skull-stripping, using a BOLD template constructed from many open datasets. Building off the work of Zhifang Ye (see #1050), the skull-stripping is now much more resilient to intensity inhomogeneity.
+
+With many thanks to Ali Cohen, James Kent, Inge Amlien, Sebastian Urchs, and Zhifang Ye for contributions.
+
+* [FIX] Missing BOLD reports (#1326) @oesteban
+* [FIX] Ensure encoding when reading boilerplate (#1322) @alioco
+* [FIX] Reportlets - bbregister vs flirtbbr (continues #1326) (#1328) @oesteban
+* [FIX] Quick update to new template structure (#1330) @oesteban
+* [FIX] Explicitly pass bold mask to AROMA (#1332) @jdkent
+* [FIX] Missing report output - #1339 (#1346) @kasbohm
+* [FIX] Remove non-steady-state volumes prior to ICA-AROMA (#1335) @jdkent
+* [ENH] Store BOLD reference images (#1306) @oesteban
+* [ENH] Deprecate --debug with --sloppy (#1347) @effigies
+* [ENH] Conform confound regressor names to Derivatives RC2 (#1343) @effigies
+* [ENH] Do not set KEEP_FILE_OPEN_DEFAULT (#1356) @effigies
+* [ENH] Template-based masking of EPI boldrefs (#1321) @oesteban
+* [DOC] Update BIDS-validator link (#1320) @surchs
+* [DOC] add --bind method to singularity patch documentation (#1340) @jdkent
+* [RF] Update anatomical derivatives for RC1  (#1325) @effigies
+* [RF] Update functional derivatives for RC1 (#1333) @effigies
+* [TST] Add heavily-nonuniform boldrefs for regression tests (#1329) @oesteban
+* [TST] Fix expectations for CIFTI outputs & ds005 (#1344) @oesteban
+* [MAINT] Ignore project settings files from popular python/code editors (#1336) @jdkent
+* [CI] Deploy poldracklab/fmriprep:unstable tracking master (#1307) @effigies 
+
 1.1.8 (October 4, 2018)
 =======================
 
