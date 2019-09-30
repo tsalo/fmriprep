@@ -22,7 +22,7 @@ from nipype.interfaces import utility as niu
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 from niworkflows.interfaces.cifti import GenerateCifti
 
-from ...utils.meepi import combine_meepi_source
+from ...utils.meepi import combine_meepi_source, select_first
 
 from ...interfaces import DerivativesDataSink
 from ...interfaces.reports import FunctionalSummary
@@ -276,24 +276,26 @@ def init_func_preproc_wf(
         (key, modifiers) for key, modifiers in std_spaces.items()
         if not key.startswith('fs')])
 
-    ref_file = bold_file
     mem_gb = {'filesize': 1, 'resampled': 1, 'largemem': 1}
     bold_tlen = 10
     multiecho = isinstance(bold_file, list)
-
-    if multiecho:
+    if not multiecho:
+        ref_files = [bold_file]
+    else:
         tes = [layout.get_metadata(echo)['EchoTime'] for echo in bold_file]
-        ref_file = dict(zip(tes, bold_file))[min(tes)]
+        ref_files = [f for _, f in sorted(zip(tes, bold_file))]
 
-    if os.path.isfile(ref_file):
-        bold_tlen, mem_gb = _create_mem_gb(ref_file)
+    if os.path.isfile(ref_files[0]):
+        bold_tlen, mem_gb = _create_mem_gb(ref_files[0])
+        for k, v in mem_gb.items():
+            mem_gb[k] = v * len(ref_files)
 
-    wf_name = _get_wf_name(ref_file)
+    wf_name = _get_wf_name(ref_files[0])
     LOGGER.log(25, ('Creating bold processing workflow for "%s" (%.2f GB / %d TRs). '
                     'Memory resampled/largemem=%.2f/%.2f GB.'),
-               ref_file, mem_gb['filesize'], bold_tlen, mem_gb['resampled'], mem_gb['largemem'])
+               ', '.join(ref_files), mem_gb['filesize'], bold_tlen,
+               mem_gb['resampled'], mem_gb['largemem'])
 
-    sbref_file = None
     # For doc building purposes
     if not hasattr(layout, 'parse_file_entities'):
         LOGGER.log(25, 'No valid layout: building empty workflow.')
@@ -312,34 +314,33 @@ def init_func_preproc_wf(
         multiecho = False
     else:
         # Find associated sbref, if possible
-        entities = layout.parse_file_entities(ref_file)
-        entities['suffix'] = 'sbref'
-        entities['extension'] = ['nii', 'nii.gz']  # Overwrite extensions
-        files = layout.get(return_type='file', **entities)
-        refbase = os.path.basename(ref_file)
+        sbref_files = []
+        for rf in ref_files:
+            entities = layout.parse_file_entities(rf)
+            entities['suffix'] = 'sbref'
+            entities['extension'] = ['nii', 'nii.gz']  # Overwrite extensions
+            sbref_files_init = layout.get(return_type='file', **entities)
+            sbref_entities = {f: layout.parse_file_entities(f) for f in sbref_files_init}
+            mag_sbrf = sorted([k for k, v in sbref_entities.items() if
+                               v.get('reconstruction', 'magnitude') == 'magnitude'])
+            if len(mag_sbrf):
+                sbref_files.append(mag_sbrf[0])  # grab first (and probably only)
+
+        refbase = [os.path.basename(f) for f in ref_files]
         if 'sbref' in ignore:
             LOGGER.info("Single-band reference files ignored.")
-        elif files and multiecho:
-            LOGGER.warning("Single-band reference found, but not supported in "
-                           "multi-echo workflows at this time. Ignoring.")
-        elif files:
-            sbref_file = files[0]
-            sbbase = os.path.basename(sbref_file)
-            if len(files) > 1:
-                LOGGER.warning(
-                    "Multiple single-band reference files found for {}; using "
-                    "{}".format(refbase, sbbase))
-            else:
-                LOGGER.log(25, "Using single-band reference file {}".format(sbbase))
+        elif len(sbref_files):
+            sbbases = [os.path.basename(sbref_file) for sbref_file in sbref_files]
+            LOGGER.log(25, "Using single-band reference file(s) {}".format(', '.join(sbbases)))
         else:
-            LOGGER.log(25, "No single-band-reference found for {}".format(refbase))
+            LOGGER.log(25, "No single-band-reference found for {}".format(', '.join(refbase)))
 
-        metadata = layout.get_metadata(ref_file)
+        metadata = layout.get_metadata(ref_files[0])
 
         # Find fieldmaps. Options: (phase1|phase2|phasediff|epi|fieldmap|syn)
         fmaps = []
         if 'fieldmaps' not in ignore:
-            for fmap in layout.get_fieldmap(ref_file, return_list=True):
+            for fmap in layout.get_fieldmap(ref_files[0], return_list=True):
                 if fmap['suffix'] == 'phase':
                     LOGGER.warning("""\
 Found phase1/2 type of fieldmaps, which are not currently supported. \
@@ -357,7 +358,7 @@ https://github.com/poldracklab/fmriprep/issues/1655.""")
         # Short circuits: (True and True and (False or 'TooShort')) == 'TooShort'
         run_stc = ("SliceTiming" in metadata and
                    'slicetiming' not in ignore and
-                   (_get_series_len(ref_file) > 4 or "TooShort"))
+                   (_get_series_len(ref_files[0]) > 4 or "TooShort"))
 
     # Check if MEEPI for T2* coregistration target
     if t2s_coreg and not multiecho:
@@ -400,9 +401,11 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 't1_2_fsnative_forward_transform', 't1_2_fsnative_reverse_transform']),
         name='inputnode')
     inputnode.inputs.bold_file = bold_file
-    if sbref_file is not None:
+    if sbref_files is not None:
         from niworkflows.interfaces.images import ValidateImage
-        val_sbref = pe.Node(ValidateImage(in_file=sbref_file), name='val_sbref')
+        val_sbref = pe.MapNode(ValidateImage(), name='val_sbref',
+                               iterfield=['in_file'])
+        val_sbref.inputs.in_file = sbref_files
 
     outputnode = pe.Node(niu.IdentityInterface(
         fields=['bold_t1', 'bold_t1_ref', 'bold_mask_t1', 'bold_aseg_t1', 'bold_aparc_t1',
@@ -466,7 +469,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     # Generate a tentative boldref
     bold_reference_wf = init_bold_reference_wf(omp_nthreads=omp_nthreads)
     bold_reference_wf.inputs.inputnode.dummy_scans = dummy_scans
-    if sbref_file is not None:
+    if sbref_files is not None:
         workflow.connect([
             (val_sbref, bold_reference_wf, [('out_file', 'inputnode.sbref_file')]),
         ])
@@ -517,7 +520,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         use_fieldwarp=(fmaps is not None or use_syn),
         name='bold_bold_trans_wf'
     )
-    bold_bold_trans_wf.inputs.inputnode.name_source = ref_file
+    bold_bold_trans_wf.inputs.inputnode.name_source = ref_files[0]
 
     # SLICE-TIME CORRECTION (or bypass) #############################################
     if run_stc is True:  # bool('TooShort') == True, so check True explicitly
@@ -556,15 +559,15 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
     if not fmaps:
         LOGGER.warning('SDC: no fieldmaps found or they were ignored (%s).',
-                       ref_file)
+                       ref_files[0])
     elif fmaps[0]['suffix'] == 'syn':
         LOGGER.warning(
             'SDC: no fieldmaps found or they were ignored. '
             'Using EXPERIMENTAL "fieldmap-less SyN" correction '
-            'for dataset %s.', ref_file)
+            'for dataset %s.', ref_files[0])
     else:
         LOGGER.log(25, 'SDC: fieldmap estimation of type "%s" intended for %s found.',
-                   fmaps[0]['suffix'], ref_file)
+                   fmaps[0]['suffix'], ref_files[0])
 
     # Overwrite ``out_path_base`` of sdcflows' DataSinks
     for node in bold_sdc_wf.list_node_names():
@@ -576,7 +579,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         from .util import init_skullstrip_bold_wf
         skullstrip_bold_wf = init_skullstrip_bold_wf(name='skullstrip_bold_wf')
 
-        inputnode.inputs.bold_file = ref_file  # Replace reference w first echo
+        #inputnode.inputs.bold_file = ref_files
 
         join_echos = pe.JoinNode(niu.IdentityInterface(fields=['bold_files']),
                                  joinsource=('meepi_echos' if run_stc is True else 'boldbuffer'),
@@ -618,7 +621,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ('subject_id', 'inputnode.subject_id'),
             ('t1_2_fsnative_reverse_transform', 'inputnode.t1_2_fsnative_reverse_transform')]),
         (inputnode, bold_t1_trans_wf, [
-            ('bold_file', 'inputnode.name_source'),
+            (('bold_file', select_first), 'inputnode.name_source'),
             ('t1_brain', 'inputnode.t1_brain'),
             ('t1_mask', 'inputnode.t1_mask'),
             ('t1_aseg', 'inputnode.t1_aseg'),
@@ -787,7 +790,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (inputnode, bold_std_trans_wf, [
                 ('joint_template', 'inputnode.templates'),
                 ('joint_anat2std_xfm', 'inputnode.anat2std_xfm'),
-                ('bold_file', 'inputnode.name_source'),
+                (('bold_file', select_first), 'inputnode.name_source'),
                 ('t1_aseg', 'inputnode.bold_aseg'),
                 ('t1_aparc', 'inputnode.bold_aparc')]),
             (bold_hmc_wf, bold_std_trans_wf, [
@@ -886,7 +889,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                     ('outputnode.bold_mask_std', 'inputnode.bold_mask_std'),
                     ('outputnode.templates', 'inputnode.templates')]),
                 (inputnode, ica_aroma_wf, [
-                    ('bold_file', 'inputnode.name_source')]),
+                    (('bold_file', select_first), 'inputnode.name_source')]),
                 (bold_hmc_wf, ica_aroma_wf, [
                     ('outputnode.movpar_file', 'inputnode.movpar_file')]),
                 (bold_reference_wf, ica_aroma_wf, [
@@ -970,7 +973,7 @@ data and volume-sampled data, were also generated.
     for node in workflow.list_node_names():
         if node.split('.')[-1].startswith('ds_report'):
             workflow.get_node(node).inputs.base_directory = reportlets_dir
-            workflow.get_node(node).inputs.source_file = ref_file
+            workflow.get_node(node).inputs.source_file = ref_files[0]
 
     return workflow
 

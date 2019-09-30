@@ -9,6 +9,19 @@ Multi-echo EPI utilities
 """
 
 
+def select_first(in_files):
+    """
+    Select the first file from a list of filenames.
+    Used to grab the first echo's file when processing
+    multi-echo data through workflows that only accept
+    a single file.
+    """
+    if isinstance(in_files, list):
+        return in_files[0]
+    else:
+        return in_files
+
+
 def combine_meepi_source(in_files):
     """
     Create a new source name when optimally
