@@ -22,8 +22,9 @@ from nipype.interfaces import utility as niu
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 from niworkflows.interfaces.cifti import GenerateCifti
 from niworkflows.interfaces.utils import DictMerge
+from niworkflows.utils.misc import select_first
 
-from ...utils.meepi import combine_meepi_source, select_first
+from ...utils.meepi import combine_meepi_source
 
 from ...interfaces import DerivativesDataSink
 from ...interfaces.reports import FunctionalSummary
