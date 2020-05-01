@@ -44,9 +44,32 @@ def init_fmriprep_wf():
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.bids import BIDSFreeSurferDir
+    from bids import BIDSReport
 
     fmriprep_wf = Workflow(name='fmriprep_wf')
     fmriprep_wf.base_dir = config.execution.work_dir
+
+    # Generate description of acquisition parameters
+    report = BIDSReport(config.execution.layout)
+
+    # Use most common protocol in boilerplate
+    if config.workflow.anat_only:
+        desc = report.generate(datatype='anat',
+                               subject=config.execution.participant_label
+                               ).most_common()[0][0]
+    elif config.workflow.force_syn or 'fieldmaps' in config.workflow.ignore:
+        desc = report.generate(datatype=['anat', 'func'],
+                               subject=config.execution.participant_label
+                               ).most_common()[0][0]
+    else:
+        # Ignore task-id because that will remove anats and fmaps from report
+        desc = report.generate(datatype=['anat', 'fmap', 'func'],
+                               subject=config.execution.participant_label
+                               ).most_common()[0][0]
+    fmriprep_wf.__desc__ = """\
+MRI Data Acquisition
+
+""" + desc
 
     freesurfer = config.workflow.run_reconall
     if freesurfer:
