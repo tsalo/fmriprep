@@ -662,11 +662,18 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             workflow.connect([
                 (bold_bold_trans_wf, bold_std_trans_wf, [
                     ('outputnode.bold_mask', 'inputnode.bold_mask')]),
+                (bold_split, bold_std_trans_wf, [
+                    ('out_files', 'inputnode.bold_split')]),
             ])
         else:
+            split_opt_comb = bold_split.clone(name='split_opt_comb')
             workflow.connect([
-                (join_echos, func_derivatives_wf, [
-                    (('bold_masks', select_first), 'inputnode.bold_mask_native')]),
+                (join_echos, bold_std_trans_wf, [
+                    (('bold_masks', select_first), 'inputnode.bold_mask')]),
+                (bold_t2s_wf, split_opt_comb, [
+                    ('outputnode.bold', 'in_file')]),
+                (split_opt_comb, bold_std_trans_wf, [
+                    ('out_files', 'inputnode.bold_split')]),
             ])
 
         if freesurfer:
@@ -678,21 +685,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 (bold_std_trans_wf, outputnode, [
                     ('outputnode.bold_aseg_std', 'bold_aseg_std'),
                     ('outputnode.bold_aparc_std', 'bold_aparc_std')]),
-            ])
-
-        if not multiecho:
-            workflow.connect([
-                (bold_split, bold_std_trans_wf, [
-                    ('out_files', 'inputnode.bold_split')])
-            ])
-        else:
-            split_opt_comb = bold_split.clone(name='split_opt_comb')
-            workflow.connect([
-                (bold_t2s_wf, split_opt_comb, [
-                    ('outputnode.bold', 'in_file')]),
-                (split_opt_comb, bold_std_trans_wf, [
-                    ('out_files', 'inputnode.bold_split')
-                ])
             ])
 
         # func_derivatives_wf internally parametrizes over snapshotted spaces.
