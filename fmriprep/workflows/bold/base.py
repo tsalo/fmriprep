@@ -21,7 +21,6 @@ from niworkflows.utils.connections import pop_file, listify
 
 
 from ...utils.meepi import combine_meepi_source
-from ...utils.misc import select_first
 
 from ...interfaces import DerivativesDataSink
 from ...interfaces.reports import FunctionalSummary
@@ -526,7 +525,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_bold_trans_wf, join_echos, [
                 ('outputnode.bold_mask', 'bold_masks')]),
             (join_echos, bold_confounds_wf, [
-                (('bold_masks', select_first), 'inputnode.bold_mask')
+                (('bold_masks', pop_file), 'inputnode.bold_mask')
             ])
         ])
 
@@ -614,7 +613,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         else:
             workflow.connect([
                 (join_echos, boldmask_to_t1w, [
-                    (('bold_masks', select_first), 'input_image')]),
+                    (('bold_masks', pop_file), 'input_image')]),
             ])
 
     if nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref')):
@@ -633,7 +632,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         else:
             workflow.connect([
                 (join_echos, func_derivatives_wf, [
-                    (('bold_masks', select_first), 'inputnode.bold_mask_native')]),
+                    (('bold_masks', pop_file), 'inputnode.bold_mask_native')]),
             ])
 
     if spaces.get_spaces(nonstandard=False, dim=(3,)):
@@ -677,7 +676,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             split_opt_comb = bold_split.clone(name='split_opt_comb')
             workflow.connect([
                 (join_echos, bold_std_trans_wf, [
-                    (('bold_masks', select_first), 'inputnode.bold_mask')]),
+                    (('bold_masks', pop_file), 'inputnode.bold_mask')]),
                 (bold_t2s_wf, split_opt_comb, [
                     ('outputnode.bold', 'in_file')]),
                 (split_opt_comb, bold_std_trans_wf, [
@@ -843,7 +842,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             else:
                 workflow.connect([
                     (join_echos, carpetplot_wf, [
-                        (('bold_masks', select_first), 'inputnode.bold_mask')]),
+                        (('bold_masks', pop_file), 'inputnode.bold_mask')]),
                 ])
 
         workflow.connect([
