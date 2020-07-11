@@ -538,6 +538,110 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
     return workflow
 
 
+def init_melodic_wf(
+    mem_gb,
+    metadata,
+    omp_nthreads,
+    melodic_dim=-200,
+    susan_fwhm=6.0,
+):
+    """
+    """
+    from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+
+    workflow = Workflow(name=name)
+    workflow.__postdesc__ = """\
+Independent component analysis was performed on the *preprocessed BOLD in MNI space*
+time-series after removal of non-steady state volumes and spatial smoothing
+with an isotropic, Gaussian kernel of {fwhm}mm FWHM (full-width half-maximum).
+""".format(fwhm=susan_fwhm)
+
+    inputnode = pe.Node(niu.IdentityInterface(
+        fields=[
+            'bold_std',
+            'bold_mask_std',
+            'name_source',
+            'skip_vols',
+            'spatial_reference',
+        ]), name='inputnode')
+
+    outputnode = pe.Node(niu.IdentityInterface(
+        fields=['smoothed_file', 'mask',
+                'melodic_mix', 'melodic_decomp', 'melodic_components',
+                'melodic_components_thresh']), name='outputnode')
+
+    # extract out to BOLD base
+    select_std = pe.Node(KeySelect(fields=['bold_mask_std', 'bold_std']),
+                         name='select_std', run_without_submitting=True)
+    select_std.inputs.key = 'MNI152NLin6Asym_res-2'
+
+    rm_non_steady_state = pe.Node(niu.Function(function=_remove_volumes,
+                                               output_names=['bold_cut']),
+                                  name='rm_nonsteady')
+
+    calc_median_val = pe.Node(fsl.ImageStats(op_string='-k %s -p 50'), name='calc_median_val')
+    calc_bold_mean = pe.Node(fsl.MeanImage(), name='calc_bold_mean')
+
+    def _getusans_func(image, thresh):
+        return [tuple([image, thresh])]
+    getusans = pe.Node(niu.Function(function=_getusans_func, output_names=['usans']),
+                       name='getusans', mem_gb=0.01)
+
+    smooth = pe.Node(fsl.SUSAN(fwhm=susan_fwhm), name='smooth')
+
+    # melodic node
+    melodic = pe.Node(fsl.MELODIC(
+        no_bet=True, tr_sec=float(metadata['RepetitionTime']),
+        mm_thresh=0.5, out_stats=True,
+        dim=aroma_melodic_dim), name="melodic")
+
+    def _getbtthresh(medianval):
+        return 0.75 * medianval
+
+    # connect the nodes
+    workflow.connect([
+        (inputnode, select_std, [('spatial_reference', 'keys'),
+                                 ('bold_std', 'bold_std'),
+                                 ('bold_mask_std', 'bold_mask_std')]),
+        (inputnode, rm_non_steady_state, [
+            ('skip_vols', 'skip_vols')]),
+        (select_std, rm_non_steady_state, [
+            ('bold_std', 'bold_file')]),
+        (select_std, calc_median_val, [
+            ('bold_mask_std', 'mask_file')]),
+        (rm_non_steady_state, calc_median_val, [
+            ('bold_cut', 'in_file')]),
+        (rm_non_steady_state, calc_bold_mean, [
+            ('bold_cut', 'in_file')]),
+        (calc_bold_mean, getusans, [('out_file', 'image')]),
+        (calc_median_val, getusans, [('out_stat', 'thresh')]),
+        # Connect input nodes to complete smoothing
+        (rm_non_steady_state, smooth, [
+            ('bold_cut', 'in_file')]),
+        (getusans, smooth, [('usans', 'usans')]),
+        (calc_median_val, smooth, [(('out_stat', _getbtthresh), 'brightness_threshold')]),
+        # connect smooth to melodic
+        (smooth, melodic, [('smoothed_file', 'in_files')]),
+        (select_std, melodic, [
+            ('bold_mask_std', 'mask')]),
+        # output for processing and reporting
+        (smooth, outputnode, [
+            ('smoothed_file', 'smoothed_file'),
+        ]),
+        (select_std, outputnode, [
+            ('bold_mask_std', 'mask')
+        ]),
+        (melodic, outputnode, [
+            ('melodic_mix', 'melodic_mix'),
+            ('melodic_decomp', 'melodic_decomp'),
+            ('melodic_components', 'melodic_components'),
+            ('melodic_components_thresh', 'melodic_components_thresh'),
+            ]),
+    ])
+
+    return workflow
+
+
 def init_ica_aroma_wf(
     mem_gb,
     metadata,
@@ -668,10 +772,16 @@ in the corresponding confounds file.
             'name_source',
             'skip_vols',
             'spatial_reference',
+            'smoothed_file',
+            'mask',
+            'melodic_mix',
+            'melodic_decomp',
+            'melodic_components',
+            'melodic_components_thresh'
         ]), name='inputnode')
 
     outputnode = pe.Node(niu.IdentityInterface(
-        fields=['aroma_confounds', 'aroma_noise_ics', 'melodic_mix',
+        fields=['aroma_confounds', 'aroma_noise_ics',
                 'nonaggr_denoised_file', 'aroma_metadata']), name='outputnode')
 
     # extract out to BOLD base
@@ -685,18 +795,6 @@ in the corresponding confounds file.
 
     calc_median_val = pe.Node(fsl.ImageStats(op_string='-k %s -p 50'), name='calc_median_val')
     calc_bold_mean = pe.Node(fsl.MeanImage(), name='calc_bold_mean')
-
-    def _getusans_func(image, thresh):
-        return [tuple([image, thresh])]
-    getusans = pe.Node(niu.Function(function=_getusans_func, output_names=['usans']),
-                       name='getusans', mem_gb=0.01)
-
-    smooth = pe.Node(fsl.SUSAN(fwhm=susan_fwhm), name='smooth')
-
-    # melodic node
-    melodic = pe.Node(fsl.MELODIC(
-        no_bet=True, tr_sec=float(metadata['RepetitionTime']), mm_thresh=0.5, out_stats=True,
-        dim=aroma_melodic_dim), name="melodic")
 
     # ica_aroma node
     ica_aroma = pe.Node(ICA_AROMARPT(
@@ -723,9 +821,6 @@ in the corresponding confounds file.
         name='ds_report_ica_aroma', run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB)
 
-    def _getbtthresh(medianval):
-        return 0.75 * medianval
-
     # connect the nodes
     workflow.connect([
         (inputnode, select_std, [('spatial_reference', 'keys'),
@@ -736,29 +831,12 @@ in the corresponding confounds file.
             ('skip_vols', 'skip_vols')]),
         (select_std, rm_non_steady_state, [
             ('bold_std', 'bold_file')]),
-        (select_std, calc_median_val, [
-            ('bold_mask_std', 'mask_file')]),
-        (rm_non_steady_state, calc_median_val, [
-            ('bold_cut', 'in_file')]),
-        (rm_non_steady_state, calc_bold_mean, [
-            ('bold_cut', 'in_file')]),
-        (calc_bold_mean, getusans, [('out_file', 'image')]),
-        (calc_median_val, getusans, [('out_stat', 'thresh')]),
-        # Connect input nodes to complete smoothing
-        (rm_non_steady_state, smooth, [
-            ('bold_cut', 'in_file')]),
-        (getusans, smooth, [('usans', 'usans')]),
-        (calc_median_val, smooth, [(('out_stat', _getbtthresh), 'brightness_threshold')]),
-        # connect smooth to melodic
-        (smooth, melodic, [('smoothed_file', 'in_files')]),
-        (select_std, melodic, [
-            ('bold_mask_std', 'mask')]),
         # connect nodes to ICA-AROMA
-        (smooth, ica_aroma, [('smoothed_file', 'in_file')]),
-        (select_std, ica_aroma, [
-            ('bold_mask_std', 'report_mask'),
-            ('bold_mask_std', 'mask')]),
-        (melodic, ica_aroma, [('out_dir', 'melodic_dir')]),
+        (inputnode, ica_aroma, [('smoothed_file', 'in_file')]),
+        (inputnode, ica_aroma, [
+            ('mask', 'report_mask'),
+            ('mask', 'mask')]),
+        (inputnode, ica_aroma, [('out_dir', 'melodic_dir')]),
         # generate tsvs from ICA-AROMA
         (ica_aroma, ica_aroma_confound_extraction, [('out_dir', 'in_directory')]),
         (inputnode, ica_aroma_confound_extraction, [
@@ -767,8 +845,7 @@ in the corresponding confounds file.
             ('aroma_metadata', 'in_file')]),
         # output for processing and reporting
         (ica_aroma_confound_extraction, outputnode, [('aroma_confounds', 'aroma_confounds'),
-                                                     ('aroma_noise_ics', 'aroma_noise_ics'),
-                                                     ('melodic_mix', 'melodic_mix')]),
+                                                     ('aroma_noise_ics', 'aroma_noise_ics')]),
         (ica_aroma_metadata_fmt, outputnode, [('output', 'aroma_metadata')]),
         (ica_aroma, add_non_steady_state, [
             ('nonaggr_denoised_file', 'bold_cut_file')]),
