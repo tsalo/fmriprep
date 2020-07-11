@@ -548,6 +548,13 @@ def init_melodic_wf(
     susan_fwhm=6.0,
 ):
     """
+    Build a workflow that runs MELODIC.
+
+    The following steps are performed:
+
+    #. Remove non-steady state volumes from the bold series.
+    #. Smooth data using FSL `susan`, with a kernel width FWHM=6.0mm.
+    #. Run FSL `melodic` outside of ICA-AROMA to generate the report
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 
@@ -595,7 +602,13 @@ with an isotropic, Gaussian kernel of {fwhm}mm FWHM (full-width half-maximum).
     melodic = pe.Node(fsl.MELODIC(
         no_bet=True, tr_sec=float(metadata['RepetitionTime']),
         mm_thresh=0.5, out_stats=True,
-        dim=aroma_melodic_dim), name="melodic")
+        dim=n_components), name="melodic")
+
+    # Convert MELODIC outputs to BIDS Derivatives format
+    melodic2bids = pe.Node(
+        MELODIC2BIDS(),
+        name="melodic2bids"
+    )
 
     def _getbtthresh(medianval):
         return 0.75 * medianval
@@ -633,11 +646,18 @@ with an isotropic, Gaussian kernel of {fwhm}mm FWHM (full-width half-maximum).
         (select_std, outputnode, [
             ('bold_mask_std', 'mask')
         ]),
-        (melodic, outputnode, [
+        (melodic, melodic2bids, [
             ('melodic_mix', 'melodic_mix'),
             ('melodic_decomp', 'melodic_decomp'),
             ('melodic_components', 'melodic_components'),
+            ]),
+        (melodic, outputnode, [
             ('melodic_components_thresh', 'melodic_components_thresh'),
+            ]),
+        (melodic2bids, outputnode, [
+            ('melodic_mix', 'melodic_mix'),
+            ('melodic_decomp', 'melodic_decomp'),
+            ('melodic_components', 'melodic_components'),
             ]),
     ])
 
@@ -648,10 +668,8 @@ def init_ica_aroma_wf(
     mem_gb,
     metadata,
     omp_nthreads,
-    aroma_melodic_dim=-200,
     err_on_aroma_warn=False,
     name='ica_aroma_wf',
-    susan_fwhm=6.0,
     use_fieldwarp=True,
 ):
     """
@@ -709,7 +727,7 @@ def init_ica_aroma_wf(
         Include SDC warp in single-shot transform from BOLD to MNI
     err_on_aroma_warn : :obj:`bool`
         Do not fail on ICA-AROMA errors
-    aroma_melodic_dim : :obj:`int`
+    n_components : :obj:`int`
         Set the dimensionality of the MELODIC ICA decomposition.
         Negative numbers set a maximum on automatic dimensionality estimation.
         Positive numbers set an exact number of components to extract.
