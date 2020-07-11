@@ -17,7 +17,8 @@ from templateflow.api import get as get_template
 
 from ...config import DEFAULT_MEMORY_MIN_GB
 from ...interfaces import (
-    GatherConfounds, ICAConfounds, FMRISummary, DerivativesDataSink
+    GatherConfounds, ICAConfounds, FMRISummary, DerivativesDataSink,
+    MELODIC2BIDS,
 )
 
 
