@@ -29,7 +29,7 @@ What if I find some images have undergone some pre-processing already (e.g., my 
 These images imply an unknown level of preprocessing (e.g. was it already bias-field corrected?),
 which makes it difficult to decide on best-practices for further processing.
 Hence, supporting such images was considered very low priority for *fMRIPrep*.
-For example, see `#707 <https://github.com/poldracklab/smriprep/issues/12>`_ and an illustration of
+For example, see `#707 <https://github.com/nipreps/smriprep/issues/12>`_ and an illustration of
 downstream consequences in `#939 <https://github.com/poldracklab/fmriprep/issues/939>`_.
 
 So for OpenFMRI, we've been excluding these subjects, and for user-supplied data, we would recommend
@@ -125,7 +125,7 @@ A symptomatic output looks like: ::
   FileNotFoundError: [Errno 2] No such file or directory: '/scratch/03201/jbwexler/openneuro_fmriprep/data/ds000003_work/ds000003-download/derivatives/fmriprep-1.4.0/fmriprep/logs/CITATION.md'
 
 If you would like to run *fMRIPrep* in parallel on multiple subjects please use
-`this method <https://neurostars.org/t/fmriprep-workaround-for-running-subjects-in-parallel/4449>`__.
+`this method <https://neurostars.org/t/updated-fmriprep-workaround-for-running-subjects-in-parallel/6677>`__.
 
 How much CPU time and RAM should I allocate for a typical fMRIPrep run?
 -----------------------------------------------------------------------
@@ -187,11 +187,16 @@ How do you use TemplateFlow in the absence of access to the Internet?
 ---------------------------------------------------------------------
 This is a fairly common situation in :abbr:`HPCs (high-performance computing)`
 systems, where the so-called login nodes have access to the Internet but
-compute nodes are isolated, or in PC/laptop enviroments if you are travelling.
+compute nodes are isolated, or in PC/laptop environments if you are traveling.
 *TemplateFlow* will require Internet access the first time it receives a
 query for a template resource that has not been previously accessed.
 If you know what are the templates you are planning to use, you could
 prefetch them using the Python client.
+In addition to the ``--output-spaces`` that you specify, *fMRIPrep* will
+internally require the ``MNI152NLin2009cAsym`` template.
+If the ``--skull-strip-template`` option is not set, then ``OASIS30ANTs``
+will be used.
+Finally, both the ``--cifti-output`` and ``--use-aroma`` arguments require ``MNI152NLin6Asym``.
 To do so, follow the next steps.
 
   1. By default, a mirror of *TemplateFlow* to store the resources will be
@@ -250,8 +255,10 @@ fMRIPrep uses the following queries, by default::
   }
 
 Only modifications of these queries will have any effect. You may filter on any entity defined
-in the the PyBIDS
+in the PyBIDS
 `config file <https://github.com/bids-standard/pybids/blob/master/bids/layout/config/bids.json>`__.
+To select images that do not have the entity set, use json value: ``null``.
+To select images that have any non-empty value for an entity use string: ``'*'``
 
 Can *fMRIPrep* continue to run after encountering an error?
 -----------------------------------------------------------

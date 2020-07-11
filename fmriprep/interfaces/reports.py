@@ -1,11 +1,6 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
-"""
-Interfaces to generate reportlets
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-"""
+"""Interfaces to generate reportlets."""
 
 import os
 import time
@@ -16,7 +11,7 @@ from nipype.interfaces.base import (
     traits, TraitedSpec, BaseInterfaceInputSpec,
     File, Directory, InputMultiObject, Str, isdefined,
     SimpleInterface)
-from nipype.interfaces import freesurfer as fs
+from smriprep.interfaces.freesurfer import ReconAll
 
 
 SUBJECT_TEMPLATE = """\
@@ -37,6 +32,7 @@ FUNCTIONAL_TEMPLATE = """\
 \t\t<ul class="elem-desc">
 \t\t\t<li>Repetition time (TR): {tr:.03g}s</li>
 \t\t\t<li>Phase-encoding (PE) direction: {pedir}</li>
+\t\t\t<li>{multiecho}</li>
 \t\t\t<li>Slice timing correction: {stc}</li>
 \t\t\t<li>Susceptibility distortion correction: {sdc}</li>
 \t\t\t<li>Registration: {registration}</li>
@@ -105,15 +101,22 @@ class SubjectSummary(SummaryInterface):
         return super(SubjectSummary, self)._run_interface(runtime)
 
     def _generate_segment(self):
-        from niworkflows.utils.bids import BIDS_NAME
+        BIDS_NAME = re.compile(
+            r'^(.*\/)?'
+            '(?P<subject_id>sub-[a-zA-Z0-9]+)'
+            '(_(?P<session_id>ses-[a-zA-Z0-9]+))?'
+            '(_(?P<task_id>task-[a-zA-Z0-9]+))?'
+            '(_(?P<acq_id>acq-[a-zA-Z0-9]+))?'
+            '(_(?P<rec_id>rec-[a-zA-Z0-9]+))?'
+            '(_(?P<run_id>run-[a-zA-Z0-9]+))?')
 
         if not isdefined(self.inputs.subjects_dir):
             freesurfer_status = 'Not run'
         else:
-            recon = fs.ReconAll(subjects_dir=self.inputs.subjects_dir,
-                                subject_id=self.inputs.subject_id,
-                                T1_files=self.inputs.t1w,
-                                flags='-noskullstrip')
+            recon = ReconAll(subjects_dir=self.inputs.subjects_dir,
+                             subject_id='sub-' + self.inputs.subject_id,
+                             T1_files=self.inputs.t1w,
+                             flags='-noskullstrip')
             if recon.cmdline.startswith('echo'):
                 freesurfer_status = 'Pre-existing directory'
             else:
@@ -162,10 +165,14 @@ class FunctionalSummaryInputSpec(BaseInterfaceInputSpec):
     fallback = traits.Bool(desc='Boundary-based registration rejected')
     registration_dof = traits.Enum(6, 9, 12, desc='Registration degrees of freedom',
                                    mandatory=True)
+    registration_init = traits.Enum('register', 'header', mandatory=True,
+                                    desc='Whether to initialize registration with the "header"'
+                                         ' or by centering the volumes ("register")')
     confounds_file = File(exists=True, desc='Confounds file')
     tr = traits.Float(desc='Repetition time', mandatory=True)
     dummy_scans = traits.Either(traits.Int(), None, desc='number of dummy scans specified by user')
     algo_dummy_scans = traits.Int(desc='number of dummy scans determined by algorithm')
+    echo_idx = traits.List([], usedefault=True, desc="BIDS echo identifiers")
 
 
 class FunctionalSummary(SummaryInterface):
@@ -176,6 +183,7 @@ class FunctionalSummary(SummaryInterface):
         stc = {True: 'Applied',
                False: 'Not applied',
                'TooShort': 'Skipped (too few volumes)'}[self.inputs.slice_timing]
+        # #TODO: Add a note about registration_init below?
         reg = {
             'FSL': [
                 'FSL <code>flirt</code> with boundary-based registration'
@@ -212,10 +220,20 @@ class FunctionalSummary(SummaryInterface):
         else:
             dummy_scan_msg = dummy_scan_tmp.format(n_dum=self.inputs.algo_dummy_scans)
 
+        multiecho = "Single-echo EPI sequence."
+        n_echos = len(self.inputs.echo_idx)
+        if n_echos == 1:
+            multiecho = (
+                f"Multi-echo EPI sequence: only echo {self.inputs.echo_idx[0]} processed "
+                "in single-echo mode."
+            )
+        if n_echos > 2:
+            multiecho = (f"Multi-echo EPI sequence: {n_echos} echoes.")
+
         return FUNCTIONAL_TEMPLATE.format(
             pedir=pedir, stc=stc, sdc=self.inputs.distortion_correction, registration=reg,
             confounds=re.sub(r'[\t ]+', ', ', conflist), tr=self.inputs.tr,
-            dummy_scan_desc=dummy_scan_msg)
+            dummy_scan_desc=dummy_scan_msg, multiecho=multiecho)
 
 
 class AboutSummaryInputSpec(BaseInterfaceInputSpec):

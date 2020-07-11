@@ -50,7 +50,6 @@ single reference template (see `Longitudinal processing`_).
             ('T1w', {}),
             ('fsnative', {})
         ]),
-        reportlets_dir='.',
         skull_strip_fixed_seed=False,
         t1w=['sub-01/anat/sub-01_T1w.nii.gz'],
     )
@@ -407,7 +406,8 @@ EPI to T1w registration
         mem_gb=1,
         omp_nthreads=1,
         use_bbr=True,
-        bold2t1w_dof=9)
+        bold2t1w_dof=9,
+        bold2t1w_init='register')
 
 The alignment between the reference :abbr:`EPI (echo-planar imaging)` image
 of each run and the reconstructed subject using the gray/white matter boundary
@@ -569,8 +569,8 @@ A visualization of the AROMA component classification is also included in the HT
 
 .. _bold_t2s:
 
-T2* Driven Coregistration
-~~~~~~~~~~~~~~~~~~~~~~~~~
+T2*-driven echo combination
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 :py:func:`~fmriprep.workflows.bold.t2s.init_bold_t2s_wf`
 
 If multi-echo :abbr:`BOLD (blood-oxygen level-dependent)` data is supplied,

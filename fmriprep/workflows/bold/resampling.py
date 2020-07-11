@@ -69,13 +69,8 @@ def init_bold_surf_wf(
         BOLD series, resampled to FreeSurfer surfaces
 
     """
+    from nipype.interfaces.io import FreeSurferSource
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-    from ...interfaces.nitransforms import ConcatenateXFMs
-
-    # See https://github.com/poldracklab/fmriprep/issues/768
-    from niworkflows.interfaces.freesurfer import (
-        PatchedLTAConvert as LTAConvert
-    )
     from niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
 
     workflow = Workflow(name=name)
@@ -86,11 +81,14 @@ The BOLD time-series were resampled onto the following surfaces
 """.format(out_spaces=', '.join(['*%s*' % s for s in surface_spaces]))
 
     inputnode = pe.Node(
-        niu.IdentityInterface(fields=['source_file', 't1w_preproc', 'subject_id', 'subjects_dir',
+        niu.IdentityInterface(fields=['source_file', 'subject_id', 'subjects_dir',
                                       't1w2fsnative_xfm']),
         name='inputnode')
     itersource = pe.Node(niu.IdentityInterface(fields=['target']), name='itersource')
     itersource.iterables = [('target', surface_spaces)]
+
+    get_fsnative = pe.Node(FreeSurferSource(), name='get_fsnative',
+                           run_without_submitting=True)
 
     def select_target(subject_id, space):
         """Get the target subject ID, given a source subject ID and a target space."""
@@ -103,11 +101,8 @@ The BOLD time-series were resampled onto the following surfaces
     rename_src = pe.Node(niu.Rename(format_string='%(subject)s', keep_ext=True),
                          name='rename_src', run_without_submitting=True,
                          mem_gb=DEFAULT_MEMORY_MIN_GB)
-    resampling_xfm = pe.Node(LTAConvert(in_lta='identity.nofile', out_lta=True),
-                             name='resampling_xfm')
-    merge_xfm = pe.Node(niu.Merge(2), name="merge_xfm", run_without_submitting=True)
-    concat_xfm = pe.Node(ConcatenateXFMs(out_fmt="fs"), name="concat_xfm")
-
+    itk2lta = pe.Node(niu.Function(function=_itk2lta), name="itk2lta",
+                      run_without_submitting=True)
     sampler = pe.MapNode(
         fs.SampleToSurface(
             cortex_mask=True,
@@ -127,20 +122,18 @@ The BOLD time-series were resampled onto the following surfaces
                              joinsource='itersource', name='outputnode')
 
     workflow.connect([
+        (inputnode, get_fsnative, [('subject_id', 'subject_id'),
+                                   ('subjects_dir', 'subjects_dir')]),
         (inputnode, targets, [('subject_id', 'subject_id')]),
         (inputnode, rename_src, [('source_file', 'in_file')]),
-        (inputnode, resampling_xfm, [('source_file', 'source_file'),
-                                     ('t1w_preproc', 'target_file')]),
-        (inputnode, concat_xfm, [('source_file', 'moving'),
-                                 ('t1w_preproc', 'reference')]),
-        (inputnode, merge_xfm, [('t1w2fsnative_xfm', 'in2')]),
+        (inputnode, itk2lta, [('source_file', 'src_file'),
+                              ('t1w2fsnative_xfm', 'in_file')]),
+        (get_fsnative, itk2lta, [('T1', 'dst_file')]),
         (inputnode, sampler, [('subjects_dir', 'subjects_dir'),
                               ('subject_id', 'subject_id')]),
         (itersource, targets, [('target', 'space')]),
         (itersource, rename_src, [('target', 'subject')]),
-        (resampling_xfm, merge_xfm, [('out_lta', 'in1')]),
-        (merge_xfm, concat_xfm, [('out', 'in_xfms')]),
-        (concat_xfm, sampler, [('out_xfm', 'reg_file')]),
+        (itk2lta, sampler, [('out', 'reg_file')]),
         (targets, sampler, [('out', 'target_subject')]),
         (rename_src, sampler, [('out_file', 'source_file')]),
         (update_metadata, outputnode, [('out_file', 'surfaces')]),
@@ -335,11 +328,8 @@ preprocessed BOLD runs*: {tpl}.
     gen_ref = pe.Node(GenerateSamplingReference(), name='gen_ref',
                       mem_gb=0.3)  # 256x256x256 * 64 / 8 ~ 150MB)
 
-    mask_std_tfm = pe.Node(
-        ApplyTransforms(interpolation='MultiLabel', float=True),
-        name='mask_std_tfm',
-        mem_gb=1
-    )
+    mask_std_tfm = pe.Node(ApplyTransforms(interpolation='MultiLabel'),
+                           name='mask_std_tfm', mem_gb=1)
 
     # Write corrected file in the designated output dir
     mask_merge_tfms = pe.Node(niu.Merge(2), name='mask_merge_tfms', run_without_submitting=True,
@@ -412,12 +402,10 @@ preprocessed BOLD runs*: {tpl}.
 
     if freesurfer:
         # Sample the parcellation files to functional space
-        aseg_std_tfm = pe.Node(
-            ApplyTransforms(interpolation='MultiLabel', float=True),
-            name='aseg_std_tfm', mem_gb=1)
-        aparc_std_tfm = pe.Node(
-            ApplyTransforms(interpolation='MultiLabel', float=True),
-            name='aparc_std_tfm', mem_gb=1)
+        aseg_std_tfm = pe.Node(ApplyTransforms(interpolation='MultiLabel'),
+                               name='aseg_std_tfm', mem_gb=1)
+        aparc_std_tfm = pe.Node(ApplyTransforms(interpolation='MultiLabel'),
+                                name='aparc_std_tfm', mem_gb=1)
 
         workflow.connect([
             (inputnode, aseg_std_tfm, [('bold_aseg', 'input_image')]),
@@ -583,75 +571,6 @@ the transforms to correct for head-motion""")
         workflow.connect([
             (inputnode, bold_transform, [(('hmc_xforms', _aslist), 'transforms')]),
         ])
-    return workflow
-
-
-def init_bold_preproc_report_wf(mem_gb, reportlets_dir, name='bold_preproc_report_wf'):
-    """
-    Generate a visual report.
-
-    This workflow generates and saves a reportlet showing the effect of resampling
-    the BOLD signal using the standard deviation maps.
-
-    Workflow Graph
-        .. workflow::
-            :graph2use: orig
-            :simple_form: yes
-
-            from fmriprep.workflows.bold.resampling import init_bold_preproc_report_wf
-            wf = init_bold_preproc_report_wf(mem_gb=1, reportlets_dir='.')
-
-    Parameters
-    ----------
-    mem_gb : :obj:`float`
-        Size of BOLD file in GB
-    reportlets_dir : :obj:`str`
-        Directory in which to save reportlets
-    name : :obj:`str`, optional
-        Workflow name (default: bold_preproc_report_wf)
-
-    Inputs
-    ------
-    in_pre
-        BOLD time-series, before resampling
-    in_post
-        BOLD time-series, after resampling
-    name_source
-        BOLD series NIfTI file
-        Used to recover original information lost during processing
-
-    """
-    from nipype.algorithms.confounds import TSNR
-    from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-    from niworkflows.interfaces import SimpleBeforeAfter
-    from ...interfaces import DerivativesDataSink
-
-    workflow = Workflow(name=name)
-
-    inputnode = pe.Node(niu.IdentityInterface(
-        fields=['in_pre', 'in_post', 'name_source']), name='inputnode')
-
-    pre_tsnr = pe.Node(TSNR(), name='pre_tsnr', mem_gb=mem_gb * 4.5)
-    pos_tsnr = pe.Node(TSNR(), name='pos_tsnr', mem_gb=mem_gb * 4.5)
-
-    bold_rpt = pe.Node(SimpleBeforeAfter(), name='bold_rpt',
-                       mem_gb=0.1)
-    ds_report_bold = pe.Node(
-        DerivativesDataSink(base_directory=reportlets_dir, desc='preproc',
-                            keep_dtype=True), name='ds_report_bold',
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-        run_without_submitting=True
-    )
-
-    workflow.connect([
-        (inputnode, ds_report_bold, [('name_source', 'source_file')]),
-        (inputnode, pre_tsnr, [('in_pre', 'in_file')]),
-        (inputnode, pos_tsnr, [('in_post', 'in_file')]),
-        (pre_tsnr, bold_rpt, [('stddev_file', 'before')]),
-        (pos_tsnr, bold_rpt, [('stddev_file', 'after')]),
-        (bold_rpt, ds_report_bold, [('out_report', 'in_file')]),
-    ])
-
     return workflow
 
 
@@ -843,3 +762,15 @@ def _is_native(in_value):
         in_value.get('resolution') == 'native'
         or in_value.get('res') == 'native'
     )
+
+
+def _itk2lta(in_file, src_file, dst_file):
+    import nitransforms as nt
+    from pathlib import Path
+    out_file = Path("out.lta").absolute()
+    nt.linear.load(
+        in_file,
+        fmt="fs" if in_file.endswith(".lta") else "itk",
+        reference=src_file).to_filename(
+            out_file, moving=dst_file, fmt="fs")
+    return str(out_file)

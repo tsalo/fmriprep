@@ -67,8 +67,13 @@ The :py:mod:`config` is responsible for other conveniency actions.
     :py:class:`~bids.layout.BIDSLayout`, etc.)
 
 """
+import os
 from multiprocessing import set_start_method
 
+# Disable NiPype etelemetry always
+_disable_et = bool(os.getenv("NO_ET") is not None or os.getenv("NIPYPE_NO_ET") is not None)
+os.environ["NIPYPE_NO_ET"] = "1"
+os.environ["NO_ET"] = "1"
 
 try:
     set_start_method('forkserver')
@@ -77,7 +82,6 @@ except RuntimeError:
 finally:
     # Defer all custom import for after initializing the forkserver and
     # ignoring the most annoying warnings
-    import os
     import sys
     import random
 
@@ -110,6 +114,16 @@ logging.addLevelName(15, 'VERBOSE')  # Add a new level between INFO and DEBUG
 
 DEFAULT_MEMORY_MIN_GB = 0.01
 
+# Ping NiPype eTelemetry once if env var was not set
+# workers on the pool will have the env variable set from the master process
+if not _disable_et:
+    # Just get so analytics track one hit
+    from contextlib import suppress
+    from requests import get as _get_url, ConnectionError, ReadTimeout
+    with suppress((ConnectionError, ReadTimeout)):
+        _get_url("https://rig.mit.edu/et/projects/nipy/nipype", timeout=0.05)
+
+# Execution environment
 _exec_env = os.name
 _docker_ver = None
 # special variable set in the container
@@ -122,8 +136,11 @@ if os.getenv('IS_DOCKER_8395080871'):
     del _cgroup
 
 _fs_license = os.getenv('FS_LICENSE')
-if _fs_license is None and os.getenv('FREESURFER_HOME'):
-    _fs_license = os.path.join(os.getenv('FREESURFER_HOME'), 'license.txt')
+if not _fs_license and os.getenv('FREESURFER_HOME'):
+    _fs_home = os.getenv('FREESURFER_HOME')
+    if _fs_home and (Path(_fs_home) / "license.txt").is_file():
+        _fs_license = str(Path(_fs_home) / "license.txt")
+    del _fs_home
 
 _templateflow_home = Path(os.getenv(
     'TEMPLATEFLOW_HOME',
@@ -272,7 +289,7 @@ class nipype(_Config):
             'plugin_args': cls.plugin_args,
         }
         if cls.plugin in ('MultiProc', 'LegacyMultiProc'):
-            out['plugin_args']['nprocs'] = int(cls.nprocs)
+            out['plugin_args']['n_procs'] = int(cls.nprocs)
             if cls.memory_gb:
                 out['plugin_args']['memory_gb'] = float(cls.memory_gb)
         return out
@@ -300,6 +317,7 @@ class nipype(_Config):
                 'crashfile_format': cls.crashfile_format,
                 'get_linked_libs': cls.get_linked_libs,
                 'stop_on_first_crash': cls.stop_on_first_crash,
+                'check_version': False,  # disable future telemetry
             }
         })
 
@@ -377,6 +395,9 @@ class execution(_Config):
     @classmethod
     def init(cls):
         """Create a new BIDS Layout accessible with :attr:`~execution.layout`."""
+        if cls.fs_license_file and Path(cls.fs_license_file).is_file():
+            os.environ["FS_LICENSE"] = str(cls.fs_license_file)
+
         if cls._layout is None:
             import re
             from bids.layout import BIDSLayout
@@ -389,6 +410,13 @@ class execution(_Config):
                 ignore=("code", "stimuli", "sourcedata", "models",
                         "derivatives", re.compile(r'^\.')))
         cls.layout = cls._layout
+        if cls.bids_filters:
+            from bids.layout import Query
+            # unserialize pybids Query enum values
+            for acq, filters in cls.bids_filters.items():
+                cls.bids_filters[acq] = {
+                    k: getattr(Query, v[7:-4]) if not isinstance(v, Query) and 'Query' in v else v
+                    for k, v in filters.items()}
 
 
 # These variables are not necessary anymore
@@ -414,6 +442,9 @@ class workflow(_Config):
     (positive = exact, negative = maximum)."""
     bold2t1w_dof = None
     """Degrees of freedom of the BOLD-to-T1w registration steps."""
+    bold2t1w_init = 'register'
+    """Whether to use standard coregistration ('register') or to initialize coregistration from the
+    BOLD image-header ('header')."""
     cifti_output = None
     """Generate HCP Grayordinates, accepts either ``'91k'`` (default) or ``'170k'``."""
     dummy_scans = None

@@ -186,7 +186,8 @@ were annotated as motion outliers.
         name='outputnode')
 
     # Get masks ready in T1w space
-    acc_tpm = pe.Node(AddTPMs(indices=[0, 2]), name='tpms_add_csf_wm')  # acc stands for aCompCor
+    acc_tpm = pe.Node(AddTPMs(indices=[1, 2]),  # BIDS convention (WM=1, CSF=2)
+                      name='acc_tpm')  # acc stands for aCompCor
     csf_roi = pe.Node(TPM2ROI(erode_mm=0, mask_erode_mm=30), name='csf_roi')
     wm_roi = pe.Node(TPM2ROI(
         erode_prop=0.6, mask_erode_prop=0.6**3),  # 0.6 = radius; 0.6^3 = volume
@@ -301,7 +302,7 @@ were annotated as motion outliers.
                         name='rois_plot', mem_gb=mem_gb)
 
     ds_report_bold_rois = pe.Node(
-        DerivativesDataSink(desc='rois', keep_dtype=True),
+        DerivativesDataSink(desc='rois', datatype="figures", dismiss_entities=("echo",)),
         name='ds_report_bold_rois', run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB)
 
@@ -313,7 +314,7 @@ were annotated as motion outliers.
                             metadata_sources=['tCompCor', 'aCompCor']),
         name='compcor_plot')
     ds_report_compcor = pe.Node(
-        DerivativesDataSink(desc='compcorvar', keep_dtype=True),
+        DerivativesDataSink(desc='compcorvar', datatype="figures", dismiss_entities=("echo",)),
         name='ds_report_compcor', run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB)
 
@@ -322,15 +323,15 @@ were annotated as motion outliers.
         ConfoundsCorrelationPlot(reference_column='global_signal', max_dim=70),
         name='conf_corr_plot')
     ds_report_conf_corr = pe.Node(
-        DerivativesDataSink(desc='confoundcorr', keep_dtype=True),
+        DerivativesDataSink(desc='confoundcorr', datatype="figures", dismiss_entities=("echo",)),
         name='ds_report_conf_corr', run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB)
 
     def _pick_csf(files):
-        return files[0]
+        return files[2]  # after smriprep#189, this is BIDS-compliant.
 
     def _pick_wm(files):
-        return files[-1]
+        return files[1]  # after smriprep#189, this is BIDS-compliant.
 
     workflow.connect([
         # Massage ROIs (in T1w space)
@@ -491,11 +492,11 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
 
     # Warp segmentation into EPI space
     resample_parc = pe.Node(ApplyTransforms(
-        float=True,
+        dimension=3,
         input_image=str(get_template(
             'MNI152NLin2009cAsym', resolution=1, desc='carpet',
             suffix='dseg', extension=['.nii', '.nii.gz'])),
-        dimension=3, default_value=0, interpolation='MultiLabel'),
+        interpolation='MultiLabel'),
         name='resample_parc')
 
     # Carpetplot and confounds plot
@@ -509,7 +510,8 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
             ('framewise_displacement', 'mm', 'FD')]),
         name='conf_plot', mem_gb=mem_gb)
     ds_report_bold_conf = pe.Node(
-        DerivativesDataSink(desc='carpetplot', keep_dtype=True),
+        DerivativesDataSink(desc='carpetplot', datatype="figures", extension="svg",
+                            dismiss_entities=("echo",)),
         name='ds_report_bold_conf', run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB)
 
@@ -817,7 +819,7 @@ in the corresponding confounds file.
         name='ica_aroma_metadata_fmt')
 
     ds_report_ica_aroma = pe.Node(
-        DerivativesDataSink(desc='aroma', keep_dtype=True),
+        DerivativesDataSink(desc='aroma', datatype="figures", dismiss_entities=("echo",)),
         name='ds_report_ica_aroma', run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB)
 

@@ -185,7 +185,7 @@ It is released under the [CC0]\
 """.format(nilearn_ver=NILEARN_VERSION)
 
     spaces = config.workflow.spaces
-    reportlets_dir = str(config.execution.work_dir / 'reportlets')
+    output_dir = str(config.execution.output_dir)
 
     inputnode = pe.Node(niu.IdentityInterface(fields=['subjects_dir']),
                         name='inputnode')
@@ -207,13 +207,13 @@ It is released under the [CC0]\
                     name='about', run_without_submitting=True)
 
     ds_report_summary = pe.Node(
-        DerivativesDataSink(base_directory=reportlets_dir,
-                            desc='summary', keep_dtype=True),
+        DerivativesDataSink(base_directory=output_dir, desc='summary', datatype="figures",
+                            dismiss_entities=("echo",)),
         name='ds_report_summary', run_without_submitting=True)
 
     ds_report_about = pe.Node(
-        DerivativesDataSink(base_directory=reportlets_dir,
-                            desc='about', keep_dtype=True),
+        DerivativesDataSink(base_directory=output_dir, desc='about', datatype="figures",
+                            dismiss_entities=("echo",)),
         name='ds_report_about', run_without_submitting=True)
 
     anat_derivatives = config.execution.anat_derivatives
@@ -226,6 +226,12 @@ It is released under the [CC0]\
             std_spaces,
             config.workflow.run_reconall,
         )
+        if anat_derivatives is None:
+            config.loggers.workflow.warning(f"""\
+Attempted to access pre-existing anatomical derivatives at \
+<{config.execution.anat_derivatives}>, however not all expectations of fMRIPrep \
+were met (for participant <{subject_id}>, spaces <{', '.join(std_spaces)}>, \
+reconall <{config.workflow.run_reconall}>).""")
 
     # Preprocessing of T1w (includes registration to MNI)
     anat_preproc_wf = init_anat_preproc_wf(
@@ -236,8 +242,7 @@ It is released under the [CC0]\
         hires=config.workflow.hires,
         longitudinal=config.workflow.longitudinal,
         omp_nthreads=config.nipype.omp_nthreads,
-        output_dir=str(config.execution.output_dir),
-        reportlets_dir=reportlets_dir,
+        output_dir=output_dir,
         skull_strip_fixed_seed=config.workflow.skull_strip_fixed_seed,
         skull_strip_mode=config.workflow.skull_strip_t1w,
         skull_strip_template=Reference.from_string(
@@ -307,7 +312,7 @@ tasks and sessions), the following preprocessing was performed.
 
 
 def _prefix(subid):
-    return '-'.join(('sub', subid.lstrip('sub-')))
+    return subid if subid.startswith('sub-') else f'sub-{subid}'
 
 
 def _pop(inlist):

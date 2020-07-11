@@ -2,6 +2,13 @@
   "title": "fMRIPrep: a robust preprocessing pipeline for functional MRI",
   "description": "<p>fMRIPrep is a robust and easy-to-use pipeline for preprocessing of diverse fMRI data. The transparent workflow dispenses of manual intervention, thereby ensuring the reproducibility of the results.</p>",
   "contributors": [
+      
+    {
+        "affiliation": "Department of Radiology, Weill Cornell Medicine",
+        "name": "Jamison, Keith W.",
+        "orcid": "0000-0001-7139-6661",
+        "type": "Researcher"
+    },
     {
       "affiliation": "Department of Psychology, Florida International University",
       "name": "Salo, Taylor",
@@ -27,6 +34,18 @@
       "type": "Researcher"
     },
     {
+      "affiliation": "Department of Neuroscience, University of Pennsylvania, PA, USA",
+      "name": "Tooley, Ursula A.",
+      "orcid": "0000-0001-6377-3885",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Department of Psychology, New York University",
+      "name": "Benson, Noah C.",
+      "orcid": "0000-0002-2365-8265",
+      "type": "Researcher"
+    },
+    {
       "affiliation": "Montreal Neurological Institute, McGill University",
       "name": "Urchs, Sebastian",
       "orcid": "0000-0001-5504-8579",
@@ -39,21 +58,15 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "CENIR, INSERM U1127, CNRS UMR 7225, UPMC Univ Paris 06 UMR S 1127, Institut du Cerveau et de la Moelle \u00e9pini\u00e8re, ICM, F-75013, Paris, France",
-      "name": "Valabregue, Romain",
-      "orcid": "0000-0002-1814-9570",
-      "type": "Researcher"
-    },
-    {
-      "affiliation": "Department of Psychology, Columbia University",
-      "name": "Jacoby, Nir",
-      "orcid": "0000-0001-7936-9991",
-      "type": "Researcher"
-    },
-    {
       "affiliation": "Department of Psychology, University of California, Berkeley",
       "name": "Lurie, Daniel J.",
       "orcid": "0000-0001-8012-6399",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "SIMEXP Lab, CRIUGM, University of Montr\u00e9al, Montr\u00e9al, Canada",
+      "name": "Basile Pinsard",
+      "orcid": "0000-0002-4391-3075",
       "type": "Researcher"
     },
     {
@@ -63,15 +76,9 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "Dartmouth College: Hanover, NH, United States",
-      "name": "Halchenko, Yaroslav O.",
-      "orcid": "0000-0003-3456-2493",
-      "type": "Researcher"
-    },
-    {
-      "affiliation": "Center for Lifespan Changes in Brain and Cognition, University of Oslo",
-      "name": "Sneve, Markus H.",
-      "orcid": "0000-0001-7644-7915",
+      "affiliation": "Department of Psychology, Columbia University",
+      "name": "Jacoby, Nir",
+      "orcid": "0000-0001-7936-9991",
       "type": "Researcher"
     },
     {
@@ -81,21 +88,21 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "Department of Psychiatry, McGill University",
-      "name": "Devenyi, Grabriel A.",
-      "orcid": "0000-0002-7766-1187",
+      "affiliation": "CENIR, INSERM U1127, CNRS UMR 7225, UPMC Univ Paris 06 UMR S 1127, Institut du Cerveau et de la Moelle \u00e9pini\u00e8re, ICM, F-75013, Paris, France",
+      "name": "Valabregue, Romain",
+      "orcid": "0000-0002-1814-9570",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Center for Lifespan Changes in Brain and Cognition, University of Oslo",
+      "name": "Sneve, Markus H.",
+      "orcid": "0000-0001-7644-7915",
       "type": "Researcher"
     },
     {
       "affiliation": "URPP Dynamics of Healthy Aging, University of Zurich",
       "name": "Liem, Franz",
       "orcid": "0000-0003-0646-4810",
-      "type": "Researcher"
-    },
-    {
-      "affiliation": "Donders Institute for Brain, Cognition and Behaviour, Radboud University Nijmegen",
-      "name": "Gomez, Daniel E. P.",
-      "orcid": "0000-0001-8635-021X",
       "type": "Researcher"
     },
     {
@@ -108,6 +115,12 @@
       "affiliation": "Center for Brain Imaging, New York University",
       "name": "Velasco, Pablo",
       "orcid": "0000-0002-5749-6049",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Wexler, Joseph B.",
+      "orcid": "0000-0001-6424-8740",
       "type": "Researcher"
     },
     {
@@ -138,6 +151,24 @@
       "affiliation": "Perelman School of Medicine, University of Pennsylvania, PA, USA",
       "name": "Cieslak, Matthew",
       "orcid": "0000-0002-1931-4734",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Department of Psychiatry, McGill University",
+      "name": "Devenyi, Grabriel A.",
+      "orcid": "0000-0002-7766-1187",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Donders Institute for Brain, Cognition and Behaviour, Radboud University Nijmegen",
+      "name": "Gomez, Daniel E. P.",
+      "orcid": "0000-0001-8635-021X",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Dartmouth College: Hanover, NH, United States",
+      "name": "Halchenko, Yaroslav O.",
+      "orcid": "0000-0003-3456-2493",
       "type": "Researcher"
     },
     {
@@ -178,14 +209,8 @@
     },
     {
       "affiliation": "Department of Psychology, Stanford University",
-      "name": "Thompson, William H",
+      "name": "Thompson, William H.",
       "orcid": "0000-0002-0533-6035",
-      "type": "Researcher"
-    },
-    {
-      "affiliation": "Department of Neuroscience, University of Pennsylvania, PA, USA",
-      "name": "Tooley, Ursula A.",
-      "orcid": "0000-0001-6377-3885",
       "type": "Researcher"
     },
     {
@@ -219,14 +244,14 @@
       "orcid": "0000-0002-6533-164X"
     },
     {
-      "affiliation": "Montreal Neurological Institute, McGill University",
-      "name": "DuPre, Elizabeth",
-      "orcid": "0000-0003-1358-196X"
-    },
-    {
       "affiliation": "Department of Psychology, Stanford University",
       "name": "Goncalves, Mathias",
       "orcid": "0000-0002-7252-7771"
+    },
+    {
+      "affiliation": "Montreal Neurological Institute, McGill University",
+      "name": "DuPre, Elizabeth",
+      "orcid": "0000-0003-1358-196X"
     },
     {
       "affiliation": "Neuroscience Program, University of Iowa",

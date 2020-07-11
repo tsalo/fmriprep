@@ -335,16 +335,16 @@ linkcode_resolve = make_linkcode_resolve("fmriprep",
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/", None),
-    "numpy": ("http://docs.scipy.org/doc/numpy", None),
-    "scipy": ("http://docs.scipy.org/doc/scipy/reference", None),
-    "matplotlib": ("http://matplotlib.sourceforge.net", None),
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://docs.scipy.org/doc/numpy", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
+    "matplotlib": ("https://matplotlib.org/", None),
     "bids": ("https://bids-standard.github.io/pybids/", None),
     "nibabel": ("https://nipy.org/nibabel/", None),
     "nipype": ("https://nipype.readthedocs.io/en/latest/", None),
     "niworkflows": ("https://www.nipreps.org/niworkflows/", None),
     "sdcflows": ("https://www.nipreps.org/sdcflows/", None),
-    "smriprep": ("https://poldracklab.github.io/smriprep/", None),
+    "smriprep": ("https://www.nipreps.org/smriprep/", None),
     "templateflow": ("https://www.templateflow.org/python-client", None),
 }
 
@@ -352,6 +352,6 @@ suppress_warnings = ["image.nonlocal_uri"]
 
 
 def setup(app):
-    app.add_stylesheet("theme_overrides.css")
+    app.add_css_file("theme_overrides.css")
     # We need this for the boilerplate script
-    app.add_javascript("https://cdn.rawgit.com/chrisfilo/zenodo.js/v0.1/zenodo.js")
+    app.add_js_file("https://cdn.rawgit.com/chrisfilo/zenodo.js/v0.1/zenodo.js")
