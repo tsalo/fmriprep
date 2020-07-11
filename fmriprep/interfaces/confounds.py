@@ -378,29 +378,15 @@ class FMRISummary(SimpleInterface):
 
 
 class MELODIC2BIDSInputSpec(BaseInterfaceInputSpec):
-    in_func = File(exists=True, mandatory=True,
-                   desc='input BOLD time-series (4D file) or dense timeseries CIFTI')
-    in_mask = File(exists=True,
-                   desc='3D brain mask')
-    in_segm = File(exists=True, desc='resampled segmentation')
-    confounds_file = File(exists=True,
-                          desc="BIDS' _confounds.tsv file")
-
-    str_or_tuple = traits.Either(
-        traits.Str,
-        traits.Tuple(traits.Str, traits.Either(None, traits.Str)),
-        traits.Tuple(traits.Str, traits.Either(None, traits.Str), traits.Either(None, traits.Str)))
-    confounds_list = traits.List(
-        str_or_tuple, minlen=1,
-        desc='list of headers to extract from the confounds_file')
-    tr = traits.Either(None, traits.Float, usedefault=True,
-                       desc='the repetition time')
+    melodic_mix = File(exists=True, desc='Mixing matrix from MELODIC')
+    melodic_decomp = File(exists=True, desc='')
+    melodic_components = File(exists=True, desc='Component maps')
 
 
 class MELODIC2BIDSOutputSpec(TraitedSpec):
     melodic_mix = File(exists=True, desc='Mixing matrix from MELODIC')
-    melodic_decomp = File(exists=True, desc='written file path')
-    melodic_components = File(exists=True, desc='written file path')
+    melodic_decomp = File(exists=True, desc='')
+    melodic_components = File(exists=True, desc='Component maps')
 
 
 class MELODIC2BIDS(SimpleInterface):
