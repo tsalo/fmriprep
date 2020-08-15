@@ -48,8 +48,12 @@ def _build_parser():
 
     def _filter_pybids_none_any(dct):
         import bids
-        return {k: bids.layout.Query.ANY if v == "*" else v
-                for k, v in dct.items()}
+        return {
+            k: bids.layout.Query.NONE
+            if v is None
+            else (bids.layout.Query.ANY if v == "*" else v)
+            for k, v in dct.items()
+        }
 
     def _bids_filter(value):
         from json import loads
@@ -150,6 +154,13 @@ def _build_parser():
         type=PathExists,
         help="Reuse the anatomical derivatives from another fMRIPrep run or calculated "
         "with an alternative processing tool (NOT RECOMMENDED).",
+    )
+    g_bids.add_argument(
+        "--bids-database-dir",
+        metavar="PATH",
+        type=PathExists,
+        help="Path to an existing PyBIDS database folder, for faster indexing "
+             "(especially useful for large datasets)."
     )
 
     g_perfm = parser.add_argument_group("Options to handle performance")
