@@ -408,7 +408,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                                  joinsource=('meepi_echos' if run_stc is True else 'boldbuffer'),
                                  joinfield=['bold_files'],
                                  name='join_echos')
-        # join_echos2 = join_echos.clone(name='join_echos2')
 
         # create optimal combination, adaptive T2* map
         bold_t2s_wf = init_bold_t2s_wf(echo_times=tes,
@@ -690,6 +689,17 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             # Already applied in bold_bold_trans_wf, which inputs to bold_t2s_wf
             bold_std_trans_wf.inputs.inputnode.fieldwarp = 'identity'
             bold_std_trans_wf.inputs.inputnode.hmc_xforms = 'identity'
+
+        if freesurfer:
+            workflow.connect([
+                (bold_std_trans_wf, func_derivatives_wf, [
+                    ('outputnode.bold_aseg_std', 'inputnode.bold_aseg_std'),
+                    ('outputnode.bold_aparc_std', 'inputnode.bold_aparc_std'),
+                ]),
+                (bold_std_trans_wf, outputnode, [
+                    ('outputnode.bold_aseg_std', 'bold_aseg_std'),
+                    ('outputnode.bold_aparc_std', 'bold_aparc_std')]),
+            ])
 
         # func_derivatives_wf internally parametrizes over snapshotted spaces.
         workflow.connect([
