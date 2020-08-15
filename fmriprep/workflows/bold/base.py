@@ -662,8 +662,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('t1w_aparc', 'inputnode.bold_aparc')]),
             (bold_reg_wf, bold_std_trans_wf, [
                 ('outputnode.itk_bold_to_t1', 'inputnode.itk_bold_to_t1')]),
-            (bold_bold_trans_wf, bold_std_trans_wf, [
-                ('outputnode.bold_mask', 'inputnode.bold_mask')]),
             (bold_std_trans_wf, outputnode, [('outputnode.bold_std', 'bold_std'),
                                              ('outputnode.bold_std_ref', 'bold_std_ref'),
                                              ('outputnode.bold_mask_std', 'bold_mask_std')]),
@@ -682,8 +680,10 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ])
         else:
             workflow.connect([
+                (join_echos, bold_std_trans_wf, [
+                    (('bold_masks', pop_file), 'inputnode.bold_mask')]),
                 (split_opt_comb, bold_std_trans_wf, [
-                    ('out_files', 'inputnode.bold_split')])
+                    ('out_files', 'inputnode.bold_split')]),
             ])
 
             # Already applied in bold_bold_trans_wf, which inputs to bold_t2s_wf
