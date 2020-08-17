@@ -515,7 +515,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_bold_trans_wf, bold_confounds_wf, [
                 ('outputnode.bold', 'inputnode.bold')]),
             (bold_bold_trans_wf, final_boldref_wf, [
-                ('outputnode.bold', 'inputnode.bold')]),
+                ('outputnode.bold', 'inputnode.bold_file')]),
             (bold_split, bold_t1_trans_wf, [
                 ('out_files', 'inputnode.bold_split')]),
             (bold_hmc_wf, bold_t1_trans_wf, [
@@ -531,7 +531,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_bold_trans_wf, join_echos, [
                 ('outputnode.bold', 'bold_files')]),
             (join_echos, final_boldref_wf, [
-                ('bold_files', 'inputnode.bold')]),
+                ('bold_files', 'inputnode.bold_file')]),
             (bold_bold_trans_wf, skullstrip_bold_wf, [
                 ('outputnode.bold', 'inputnode.in_file')]),
             (skullstrip_bold_wf, join_echos, [
