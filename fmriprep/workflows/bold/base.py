@@ -17,7 +17,7 @@ from nipype.interfaces.fsl import Split as FSLSplit
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
 
-from niworkflows.utils.connections import listify
+from niworkflows.utils.connections import listify, pop_file
 
 
 from ...utils.meepi import combine_meepi_source
@@ -513,7 +513,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (inputnode, func_derivatives_wf, [
                 ('bold_file', 'inputnode.source_file')]),
             (bold_bold_trans_wf, bold_confounds_wf, [
-                ('outputnode.bold', 'inputnode.bold')],
+                ('outputnode.bold', 'inputnode.bold')]),
             (bold_bold_trans_wf, final_boldref_wf, [
                 ('outputnode.bold', 'inputnode.bold')]),
             (bold_split, bold_t1_trans_wf, [
