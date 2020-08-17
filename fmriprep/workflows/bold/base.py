@@ -632,7 +632,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     if nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref')):
         workflow.connect([
             (final_boldref_wf, func_derivatives_wf, [
-                ('outputnode.bold_ref', 'inputnode.bold_native_ref'),
+                ('outputnode.ref_image', 'inputnode.bold_native_ref'),
                 ('outputnode.bold_mask', 'inputnode.bold_mask_native')]),
             (bold_bold_trans_wf if not multiecho else bold_t2s_wf, outputnode, [
                 ('outputnode.bold', 'bold_native')])
