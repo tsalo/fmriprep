@@ -628,7 +628,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_bold_trans_wf, outputnode, [
                 ('outputnode.bold', 'bold_native')]),
             (bold_bold_trans_wf, func_derivatives_wf, [
-                ('outputnode.bold_ref', 'inputnode.bold_native_ref')
+                ('outputnode.bold_ref', 'inputnode.bold_native_ref'),
             ]),
         ])
         if not multiecho:
