@@ -416,7 +416,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         join_echos = pe.JoinNode(
             niu.IdentityInterface(fields=['bold_files', 'skullstripped_bold_files']),
             joinsource=('meepi_echos' if run_stc is True else 'boldbuffer'),
-            joinfield=['bold_files'],
+            joinfield=['bold_files', 'skullstripped_bold_files'],
             name='join_echos'
         )
 
