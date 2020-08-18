@@ -17,7 +17,7 @@ from nipype.interfaces.fsl import Split as FSLSplit
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
 
-from niworkflows.utils.connections import listify, pop_file
+from niworkflows.utils.connections import pop_file, listify
 
 
 from ...utils.meepi import combine_meepi_source
@@ -491,6 +491,8 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ('outputnode.itk_t1_to_bold', 'inputnode.t1_bold_xform')]),
         (initial_boldref_wf, bold_confounds_wf, [
             ('outputnode.skip_vols', 'inputnode.skip_vols')]),
+        (final_boldref_wf, bold_confounds_wf, [
+            ('outputnode.bold_mask', 'inputnode.bold_mask')]),
         (bold_confounds_wf, outputnode, [
             ('outputnode.confounds_file', 'confounds'),
         ]),
@@ -502,8 +504,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ('out_files', 'inputnode.bold_file')]),
         (bold_hmc_wf, bold_bold_trans_wf, [
             ('outputnode.xforms', 'inputnode.hmc_xforms')]),
-        (final_boldref_wf, bold_confounds_wf, [
-            ('outputnode.bold_mask', 'inputnode.bold_mask')]),
         # Summary
         (outputnode, summary, [('confounds', 'confounds_file')]),
     ])
@@ -624,10 +624,10 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('outputnode.itk_bold_to_t1', 'transforms')]),
             (bold_t1_trans_wf, boldmask_to_t1w, [
                 ('outputnode.bold_mask_t1', 'reference_image')]),
-            (boldmask_to_t1w, outputnode, [
-                ('output_image', 'bold_mask_t1')]),
             (final_boldref_wf, boldmask_to_t1w, [
                 ('outputnode.bold_mask', 'input_image')])
+            (boldmask_to_t1w, outputnode, [
+                ('output_image', 'bold_mask_t1')]),
         ])
 
     if nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref')):
@@ -832,10 +832,10 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                     ('std2anat_xfm', 'inputnode.std2anat_xfm')]),
                 (bold_bold_trans_wf if not multiecho else bold_t2s_wf, carpetplot_wf, [
                     ('outputnode.bold', 'inputnode.bold')]),
-                (bold_reg_wf, carpetplot_wf, [
-                    ('outputnode.itk_t1_to_bold', 'inputnode.t1_bold_xform')]),
                 (final_boldref_wf, carpetplot_wf, [
                     ('outputnode.bold_mask', 'inputnode.bold_mask')]),
+                (bold_reg_wf, carpetplot_wf, [
+                    ('outputnode.itk_t1_to_bold', 'inputnode.t1_bold_xform')]),
             ])
 
         workflow.connect([
