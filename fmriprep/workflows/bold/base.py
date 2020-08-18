@@ -370,7 +370,8 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     # This BOLD references *does not use* single-band reference images.
     final_boldref_wf = init_bold_reference_wf(
         name='final_boldref_wf',
-        omp_nthreads=omp_nthreads
+        omp_nthreads=omp_nthreads,
+        multiecho=multiecho,
     )
     final_boldref_wf.__desc__ = None  # Unset description to avoid second appearance
 
