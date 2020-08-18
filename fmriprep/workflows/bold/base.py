@@ -544,7 +544,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_t2s_wf, split_opt_comb, [
                 ('outputnode.bold', 'in_file')]),
             (split_opt_comb, bold_t1_trans_wf, [
-                ('out_files', 'inputnode.bold_split')])
+                ('out_files', 'inputnode.bold_split')]),
         ])
 
         # Already applied in bold_bold_trans_wf, which inputs to bold_t2s_wf
@@ -666,6 +666,17 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                                              ('outputnode.bold_mask_std', 'bold_mask_std')]),
         ])
 
+        if freesurfer:
+            workflow.connect([
+                (bold_std_trans_wf, func_derivatives_wf, [
+                    ('outputnode.bold_aseg_std', 'inputnode.bold_aseg_std'),
+                    ('outputnode.bold_aparc_std', 'inputnode.bold_aparc_std'),
+                ]),
+                (bold_std_trans_wf, outputnode, [
+                    ('outputnode.bold_aseg_std', 'bold_aseg_std'),
+                    ('outputnode.bold_aparc_std', 'bold_aparc_std')]),
+            ])
+
         if not multiecho:
             workflow.connect([
                 (bold_split, bold_std_trans_wf, [
@@ -678,23 +689,12 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         else:
             workflow.connect([
                 (split_opt_comb, bold_std_trans_wf, [
-                    ('out_files', 'inputnode.bold_split')]),
+                    ('out_files', 'inputnode.bold_split')])
             ])
 
             # Already applied in bold_bold_trans_wf, which inputs to bold_t2s_wf
             bold_std_trans_wf.inputs.inputnode.fieldwarp = 'identity'
             bold_std_trans_wf.inputs.inputnode.hmc_xforms = 'identity'
-
-        if freesurfer:
-            workflow.connect([
-                (bold_std_trans_wf, func_derivatives_wf, [
-                    ('outputnode.bold_aseg_std', 'inputnode.bold_aseg_std'),
-                    ('outputnode.bold_aparc_std', 'inputnode.bold_aparc_std'),
-                ]),
-                (bold_std_trans_wf, outputnode, [
-                    ('outputnode.bold_aseg_std', 'bold_aseg_std'),
-                    ('outputnode.bold_aparc_std', 'bold_aparc_std')]),
-            ])
 
         # func_derivatives_wf internally parametrizes over snapshotted spaces.
         workflow.connect([
