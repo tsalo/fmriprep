@@ -15,6 +15,7 @@ RUN apt-get update && \
                     autoconf \
                     libtool \
                     pkg-config \
+                    netbase \
                     git && \
     curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
     apt-get install -y --no-install-recommends \
