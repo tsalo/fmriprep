@@ -439,20 +439,20 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
         if estimator.method in (fm.EstimatorType.MAPPED, fm.EstimatorType.PHASEDIFF):
             continue
 
-        suffices = set(s.suffix for s in estimator.sources)
+        suffices = [s.suffix for s in estimator.sources]
 
-        if estimator.method == fm.EstimatorType.PEPOLAR and sorted(suffices) == ["epi"]:
-            getattr(fmap_wf.inputs, f"in_{estimator.bids_id}").in_data = [
-                str(s.path) for s in estimator.sources
-            ]
-            getattr(fmap_wf.inputs, f"in_{estimator.bids_id}").metadata = [
-                s.metadata for s in estimator.sources
-            ]
-
-        elif estimator.method == fm.EstimatorType.PEPOLAR:
-            raise NotImplementedError(
-                "Sophisticated PEPOLAR schemes are unsupported."
-            )
+        if estimator.method == fm.EstimatorType.PEPOLAR:
+            if set(suffices) == {"epi"} or sorted(suffices) == ["bold", "epi"]:
+                getattr(fmap_wf.inputs, f"in_{estimator.bids_id}").in_data = [
+                    str(s.path) for s in estimator.sources
+                ]
+                getattr(fmap_wf.inputs, f"in_{estimator.bids_id}").metadata = [
+                    s.metadata for s in estimator.sources
+                ]
+            else:
+                raise NotImplementedError(
+                    "Sophisticated PEPOLAR schemes are unsupported."
+                )
 
         elif estimator.method == fm.EstimatorType.ANAT:
             from niworkflows.interfaces.utility import KeySelect
