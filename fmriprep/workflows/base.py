@@ -324,7 +324,7 @@ It is released under the [CC0]\
         fmap_estimators = find_estimators(
             layout=config.execution.layout,
             subject=subject_id,
-            fmapless=config.workflow.use_syn_sdc,
+            fmapless=bool(config.workflow.use_syn_sdc),
             force_fmapless=config.workflow.force_syn,
         )
 
