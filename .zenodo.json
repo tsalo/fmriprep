@@ -63,15 +63,15 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "Department of Radiology, Weill Cornell Medicine",
-      "name": "Jamison, Keith W.",
-      "orcid": "0000-0001-7139-6661",
-      "type": "Researcher"
-    },
-    {
       "affiliation": "Charite Universitatsmedizin Berlin, Germany",
       "name": "Waller, Lea",
       "orcid": "0000-0002-3239-6957",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Department of Radiology, Weill Cornell Medicine",
+      "name": "Jamison, Keith W.",
+      "orcid": "0000-0001-7139-6661",
       "type": "Researcher"
     },
     {
