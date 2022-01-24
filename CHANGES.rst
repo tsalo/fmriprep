@@ -92,12 +92,23 @@ A full list of changes can be found below.
 * MAINT: Ease CI packaging tests (#2472)
 * RF/FIX: Iterate over echo indices, not filenames, simplifying iteration logic (#2651)
 
+20.2.7 (January 24, 2022)
+=========================
+Bug-fix release in the 20.2.x LTS series.
+
+  * FIX: Clarify phase encoding direction, rather than axis (#2690)
+  * FIX: Ensure AROMA inputs are uncompressed if --low-mem (#2657)
+  * FIX: Add ``-basescale 1`` parameter to avoid ``flirt`` scaling (#2624)
+  * WRAPPER: Map ``--bids-filter-file``\s into Docker container (#2691)
+  * MNT: Add netbase to Docker image to ensure correct datalad operation (#2682)
+
 20.2.6 (October 27, 2021)
 =========================
 Patch release in the 20.2.x LTS series.
 
 This release includes an updated runtime environment for Docker/Singularity users.
-This environment includes a newer release of `indexed_gzip`, fixing `CrcError`s previously encountered.
+This environment includes a newer release of ``indexed_gzip``,
+fixing ``CrcError``\s previously encountered.
 
   * CI: Run full workflows on tags (#2593)
   * RF: Add extension field to differentiate from upcoming templates (#2613)
@@ -106,7 +117,7 @@ This environment includes a newer release of `indexed_gzip`, fixing `CrcError`s 
 =========================
 Bug-fix release in the 20.2.x LTS series.
 
-This release includes a fix to `--slice-time-ref` parsing. Also, some
+This release includes a fix to ``--slice-time-ref`` parsing. Also, some
 issues in anatomical processing are resolved, including poorly-interpolated
 labels in aseg segmentations, and probabilistic segmentations have reverted
 to FAST.
