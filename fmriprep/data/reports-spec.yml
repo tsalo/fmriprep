@@ -59,7 +59,7 @@ sections:
     description: Hover on the panels with the mouse pointer to also visualize the intensity of the
       inhomogeneity of the field in Hertz.
     static: false
-    subtitle: "Preprocessed estimation with varying Phase-Endocing (PE) blips"
+    subtitle: "Preprocessed estimation with varying Phase-Encoding (PE) blips"
   - bids: {datatype: figures, desc: anat, suffix: fieldmap}
     caption: Inhomogeneities of the <em>B<sub>0</sub></em> field introduce (oftentimes severe) spatial distortions
       along the phase-encoding direction of the image. Utilizing an <em>anatomically-correct</em> acquisition
@@ -78,7 +78,7 @@ sections:
   - bids: {datatype: figures, desc: validation, suffix: bold}
   - bids: {datatype: figures, desc: fieldmap, suffix: bold}
     caption: The estimated fieldmap was aligned to the corresponding EPI reference
-      with a rigid-registration process of the magintude part of the fieldmap,
+      with a rigid-registration process of the magnitude part of the fieldmap,
       using <code>antsRegistration</code>.
       Overlaid on top of the co-registration results, the displacements along the
       phase-encoding direction are represented in arbitrary units.
