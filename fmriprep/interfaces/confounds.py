@@ -439,13 +439,14 @@ def _get_ica_confounds(ica_out_dir, skip_vols, newpath=None):
 
 
 class FMRISummaryInputSpec(BaseInterfaceInputSpec):
-    in_func = File(exists=True, mandatory=True,
-                   desc='input BOLD time-series (4D file) or dense timeseries CIFTI')
-    in_mask = File(exists=True,
-                   desc='3D brain mask')
-    in_segm = File(exists=True, desc='resampled segmentation')
-    confounds_file = File(exists=True,
-                          desc="BIDS' _confounds.tsv file")
+    in_func = File(
+        exists=True,
+        mandatory=True,
+        desc="input BOLD time-series (4D file) or dense timeseries CIFTI",
+    )
+    in_crown = File(exists=True, desc="3D crown mask")
+    in_segm = File(exists=True, desc="resampled segmentation")
+    confounds_file = File(exists=True, desc="BIDS' _confounds.tsv file")
 
     str_or_tuple = traits.Either(
         traits.Str,
@@ -513,9 +514,8 @@ class FMRISummary(SimpleInterface):
 
         fig = fMRIPlot(
             self.inputs.in_func,
-            mask_file=self.inputs.in_mask if isdefined(self.inputs.in_mask) else None,
-            seg_file=(self.inputs.in_segm
-                      if isdefined(self.inputs.in_segm) else None),
+            crown_file=self.inputs.in_crown if isdefined(self.inputs.in_crown) else None,
+            seg_file=(self.inputs.in_segm if isdefined(self.inputs.in_segm) else None),
             tr=self.inputs.tr,
             data=data,
             units=units,

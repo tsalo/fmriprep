@@ -146,6 +146,8 @@ def init_bold_confs_wf(
         the ROI for tCompCor and the BOLD brain mask.
     confounds_metadata
         Confounds metadata dictionary.
+    crown_mask
+        Mask of brain edge voxels
 
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
@@ -222,13 +224,20 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
                 "t1w_mask",
                 "t1w_tpms",
                 "t1_bold_xform",
+                "std2anat_xfm",
             ]
         ),
         name="inputnode",
     )
     outputnode = pe.Node(
         niu.IdentityInterface(
-            fields=["confounds_file", "confounds_metadata", "acompcor_masks", "tcompcor_mask"]
+            fields=[
+                "confounds_file",
+                "confounds_metadata",
+                "acompcor_masks",
+                "tcompcor_mask",
+                "crown_mask",
+            ]
         ),
         name="outputnode",
     )
@@ -247,19 +256,28 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
     acc_masks = pe.Node(aCompCorMasks(is_aseg=freesurfer), name="acc_masks")
 
     # List transforms
-    mrg_xfms = pe.Node(niu.Merge(2), name='mrg_xfms')
+    mrg_xfms = pe.Node(niu.Merge(2), name="mrg_xfms")
 
     # Warp segmentation into EPI space
-    resample_parc = pe.Node(ApplyTransforms(
-        dimension=3,
-        input_image=str(get_template(
-            'MNI152NLin2009cAsym', resolution=1, desc='carpet',
-            suffix='dseg', extension=['.nii', '.nii.gz'])),
-        interpolation='MultiLabel'),
-        name='resample_parc')
+    resample_parc = pe.Node(
+        ApplyTransforms(
+            dimension=3,
+            input_image=str(
+                get_template(
+                    "MNI152NLin2009cAsym",
+                    resolution=1,
+                    desc="carpet",
+                    suffix="dseg",
+                    extension=[".nii", ".nii.gz"],
+                )
+            ),
+            interpolation="MultiLabel",
+        ),
+        name="resample_parc",
+    )
 
     # Generate crown mask
-    crown_mask = pe.Node(CrownMask(),name="crown_mask")
+    crown_mask = pe.Node(CrownMask(), name="crown_mask")
 
     # Resample probseg maps in BOLD space via T1w-to-BOLD transform
     acc_msk_tfm = pe.MapNode(
@@ -286,10 +304,20 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
     )
 
     crowncompcor = pe.Node(
-        ACompCor(components_file='crown_compcor.tsv', header_prefix='crown_', pre_filter='cosine',
-                 save_pre_filter=True, save_metadata=True, mask_names=['crown_mask'],
-                 merge_method='none', failure_mode='NaN', num_components=24),
-        name="crowncompcor", mem_gb=mem_gb)
+        ACompCor(
+            components_file="crown_compcor.tsv",
+            header_prefix="crown_",
+            pre_filter="cosine",
+            save_pre_filter=True,
+            save_metadata=True,
+            mask_names=["crown_mask"],
+            merge_method="none",
+            failure_mode="NaN",
+            num_components=24,
+        ),
+        name="crowncompcor",
+        mem_gb=mem_gb,
+    )
 
     tcompcor = pe.Node(
         TCompCor(
@@ -386,14 +414,22 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
         name="acc_metadata_fmt",
     )
     crowncc_metadata_fmt = pe.Node(
-        TSV2JSON(index_column='component', output=None,
-                 additional_metadata={'Method': 'crownCompCor'}, enforce_case=True),
-        name='crowncc_metadata_fmt')
+        TSV2JSON(
+            index_column="component",
+            output=None,
+            additional_metadata={"Method": "crownCompCor"},
+            enforce_case=True,
+        ),
+        name="crowncc_metadata_fmt",
+    )
 
     mrg_conf_metadata = pe.Node(
         niu.Merge(3), name="merge_confound_metadata", run_without_submitting=True
     )
     mrg_conf_metadata.inputs.in3 = {label: {"Method": "Mean"} for label in signals_class_labels}
+    mrg_conf_metadata2 = pe.Node(
+        DictMerge(), name="merge_confound_metadata2", run_without_submitting=True
+    )
 
     # Expand model to include derivatives and quadratics
     model_expand = pe.Node(
@@ -428,10 +464,12 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
     )
     compcor_plot = pe.Node(
         CompCorVariancePlot(
-            variance_thresholds=(0.5, 0.7, 0.9), metadata_sources=["tCompCor", "aCompCor"]
+            variance_thresholds=(0.5, 0.7, 0.9),
+            metadata_sources=["tCompCor", "aCompCor", "crownCompCor"],
         ),
         name="compcor_plot",
     )
+
     ds_report_compcor = pe.Node(
         DerivativesDataSink(desc="compcorvar", datatype="figures", dismiss_entities=("echo",)),
         name="ds_report_compcor",
@@ -596,6 +634,8 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
         ANTs-compatible affine-and-warp transform file
     cifti_bold
         BOLD image in CIFTI format, to be used in place of volumetric BOLD
+    crown_mask
+        Mask of brain edge voxels
 
     Outputs
     -------
@@ -615,6 +655,7 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
                 "t1_bold_xform",
                 "std2anat_xfm",
                 "cifti_bold",
+                "crown_mask",
             ]
         ),
         name="inputnode",
