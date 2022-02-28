@@ -190,8 +190,8 @@ voxels within the brain mask.
 For aCompCor, three probabilistic masks (CSF, WM and combined CSF+WM)
 are generated in anatomical space.
 The implementation differs from that of Behzadi et al. in that instead
-of eroding the masks by 2 pixels on BOLD space, the aCompCor masks are
-subtracted a mask of pixels that likely contain a volume fraction of GM.
+of eroding the masks by 2 pixels on BOLD space, a mask of pixels that 
+likely contain a volume fraction of GM is subtracted from the aCompCor masks.
 This mask is obtained by {gm_desc}, and it ensures components are not extracted
 from voxels containing a minimal fraction of GM.
 Finally, these masks are resampled into BOLD space and binarized by
