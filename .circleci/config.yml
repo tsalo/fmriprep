@@ -904,7 +904,8 @@ jobs:
                 --fs-no-reconall --use-syn-sdc --ignore slicetiming \
                 --dummy-scans 1 --sloppy --write-graph \
                 --output-spaces MNI152NLin2009cAsym \
-                --mem_mb 4096 --nthreads 2 -vv
+                --mem_mb 4096 --nthreads 2 -vv \
+                --random-seed 12987
       - run:
           name: Checking outputs of fMRIPrep
           command: |
