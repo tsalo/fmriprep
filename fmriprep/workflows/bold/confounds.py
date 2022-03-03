@@ -689,6 +689,7 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
     if cifti_output:
         workflow.connect(inputnode, "cifti_bold", conf_plot, "in_func")
     else:
+        parcels = pe.Node(niu.Function(function=_carpet_parcellation), name="parcels")
         # List transforms
         mrg_xfms = pe.Node(niu.Merge(2), name="mrg_xfms")
 
@@ -714,12 +715,14 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
             (inputnode, mrg_xfms, [("t1_bold_xform", "in1"),
                                    ("std2anat_xfm", "in2")]),
             (inputnode, resample_parc, [("bold_mask", "reference_image")]),
+            (inputnode, parcels, [("crown_mask", "segmentation")]),
             (mrg_xfms, resample_parc, [("out", "transforms")]),
             # Carpetplot
             (inputnode, conf_plot, [
                 ("bold", "in_func"),
                 ("bold_mask", "in_mask")]),
-            (resample_parc, conf_plot, [("output_image", "in_segm")])
+            (resample_parc, parcels, [("output_image", "segmentation")]),
+            (parcels, conf_plot, [("out", "in_segm")]),
         ])
         # fmt:on
 
@@ -1062,6 +1065,30 @@ def _binary_union(mask1, mask2):
     out_name = Path("mask_union.nii.gz").absolute()
     out.to_filename(out_name)
     return str(out_name)
+
+
+def _carpet_parcellation(segmentation, crown_mask):
+    """Generate the union of two masks."""
+    from pathlib import Path
+    import numpy as np
+    import nibabel as nb
+
+    img = nb.load(segmentation)
+
+    lut = np.zeros((256,), dtype="int")
+    lut[100:201] = 1  # Ctx GM
+    lut[30:99] = 2    # dGM
+    lut[1:11] = 3     # WM+CSF
+    lut[255] = 4      # Cerebellum
+    # Apply lookup table
+    seg = lut[np.asanyarray(img.dataobj, dtype="uint16")]
+    seg[np.asanyarray(nb.load(crown_mask), dtype=bool)] = 5
+
+    outimg = img.__class__(seg.astype("uint8"), img.affine, img.header)
+    outimg.set_data_dtype("uint8")
+    out_file = Path("segments.nii.gz").absolute()
+    outimg.to_filename(out_file)
+    return str(out_file)
 
 
 def _get_zooms(in_file):
