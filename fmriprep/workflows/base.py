@@ -33,6 +33,8 @@ import sys
 import os
 from copy import deepcopy
 
+from packaging.version import Version
+
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
 
@@ -66,7 +68,9 @@ def init_fmriprep_wf():
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.bids import BIDSFreeSurferDir
 
-    fmriprep_wf = Workflow(name='fmriprep_wf')
+    ver = Version(config.environment.version)
+
+    fmriprep_wf = Workflow(name=f'fmriprep_{ver.major}_{ver.minor}_wf')
     fmriprep_wf.base_dir = config.execution.work_dir
 
     freesurfer = config.workflow.run_reconall
