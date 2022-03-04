@@ -1061,7 +1061,7 @@ def _binary_union(mask1, mask2):
 
     img = nb.load(mask1)
     mskarr1 = np.asanyarray(img.dataobj, dtype=bool)
-    mskarr2 = np.asanyarray(nb.load(mask2).dabaobj, dtype=bool)
+    mskarr2 = np.asanyarray(nb.load(mask2).dataobj, dtype=bool)
     out = img.__class__(mskarr1 | mskarr2, img.affine, img.header)
     out.set_data_dtype("uint8")
     out_name = Path("mask_union.nii.gz").absolute()
