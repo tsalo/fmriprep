@@ -212,7 +212,10 @@ The confound time series derived from head motion estimates and global
 signals were expanded with the inclusion of temporal derivatives and
 quadratic terms for each [@confounds_satterthwaite_2013].
 Frames that exceeded a threshold of {regressors_fd_th} mm FD or
-{regressors_dvars_th} standardised DVARS were annotated as motion outliers.
+{regressors_dvars_th} standardized DVARS were annotated as motion outliers.
+Additional nuisance timeseries are calculated by means of principal components
+analysis of the signal found within a thin band (*crown*) of voxels around
+the edge of the brain, as proposed by [@patriat_improved_2017].
 """
     inputnode = pe.Node(
         niu.IdentityInterface(
