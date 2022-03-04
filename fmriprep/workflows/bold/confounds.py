@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2022 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -146,6 +146,8 @@ def init_bold_confs_wf(
         the ROI for tCompCor and the BOLD brain mask.
     confounds_metadata
         Confounds metadata dictionary.
+    crown_mask
+        Mask of brain edge voxels
 
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
@@ -153,6 +155,7 @@ def init_bold_confs_wf(
     from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
     from niworkflows.interfaces.images import SignalExtraction
     from niworkflows.interfaces.reportlets.masks import ROIsPlot
+    from niworkflows.interfaces.morphology import BinaryDilation, BinarySubtraction
     from niworkflows.interfaces.nibabel import ApplyMask, Binarize
     from niworkflows.interfaces.patches import (
         RobustACompCor as ACompCor,
@@ -209,7 +212,10 @@ The confound time series derived from head motion estimates and global
 signals were expanded with the inclusion of temporal derivatives and
 quadratic terms for each [@confounds_satterthwaite_2013].
 Frames that exceeded a threshold of {regressors_fd_th} mm FD or
-{regressors_dvars_th} standardised DVARS were annotated as motion outliers.
+{regressors_dvars_th} standardized DVARS were annotated as motion outliers.
+Additional nuisance timeseries are calculated by means of principal components
+analysis of the signal found within a thin band (*crown*) of voxels around
+the edge of the brain, as proposed by [@patriat_improved_2017].
 """
     inputnode = pe.Node(
         niu.IdentityInterface(
@@ -228,10 +234,30 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
     )
     outputnode = pe.Node(
         niu.IdentityInterface(
-            fields=["confounds_file", "confounds_metadata", "acompcor_masks", "tcompcor_mask"]
+            fields=[
+                "confounds_file",
+                "confounds_metadata",
+                "acompcor_masks",
+                "tcompcor_mask",
+                "crown_mask",
+            ]
         ),
         name="outputnode",
     )
+
+    # Project T1w mask into BOLD space and merge with BOLD brainmask
+    t1w_mask_tfm = pe.Node(
+        ApplyTransforms(interpolation="MultiLabel"),
+        name="t1w_mask_tfm",
+    )
+    union_mask = pe.Node(
+        niu.Function(function=_binary_union),
+        name="union_mask"
+    )
+
+    # Create the crown mask
+    dilated_mask = pe.Node(BinaryDilation(), name="dilated_mask")
+    subtract_mask = pe.Node(BinarySubtraction(), name="subtract_mask")
 
     # DVARS
     dvars = pe.Node(
@@ -248,7 +274,7 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
 
     # Resample probseg maps in BOLD space via T1w-to-BOLD transform
     acc_msk_tfm = pe.MapNode(
-        ApplyTransforms(interpolation="Gaussian", float=False),
+        ApplyTransforms(interpolation="Gaussian"),
         iterfield=["input_image"],
         name="acc_msk_tfm",
         mem_gb=0.1,
@@ -267,6 +293,22 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
             failure_mode="NaN",
         ),
         name="acompcor",
+        mem_gb=mem_gb,
+    )
+
+    crowncompcor = pe.Node(
+        ACompCor(
+            components_file="crown_compcor.tsv",
+            header_prefix="edge_comp_",
+            pre_filter="cosine",
+            save_pre_filter=True,
+            save_metadata=True,
+            mask_names=["Edge"],
+            merge_method="none",
+            failure_mode="NaN",
+            num_components=24,
+        ),
+        name="crowncompcor",
         mem_gb=mem_gb,
     )
 
@@ -296,6 +338,7 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
     if "RepetitionTime" in metadata:
         tcompcor.inputs.repetition_time = metadata["RepetitionTime"]
         acompcor.inputs.repetition_time = metadata["RepetitionTime"]
+        crowncompcor.inputs.repetition_time = metadata["RepetitionTime"]
 
     # Split aCompCor results into a_comp_cor, c_comp_cor, w_comp_cor
     rename_acompcor = pe.Node(RenameACompCor(), name="rename_acompcor")
@@ -364,6 +407,16 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
         ),
         name="acc_metadata_fmt",
     )
+    crowncc_metadata_fmt = pe.Node(
+        TSV2JSON(
+            index_column="component",
+            output=None,
+            additional_metadata={"Method": "EdgeRegressor"},
+            enforce_case=True,
+        ),
+        name="crowncc_metadata_fmt",
+    )
+
     mrg_conf_metadata = pe.Node(
         niu.Merge(3), name="merge_confound_metadata", run_without_submitting=True
     )
@@ -386,10 +439,12 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
 
     # Generate reportlet (ROIs)
     mrg_compcor = pe.Node(
-        niu.Merge(2, ravel_inputs=True), name="mrg_compcor", run_without_submitting=True
+        niu.Merge(3, ravel_inputs=True), name="mrg_compcor", run_without_submitting=True
     )
     rois_plot = pe.Node(
-        ROIsPlot(colors=["b", "magenta"], generate_report=True), name="rois_plot", mem_gb=mem_gb
+        ROIsPlot(colors=["b", "magenta", "g"], generate_report=True),
+        name="rois_plot",
+        mem_gb=mem_gb,
     )
 
     ds_report_bold_rois = pe.Node(
@@ -405,10 +460,12 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
     )
     compcor_plot = pe.Node(
         CompCorVariancePlot(
-            variance_thresholds=(0.5, 0.7, 0.9), metadata_sources=["tCompCor", "aCompCor"]
+            variance_thresholds=(0.5, 0.7, 0.9),
+            metadata_sources=["tCompCor", "aCompCor", "crownCompCor"],
         ),
         name="compcor_plot",
     )
+
     ds_report_compcor = pe.Node(
         DerivativesDataSink(desc="compcorvar", datatype="figures", dismiss_entities=("echo",)),
         name="ds_report_compcor",
@@ -446,7 +503,16 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
         (inputnode, dvars, [("bold", "in_file"),
                             ("bold_mask", "in_mask")]),
         (inputnode, fdisp, [("movpar_file", "in_file")]),
-
+        # Brain mask
+        (inputnode, t1w_mask_tfm, [("t1w_mask", "input_image"),
+                                   ("bold_mask", "reference_image"),
+                                   ("t1_bold_xform", "transforms")]),
+        (inputnode, union_mask, [("bold_mask", "mask1")]),
+        (t1w_mask_tfm, union_mask, [("output_image", "mask2")]),
+        (union_mask, dilated_mask, [("out", "in_mask")]),
+        (union_mask, subtract_mask, [("out", "in_subtract")]),
+        (dilated_mask, subtract_mask, [("out_mask", "in_base")]),
+        (subtract_mask, outputnode, [("out_mask", "crown_mask")]),
         # aCompCor
         (inputnode, acompcor, [("bold", "realigned_file"),
                                ("skip_vols", "ignore_initial_volumes")]),
@@ -461,6 +527,11 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
         (acc_msk_bin, acompcor, [("out_file", "mask_files")]),
         (acompcor, rename_acompcor, [("components_file", "components_file"),
                                      ("metadata_file", "metadata_file")]),
+
+        # crownCompCor
+        (inputnode, crowncompcor, [("bold", "realigned_file"),
+                                   ("skip_vols", "ignore_initial_volumes")]),
+        (subtract_mask, crowncompcor, [("out_mask", "mask_files")]),
 
         # tCompCor
         (inputnode, tcompcor, [("bold", "realigned_file"),
@@ -493,8 +564,10 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
         (tcc_metadata_filter, tcc_metadata_fmt, [("out_file", "in_file")]),
         (rename_acompcor, acc_metadata_filter, [("metadata_file", "in_file")]),
         (acc_metadata_filter, acc_metadata_fmt, [("out_file", "in_file")]),
+        (crowncompcor, crowncc_metadata_fmt, [("metadata_file", "in_file")]),
         (tcc_metadata_fmt, mrg_conf_metadata, [("output", "in1")]),
         (acc_metadata_fmt, mrg_conf_metadata, [("output", "in2")]),
+        (crowncc_metadata_fmt, mrg_conf_metadata, [("output", "in3")]),
         (mrg_conf_metadata, mrg_conf_metadata2, [("out", "in_dicts")]),
 
         # Expand the model with derivatives, quadratics, and spikes
@@ -510,10 +583,12 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
                                 ("bold_mask", "in_mask")]),
         (tcompcor, mrg_compcor, [("high_variance_masks", "in1")]),
         (acc_msk_bin, mrg_compcor, [(("out_file", _last), "in2")]),
+        (subtract_mask, mrg_compcor, [("out_mask", "in3")]),
         (mrg_compcor, rois_plot, [("out", "in_rois")]),
         (rois_plot, ds_report_bold_rois, [("out_report", "in_file")]),
         (tcompcor, mrg_cc_metadata, [("metadata_file", "in1")]),
-        (rename_acompcor, mrg_cc_metadata, [("metadata_file", "in2")]),
+        (acompcor, mrg_cc_metadata, [("metadata_file", "in2")]),
+        (crowncompcor, mrg_cc_metadata, [("metadata_file", "in3")]),
         (mrg_cc_metadata, compcor_plot, [("out", "metadata_files")]),
         (compcor_plot, ds_report_compcor, [("out_file", "in_file")]),
         (concat, conf_corr_plot, [("confounds_file", "confounds_file"),
@@ -559,6 +634,10 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
         ANTs-compatible affine-and-warp transform file
     cifti_bold
         BOLD image in CIFTI format, to be used in place of volumetric BOLD
+    crown_mask
+        Mask of brain edge voxels
+    dummy_scans
+        Number of nonsteady states to be dropped at the beginning of the timeseries.
 
     Outputs
     -------
@@ -578,33 +657,14 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
                 "t1_bold_xform",
                 "std2anat_xfm",
                 "cifti_bold",
+                "crown_mask",
+                "dummy_scans",
             ]
         ),
         name="inputnode",
     )
 
     outputnode = pe.Node(niu.IdentityInterface(fields=["out_carpetplot"]), name="outputnode")
-
-    # List transforms
-    mrg_xfms = pe.Node(niu.Merge(2), name="mrg_xfms")
-
-    # Warp segmentation into EPI space
-    resample_parc = pe.Node(
-        ApplyTransforms(
-            dimension=3,
-            input_image=str(
-                get_template(
-                    "MNI152NLin2009cAsym",
-                    resolution=1,
-                    desc="carpet",
-                    suffix="dseg",
-                    extension=[".nii", ".nii.gz"],
-                )
-            ),
-            interpolation="MultiLabel",
-        ),
-        name="resample_parc",
-    )
 
     # Carpetplot and confounds plot
     conf_plot = pe.Node(
@@ -630,28 +690,46 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
+    parcels = pe.Node(niu.Function(function=_carpet_parcellation), name="parcels")
+    parcels.inputs.nifti = not cifti_output
+    # List transforms
+    mrg_xfms = pe.Node(niu.Merge(2), name="mrg_xfms")
+
+    # Warp segmentation into EPI space
+    resample_parc = pe.Node(
+        ApplyTransforms(
+            dimension=3,
+            input_image=str(
+                get_template(
+                    "MNI152NLin2009cAsym",
+                    resolution=1,
+                    desc="carpet",
+                    suffix="dseg",
+                    extension=[".nii", ".nii.gz"],
+                )
+            ),
+            interpolation="MultiLabel",
+            args="-u int",
+        ),
+        name="resample_parc",
+    )
+
     workflow = Workflow(name=name)
-    # no need for segmentations if using CIFTI
     if cifti_output:
-        workflow.connect(inputnode, "cifti_bold", conf_plot, "in_func")
-    else:
-        # fmt:off
-        workflow.connect([
-            (inputnode, mrg_xfms, [("t1_bold_xform", "in1"),
-                                   ("std2anat_xfm", "in2")]),
-            (inputnode, resample_parc, [("bold_mask", "reference_image")]),
-            (mrg_xfms, resample_parc, [("out", "transforms")]),
-            # Carpetplot
-            (inputnode, conf_plot, [
-                ("bold", "in_func"),
-                ("bold_mask", "in_mask")]),
-            (resample_parc, conf_plot, [("output_image", "in_segm")])
-        ])
-        # fmt:on
+        workflow.connect(inputnode, "cifti_bold", conf_plot, "in_cifti")
 
     # fmt:off
     workflow.connect([
-        (inputnode, conf_plot, [("confounds_file", "confounds_file")]),
+        (inputnode, mrg_xfms, [("t1_bold_xform", "in1"),
+                               ("std2anat_xfm", "in2")]),
+        (inputnode, resample_parc, [("bold_mask", "reference_image")]),
+        (inputnode, parcels, [("crown_mask", "crown_mask")]),
+        (inputnode, conf_plot, [("bold", "in_nifti"),
+                                ("confounds_file", "confounds_file"),
+                                ("dummy_scans", "drop_trs")]),
+        (mrg_xfms, resample_parc, [("out", "transforms")]),
+        (resample_parc, parcels, [("output_image", "segmentation")]),
+        (parcels, conf_plot, [("out", "in_segm")]),
         (conf_plot, ds_report_bold_conf, [("out_file", "in_file")]),
         (conf_plot, outputnode, [("out_file", "out_carpetplot")]),
     ])
@@ -972,6 +1050,46 @@ def _add_volumes(bold_file, bold_cut_file, skip_vols):
     out = fname_presuffix(bold_cut_file, suffix="_addnonsteady")
     bold_img.__class__(bold_data, bold_img.affine, bold_img.header).to_filename(out)
     return out
+
+
+def _binary_union(mask1, mask2):
+    """Generate the union of two masks."""
+    from pathlib import Path
+    import numpy as np
+    import nibabel as nb
+
+    img = nb.load(mask1)
+    mskarr1 = np.asanyarray(img.dataobj, dtype=int) > 0
+    mskarr2 = np.asanyarray(nb.load(mask2).dataobj, dtype=int) > 0
+    out = img.__class__(mskarr1 | mskarr2, img.affine, img.header)
+    out.set_data_dtype("uint8")
+    out_name = Path("mask_union.nii.gz").absolute()
+    out.to_filename(out_name)
+    return str(out_name)
+
+
+def _carpet_parcellation(segmentation, crown_mask, nifti=False):
+    """Generate the union of two masks."""
+    from pathlib import Path
+    import numpy as np
+    import nibabel as nb
+
+    img = nb.load(segmentation)
+
+    lut = np.zeros((256,), dtype="uint8")
+    lut[100:201] = 1 if nifti else 0  # Ctx GM
+    lut[30:99] = 2 if nifti else 0    # dGM
+    lut[1:11] = 3 if nifti else 1     # WM+CSF
+    lut[255] = 4 if nifti else 0      # Cerebellum
+    # Apply lookup table
+    seg = lut[np.asanyarray(img.dataobj, dtype="uint16")]
+    seg[np.asanyarray(nb.load(crown_mask).dataobj, dtype=int) > 0] = 5 if nifti else 2
+
+    outimg = img.__class__(seg.astype("uint8"), img.affine, img.header)
+    outimg.set_data_dtype("uint8")
+    out_file = Path("segments.nii.gz").absolute()
+    outimg.to_filename(out_file)
+    return str(out_file)
 
 
 def _get_zooms(in_file):
