@@ -580,7 +580,7 @@ Frames that exceeded a threshold of {regressors_fd_th} mm FD or
                                 ("bold_mask", "in_mask")]),
         (tcompcor, mrg_compcor, [("high_variance_masks", "in1")]),
         (acc_msk_bin, mrg_compcor, [(("out_file", _last), "in2")]),
-        (subtract_mask, mrg_compcor, [("out_mask", "in2")]),
+        (subtract_mask, mrg_compcor, [("out_mask", "in3")]),
         (mrg_compcor, rois_plot, [("out", "in_rois")]),
         (rois_plot, ds_report_bold_rois, [("out_report", "in_file")]),
         (tcompcor, mrg_cc_metadata, [("metadata_file", "in1")]),
