@@ -33,6 +33,7 @@ import os
 import re
 import shutil
 import numpy as np
+import nibabel as nb
 import pandas as pd
 from nipype import logging
 from nipype.utils.filemanip import fname_presuffix
@@ -40,6 +41,8 @@ from nipype.interfaces.base import (
     traits, TraitedSpec, BaseInterfaceInputSpec, File, Directory, isdefined,
     SimpleInterface, InputMultiObject, OutputMultiObject
 )
+from niworkflows.viz.plots import fMRIPlot
+from niworkflows.utils.timeseries import _cifti_timeseries, _nifti_timeseries
 
 LOGGER = logging.getLogger('nipype.interface')
 
@@ -438,13 +441,12 @@ def _get_ica_confounds(ica_out_dir, skip_vols, newpath=None):
     return aroma_confounds, motion_ics_out, melodic_mix_out, aroma_metadata_out
 
 
-class FMRISummaryInputSpec(BaseInterfaceInputSpec):
+class _FMRISummaryInputSpec(BaseInterfaceInputSpec):
     in_func = File(
         exists=True,
         mandatory=True,
         desc="input BOLD time-series (4D file) or dense timeseries CIFTI",
     )
-    in_crown = File(exists=True, desc="3D crown mask")
     in_segm = File(exists=True, desc="resampled segmentation")
     confounds_file = File(exists=True, desc="BIDS' _confounds.tsv file")
 
@@ -457,9 +459,10 @@ class FMRISummaryInputSpec(BaseInterfaceInputSpec):
         desc='list of headers to extract from the confounds_file')
     tr = traits.Either(None, traits.Float, usedefault=True,
                        desc='the repetition time')
+    drop_trs = traits.Int(0, usedefault=True, desc="dummy scans")
 
 
-class FMRISummaryOutputSpec(TraitedSpec):
+class _FMRISummaryOutputSpec(TraitedSpec):
     out_file = File(exists=True, desc='written file path')
 
 
@@ -467,17 +470,29 @@ class FMRISummary(SimpleInterface):
     """
     Copy the x-form matrices from `hdr_file` to `out_file`.
     """
-    input_spec = FMRISummaryInputSpec
-    output_spec = FMRISummaryOutputSpec
+    input_spec = _FMRISummaryInputSpec
+    output_spec = _FMRISummaryOutputSpec
 
     def _run_interface(self, runtime):
-        from niworkflows.viz.plots import fMRIPlot
-
         self._results['out_file'] = fname_presuffix(
             self.inputs.in_func,
             suffix='_fmriplot.svg',
             use_ext=False,
             newpath=runtime.cwd)
+
+        # Read input object and create timeseries + segments object
+        input_data = nb.load(self.inputs.in_func)
+        seg_file = self.inputs.in_segm if isdefined(self.inputs.in_segm) else None
+        dataset, segments = (
+            _cifti_timeseries(input_data)
+            if isinstance(input_data, nb.Cifti2Image) else
+            _nifti_timeseries(
+                input_data,
+                seg_file,
+                remap_rois=False,
+                labels=("Ctx GM", "dGM", "WM+CSF", "Cb", "Edge")
+            )
+        )
 
         dataframe = pd.read_csv(
             self.inputs.confounds_file,
@@ -513,12 +528,16 @@ class FMRISummary(SimpleInterface):
         data.columns = colnames
 
         fig = fMRIPlot(
-            self.inputs.in_func,
-            crown_file=self.inputs.in_crown if isdefined(self.inputs.in_crown) else None,
-            seg_file=(self.inputs.in_segm if isdefined(self.inputs.in_segm) else None),
+            dataset,
+            segments=segments,
+            spikes_files=(
+                [self.inputs.in_spikes_bg]
+                if isdefined(self.inputs.in_spikes_bg) else None
+            ),
             tr=self.inputs.tr,
-            data=data,
+            confounds=data,
             units=units,
+            nskip=self.inputs.drop_trs,
         ).plot()
-        fig.savefig(self._results['out_file'], bbox_inches='tight')
+        fig.savefig(self._results["out_file"], bbox_inches="tight")
         return runtime

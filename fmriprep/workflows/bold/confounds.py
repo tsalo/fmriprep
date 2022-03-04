@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2022 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -633,6 +633,8 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
         BOLD image in CIFTI format, to be used in place of volumetric BOLD
     crown_mask
         Mask of brain edge voxels
+    dummy_scans
+        Number of nonsteady states to be dropped at the beginning of the timeseries.
 
     Outputs
     -------
@@ -653,6 +655,7 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
                 "std2anat_xfm",
                 "cifti_bold",
                 "crown_mask",
+                "dummy_scans",
             ]
         ),
         name="inputnode",
@@ -718,9 +721,7 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
             (inputnode, parcels, [("crown_mask", "crown_mask")]),
             (mrg_xfms, resample_parc, [("out", "transforms")]),
             # Carpetplot
-            (inputnode, conf_plot, [
-                ("bold", "in_func"),
-                ("bold_mask", "in_mask")]),
+            (inputnode, conf_plot, [("bold", "in_func")]),
             (resample_parc, parcels, [("output_image", "segmentation")]),
             (parcels, conf_plot, [("out", "in_segm")]),
         ])
@@ -728,7 +729,8 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
 
     # fmt:off
     workflow.connect([
-        (inputnode, conf_plot, [("confounds_file", "confounds_file")]),
+        (inputnode, conf_plot, [("confounds_file", "confounds_file"),
+                                ("dummy_scans", "drop_trs")]),
         (conf_plot, ds_report_bold_conf, [("out_file", "in_file")]),
         (conf_plot, outputnode, [("out_file", "out_carpetplot")]),
     ])
