@@ -530,10 +530,6 @@ class FMRISummary(SimpleInterface):
         fig = fMRIPlot(
             dataset,
             segments=segments,
-            spikes_files=(
-                [self.inputs.in_spikes_bg]
-                if isdefined(self.inputs.in_spikes_bg) else None
-            ),
             tr=self.inputs.tr,
             confounds=data,
             units=units,

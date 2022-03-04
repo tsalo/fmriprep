@@ -710,6 +710,7 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
                     )
                 ),
                 interpolation="MultiLabel",
+                args="-u int",
             ),
             name="resample_parc",
         )
@@ -1060,8 +1061,8 @@ def _binary_union(mask1, mask2):
     import nibabel as nb
 
     img = nb.load(mask1)
-    mskarr1 = np.asanyarray(img.dataobj, dtype=bool)
-    mskarr2 = np.asanyarray(nb.load(mask2).dataobj, dtype=bool)
+    mskarr1 = np.asanyarray(img.dataobj, dtype=int) > 0
+    mskarr2 = np.asanyarray(nb.load(mask2).dataobj, dtype=int) > 0
     out = img.__class__(mskarr1 | mskarr2, img.affine, img.header)
     out.set_data_dtype("uint8")
     out_name = Path("mask_union.nii.gz").absolute()
@@ -1077,14 +1078,14 @@ def _carpet_parcellation(segmentation, crown_mask):
 
     img = nb.load(segmentation)
 
-    lut = np.zeros((256,), dtype="int")
+    lut = np.zeros((256,), dtype="uint8")
     lut[100:201] = 1  # Ctx GM
     lut[30:99] = 2    # dGM
     lut[1:11] = 3     # WM+CSF
     lut[255] = 4      # Cerebellum
     # Apply lookup table
     seg = lut[np.asanyarray(img.dataobj, dtype="uint16")]
-    seg[np.asanyarray(nb.load(crown_mask), dtype=bool)] = 5
+    seg[np.asanyarray(nb.load(crown_mask).dataobj, dtype=int) > 0] = 5
 
     outimg = img.__class__(seg.astype("uint8"), img.affine, img.header)
     outimg.set_data_dtype("uint8")
