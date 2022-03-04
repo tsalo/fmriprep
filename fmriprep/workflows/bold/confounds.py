@@ -715,7 +715,7 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
             (inputnode, mrg_xfms, [("t1_bold_xform", "in1"),
                                    ("std2anat_xfm", "in2")]),
             (inputnode, resample_parc, [("bold_mask", "reference_image")]),
-            (inputnode, parcels, [("crown_mask", "segmentation")]),
+            (inputnode, parcels, [("crown_mask", "crown_mask")]),
             (mrg_xfms, resample_parc, [("out", "transforms")]),
             # Carpetplot
             (inputnode, conf_plot, [
