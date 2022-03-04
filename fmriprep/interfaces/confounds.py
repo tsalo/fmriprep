@@ -442,12 +442,9 @@ def _get_ica_confounds(ica_out_dir, skip_vols, newpath=None):
 
 
 class _FMRISummaryInputSpec(BaseInterfaceInputSpec):
-    in_func = File(
-        exists=True,
-        mandatory=True,
-        desc="input BOLD time-series (4D file) or dense timeseries CIFTI",
-    )
-    in_segm = File(exists=True, desc="resampled segmentation")
+    in_nifti = File(exists=True, mandatory=True, desc="input BOLD (4D NIfTI file)")
+    in_cifti = File(exists=True, desc="input BOLD (CIFTI dense timeseries)")
+    in_segm = File(exists=True, desc="volumetric segmentation corresponding to in_nifti")
     confounds_file = File(exists=True, desc="BIDS' _confounds.tsv file")
 
     str_or_tuple = traits.Either(
@@ -475,24 +472,43 @@ class FMRISummary(SimpleInterface):
 
     def _run_interface(self, runtime):
         self._results['out_file'] = fname_presuffix(
-            self.inputs.in_func,
+            self.inputs.in_nifti,
             suffix='_fmriplot.svg',
             use_ext=False,
             newpath=runtime.cwd)
 
+        has_cifti = isdefined(self.inputs.in_cifti)
+
         # Read input object and create timeseries + segments object
-        input_data = nb.load(self.inputs.in_func)
         seg_file = self.inputs.in_segm if isdefined(self.inputs.in_segm) else None
-        dataset, segments = (
-            _cifti_timeseries(input_data)
-            if isinstance(input_data, nb.Cifti2Image) else
-            _nifti_timeseries(
-                input_data,
-                seg_file,
-                remap_rois=False,
-                labels=("Ctx GM", "dGM", "WM+CSF", "Cb", "Edge")
-            )
+        dataset, segments = _nifti_timeseries(
+            nb.load(self.inputs.in_nifti),
+            nb.load(seg_file),
+            remap_rois=False,
+            labels=(
+                ("WM+CSF", "Edge") if has_cifti else
+                ("Ctx GM", "dGM", "WM+CSF", "Cb", "Edge")
+            ),
         )
+
+        # Process CIFTI
+        if has_cifti:
+            cifti_data, cifti_segments = _cifti_timeseries(
+                nb.load(self.inputs.in_cifti)
+            )
+
+            if seg_file is not None:
+                # Append WM+CSF and Edge masks
+                cifti_length = cifti_data.shape[0]
+                dataset = np.vstack((cifti_data, dataset))
+                segments = {
+                    k: np.array(v) + cifti_length
+                    for k, v in segments.items()
+                }
+                cifti_segments.update(segments)
+                segments = cifti_segments
+            else:
+                dataset, segments = cifti_data, cifti_segments
 
         dataframe = pd.read_csv(
             self.inputs.confounds_file,

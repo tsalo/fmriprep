@@ -690,51 +690,46 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
-    workflow = Workflow(name=name)
-    # no need for segmentations if using CIFTI
-    if cifti_output:
-        workflow.connect(inputnode, "cifti_bold", conf_plot, "in_func")
-    else:
-        parcels = pe.Node(niu.Function(function=_carpet_parcellation), name="parcels")
-        # List transforms
-        mrg_xfms = pe.Node(niu.Merge(2), name="mrg_xfms")
+    parcels = pe.Node(niu.Function(function=_carpet_parcellation), name="parcels")
+    parcels.inputs.nifti = not cifti_output
+    # List transforms
+    mrg_xfms = pe.Node(niu.Merge(2), name="mrg_xfms")
 
-        # Warp segmentation into EPI space
-        resample_parc = pe.Node(
-            ApplyTransforms(
-                dimension=3,
-                input_image=str(
-                    get_template(
-                        "MNI152NLin2009cAsym",
-                        resolution=1,
-                        desc="carpet",
-                        suffix="dseg",
-                        extension=[".nii", ".nii.gz"],
-                    )
-                ),
-                interpolation="MultiLabel",
-                args="-u int",
+    # Warp segmentation into EPI space
+    resample_parc = pe.Node(
+        ApplyTransforms(
+            dimension=3,
+            input_image=str(
+                get_template(
+                    "MNI152NLin2009cAsym",
+                    resolution=1,
+                    desc="carpet",
+                    suffix="dseg",
+                    extension=[".nii", ".nii.gz"],
+                )
             ),
-            name="resample_parc",
-        )
-        # fmt:off
-        workflow.connect([
-            (inputnode, mrg_xfms, [("t1_bold_xform", "in1"),
-                                   ("std2anat_xfm", "in2")]),
-            (inputnode, resample_parc, [("bold_mask", "reference_image")]),
-            (inputnode, parcels, [("crown_mask", "crown_mask")]),
-            (mrg_xfms, resample_parc, [("out", "transforms")]),
-            # Carpetplot
-            (inputnode, conf_plot, [("bold", "in_func")]),
-            (resample_parc, parcels, [("output_image", "segmentation")]),
-            (parcels, conf_plot, [("out", "in_segm")]),
-        ])
-        # fmt:on
+            interpolation="MultiLabel",
+            args="-u int",
+        ),
+        name="resample_parc",
+    )
+
+    workflow = Workflow(name=name)
+    if cifti_output:
+        workflow.connect(inputnode, "cifti_bold", conf_plot, "in_cifti")
 
     # fmt:off
     workflow.connect([
-        (inputnode, conf_plot, [("confounds_file", "confounds_file"),
+        (inputnode, mrg_xfms, [("t1_bold_xform", "in1"),
+                               ("std2anat_xfm", "in2")]),
+        (inputnode, resample_parc, [("bold_mask", "reference_image")]),
+        (inputnode, parcels, [("crown_mask", "crown_mask")]),
+        (inputnode, conf_plot, [("bold", "in_nifti"),
+                                ("confounds_file", "confounds_file"),
                                 ("dummy_scans", "drop_trs")]),
+        (mrg_xfms, resample_parc, [("out", "transforms")]),
+        (resample_parc, parcels, [("output_image", "segmentation")]),
+        (parcels, conf_plot, [("out", "in_segm")]),
         (conf_plot, ds_report_bold_conf, [("out_file", "in_file")]),
         (conf_plot, outputnode, [("out_file", "out_carpetplot")]),
     ])
@@ -1073,7 +1068,7 @@ def _binary_union(mask1, mask2):
     return str(out_name)
 
 
-def _carpet_parcellation(segmentation, crown_mask):
+def _carpet_parcellation(segmentation, crown_mask, nifti=False):
     """Generate the union of two masks."""
     from pathlib import Path
     import numpy as np
@@ -1082,13 +1077,13 @@ def _carpet_parcellation(segmentation, crown_mask):
     img = nb.load(segmentation)
 
     lut = np.zeros((256,), dtype="uint8")
-    lut[100:201] = 1  # Ctx GM
-    lut[30:99] = 2    # dGM
-    lut[1:11] = 3     # WM+CSF
-    lut[255] = 4      # Cerebellum
+    lut[100:201] = 1 if nifti else 0  # Ctx GM
+    lut[30:99] = 2 if nifti else 0    # dGM
+    lut[1:11] = 3 if nifti else 1     # WM+CSF
+    lut[255] = 4 if nifti else 0      # Cerebellum
     # Apply lookup table
     seg = lut[np.asanyarray(img.dataobj, dtype="uint16")]
-    seg[np.asanyarray(nb.load(crown_mask).dataobj, dtype=int) > 0] = 5
+    seg[np.asanyarray(nb.load(crown_mask).dataobj, dtype=int) > 0] = 5 if nifti else 2
 
     outimg = img.__class__(seg.astype("uint8"), img.affine, img.header)
     outimg.set_data_dtype("uint8")
