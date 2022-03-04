@@ -1163,14 +1163,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         (join_sdc_echos, bold_t2s_wf, [
             (("corrected_mask", pop_file), "inputnode.bold_mask"),
         ]),
-        (join_sdc_echos, bold_t1_trans_wf, [
-            # TEMPORARY: For the moment we can't use frame-wise fieldmaps
-            (("fieldwarp", _dpop), "inputnode.fieldwarp"),
-        ]),
-        (join_sdc_echos, bold_std_trans_wf, [
-            # TEMPORARY: For the moment we can't use frame-wise fieldmaps
-            (("fieldwarp", _dpop), "inputnode.fieldwarp"),
-        ]),
     ])
     # fmt:on
 
