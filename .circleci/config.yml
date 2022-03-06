@@ -497,6 +497,7 @@ jobs:
                 --nthreads 2 -vv
       - store_artifacts:
           path: /tmp/ds005/derivatives
+          destination: full-run
       - run:
           name: Copy intermediate results for re-runs
           command: |
@@ -537,6 +538,9 @@ jobs:
                 --sloppy --write-graph --mem_mb 4096 \
                 --output-spaces fsaverage5 \
                 --nthreads 2 -vv
+      - store_artifacts:
+          path: /tmp/ds005/bids
+          destination: bids-run
       - run:
           name: Checking outputs of partial fMRIPrep run
           command: |
@@ -569,6 +573,9 @@ jobs:
                 --output-spaces MNI152NLin2009cAsym fsaverage5 fsnative MNI152NLin6Asym anat \
                 --aroma-melodic-dimensionality 2 --use-aroma \
                 --nthreads 2 --cifti-output -vv
+      - store_artifacts:
+          path: /tmp/ds005/derivatives_partial
+          destination: partial-run
       - run:
           name: Checking outputs of partial fMRIPrep run
           command: |
