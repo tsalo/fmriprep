@@ -550,6 +550,7 @@ class FMRISummary(SimpleInterface):
             confounds=data,
             units=units,
             nskip=self.inputs.drop_trs,
+            paired_carpet=has_cifti,
         ).plot()
         fig.savefig(self._results["out_file"], bbox_inches="tight")
         return runtime
