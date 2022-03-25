@@ -914,6 +914,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "inputnode.cifti_bold",
             )
 
+        def _last(inlist):
+            return inlist[-1]
+
         # fmt:off
         workflow.connect([
             (initial_boldref_wf, carpetplot_wf, [
@@ -933,7 +936,8 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
             (bold_confounds_wf, carpetplot_wf, [
                 ("outputnode.confounds_file", "inputnode.confounds_file"),
-                ("outputnode.crown_mask", "inputnode.crown_mask")
+                ("outputnode.crown_mask", "inputnode.crown_mask"),
+                (("outputnode.acompcor_masks", _last), "inputnode.acompcor_mask"),
             ]),
         ])
         # fmt:on
