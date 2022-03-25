@@ -636,6 +636,8 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
         BOLD image in CIFTI format, to be used in place of volumetric BOLD
     crown_mask
         Mask of brain edge voxels
+    acompcor_mask
+        Mask of deep WM+CSF
     dummy_scans
         Number of nonsteady states to be dropped at the beginning of the timeseries.
 
@@ -658,6 +660,7 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
                 "std2anat_xfm",
                 "cifti_bold",
                 "crown_mask",
+                "acompcor_mask",
                 "dummy_scans",
             ]
         ),
@@ -724,6 +727,7 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
                                ("std2anat_xfm", "in2")]),
         (inputnode, resample_parc, [("bold_mask", "reference_image")]),
         (inputnode, parcels, [("crown_mask", "crown_mask")]),
+        (inputnode, parcels, [("acompcor_mask", "acompcor_mask")]),
         (inputnode, conf_plot, [("bold", "in_nifti"),
                                 ("confounds_file", "confounds_file"),
                                 ("dummy_scans", "drop_trs")]),
@@ -1068,7 +1072,7 @@ def _binary_union(mask1, mask2):
     return str(out_name)
 
 
-def _carpet_parcellation(segmentation, crown_mask, nifti=False):
+def _carpet_parcellation(segmentation, crown_mask, acompcor_mask, nifti=False):
     """Generate the union of two masks."""
     from pathlib import Path
     import numpy as np
@@ -1080,10 +1084,12 @@ def _carpet_parcellation(segmentation, crown_mask, nifti=False):
     lut[100:201] = 1 if nifti else 0  # Ctx GM
     lut[30:99] = 2 if nifti else 0    # dGM
     lut[1:11] = 3 if nifti else 1     # WM+CSF
-    lut[255] = 4 if nifti else 0      # Cerebellum
+    lut[255] = 5 if nifti else 0      # Cerebellum
     # Apply lookup table
     seg = lut[np.asanyarray(img.dataobj, dtype="uint16")]
-    seg[np.asanyarray(nb.load(crown_mask).dataobj, dtype=int) > 0] = 5 if nifti else 2
+    seg[np.asanyarray(nb.load(crown_mask).dataobj, dtype=int) > 0] = 6 if nifti else 2
+    # Separate deep from shallow WM+CSF
+    seg[np.asanyarray(nb.load(acompcor_mask).dataobj, dtype=int) > 0] = 4 if nifti else 1
 
     outimg = img.__class__(seg.astype("uint8"), img.affine, img.header)
     outimg.set_data_dtype("uint8")
