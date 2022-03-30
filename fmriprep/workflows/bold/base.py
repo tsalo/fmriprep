@@ -163,6 +163,9 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     from niworkflows.func.util import init_bold_reference_wf
     from niworkflows.interfaces.nibabel import ApplyMask
     from niworkflows.interfaces.utility import KeySelect, DictMerge
+    from niworkflows.interfaces.reportlets.registration import (
+        SimpleBeforeAfterRPT as SimpleBeforeAfter,
+    )
 
     if nb.load(
         bold_file[0] if isinstance(bold_file, (list, tuple)) else bold_file
@@ -528,6 +531,26 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             name="bold_t2smap_wf",
         )
 
+        t2s_comparison = pe.Node(
+            SimpleBeforeAfter(
+                before_label="BOLD Reference",
+                after_label="T2* Map",
+                dismiss_affine=True,
+            ),
+            name="t2s_comparison",
+            mem_gb=0.1,
+        )
+
+        ds_report_t2scomp = pe.Node(
+            DerivativesDataSink(
+                desc="t2scomp",
+                datatype="figures",
+                dismiss_entities=("echo",),
+            ),
+            name="ds_report_t2scomp",
+            run_without_submitting=True,
+        )
+
     bold_final = pe.Node(
         niu.IdentityInterface(fields=["bold", "boldref", "mask", "bold_echos"]),
         name="bold_final"
@@ -662,6 +685,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_t2s_wf, split_opt_comb, [("outputnode.bold", "in_file")]),
             (split_opt_comb, bold_t1_trans_wf, [("out_files", "inputnode.bold_split")]),
             (bold_t2s_wf, bold_final, [("outputnode.bold", "bold")]),
+            (bold_final, t2s_comparison, [("boldref", "before")]),
+            (bold_t2s_wf, t2s_comparison, [("outputnode.t2star_map", "after")]),
+            (t2s_comparison, ds_report_t2scomp, [('out_report', 'in_file')]),
         ])
         # fmt:on
 
@@ -1013,9 +1039,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         # fmt:on
         return workflow
 
-    from niworkflows.interfaces.reportlets.registration import (
-        SimpleBeforeAfterRPT as SimpleBeforeAfter,
-    )
     from niworkflows.interfaces.utility import KeySelect
     from sdcflows.workflows.apply.registration import init_coeff2epi_wf
     from sdcflows.workflows.apply.correction import init_unwarp_wf
