@@ -487,7 +487,7 @@ class FMRISummary(SimpleInterface):
             remap_rois=False,
             labels=(
                 ("WM+CSF", "Edge") if has_cifti else
-                ("Ctx GM", "dGM", "shallow WM+CSF", "deep WM+CSF", "Cb", "Edge")
+                ("Ctx GM", "dGM", "sWM+sCSF", "dWM+dCSF", "Cb", "Edge")
             ),
         )
 
