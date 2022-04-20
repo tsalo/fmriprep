@@ -12,6 +12,7 @@ jobs:
       # upgrade Docker version
       image: ubuntu-2004:202104-01
     working_directory: /tmp/src/fmriprep
+    resource_class: large
     steps:
       - checkout
       - run:
@@ -354,6 +355,7 @@ jobs:
     machine:
       image: ubuntu-2004:202104-01
     working_directory: /tmp/ds005
+    resource_class: large
     environment:
       - FS_LICENSE: /tmp/fslicense/license.txt
       - DATASET: ds005
@@ -448,8 +450,8 @@ jobs:
                     --fs-subjects-dir /tmp/${DATASET}/freesurfer \
                     --skull-strip-template OASIS30ANTs:res-1 \
                     --output-spaces MNI152NLin2009cAsym MNI152NLin6Asym \
-                    --sloppy --write-graph --mem_mb 4096 \
-                    --nthreads 2 --anat-only -vv
+                    --sloppy --write-graph --mem-mb 14336 \
+                    --nthreads 4 --anat-only -vv
             fi
       - run:
           name: Clean-up after anatomical run
@@ -490,11 +492,11 @@ jobs:
                 --fs-subjects-dir /tmp/${DATASET}/freesurfer \
                 ${FASTRACK_ARG} \
                 --output-layout legacy \
-                --sloppy --write-graph --mem_mb 4096 \
+                --sloppy --write-graph --mem-mb 14336 \
                 --skull-strip-template OASIS30ANTs:res-1 \
                 --output-spaces fsaverage5 fsnative \
                 --use-plugin /home/circleci/src/fmriprep/.circleci/legacy.yml \
-                --nthreads 2 -vv
+                --nthreads 4 -vv
       - store_artifacts:
           path: /tmp/ds005/derivatives
       - run:
@@ -534,9 +536,9 @@ jobs:
                 --config $PWD/nipype.cfg -w /tmp/${DATASET}/work_bids \
                 /tmp/data/${DATASET}/ /tmp/${DATASET}/bids participant \
                 ${FASTRACK_ARG} \
-                --sloppy --write-graph --mem_mb 4096 \
+                --sloppy --write-graph --mem-mb 14336 \
                 --output-spaces fsaverage5 \
-                --nthreads 2 -vv
+                --nthreads 4 -vv
       - run:
           name: Checking outputs of partial fMRIPrep run
           command: |
@@ -565,10 +567,10 @@ jobs:
                 --fs-subjects-dir /tmp/${DATASET}/freesurfer \
                 ${FASTRACK_ARG} \
                 --output-layout legacy \
-                --sloppy --write-graph --use-syn-sdc --mem_mb 4096 \
+                --sloppy --write-graph --use-syn-sdc --mem-mb 14336 \
                 --output-spaces MNI152NLin2009cAsym fsaverage5 fsnative MNI152NLin6Asym anat \
                 --aroma-melodic-dimensionality 2 --use-aroma \
-                --nthreads 2 --cifti-output -vv
+                --nthreads 4 --cifti-output -vv
       - run:
           name: Checking outputs of partial fMRIPrep run
           command: |
@@ -605,6 +607,7 @@ jobs:
     machine:
       image: ubuntu-2004:202104-01
     working_directory: /tmp/ds054
+    resource_class: large
     environment:
       - FS_LICENSE: /tmp/fslicense/license.txt
       - DATASET: ds054
@@ -692,7 +695,7 @@ jobs:
                     --output-layout legacy \
                     --fs-no-reconall --sloppy --write-graph \
                     --output-spaces MNI152NLin2009cAsym \
-                    --mem_mb 4096 --nthreads 2 --anat-only -vv
+                    --mem-mb 14336 --nthreads 4 --anat-only -vv
             fi
       - run:
           name: Clean-up after anatomical run
@@ -721,7 +724,7 @@ jobs:
                 --output-layout legacy \
                 --fs-no-reconall --sloppy \
                 --output-spaces MNI152NLin2009cAsym:res-2 anat func \
-                --mem_mb 4096 --nthreads 2 -vv --debug compcor
+                --mem-mb 14336 --nthreads 4 -vv --debug compcor
       - run:
           name: Checking outputs of fMRIPrep
           command: |
@@ -774,6 +777,7 @@ jobs:
     machine:
       image: ubuntu-2004:202104-01
     working_directory: /tmp/ds210
+    resource_class: large
     environment:
       - FS_LICENSE: /tmp/fslicense/license.txt
       - DATASET: ds210
@@ -861,7 +865,7 @@ jobs:
                     --output-layout legacy \
                     --fs-no-reconall --sloppy --write-graph \
                     --output-spaces MNI152NLin2009cAsym \
-                    --mem_mb 4096 --nthreads 2 --anat-only -vv
+                    --mem-mb 14336 --nthreads 4 --anat-only -vv
             fi
       - run:
           name: Clean-up after anatomical run
@@ -904,7 +908,7 @@ jobs:
                 --fs-no-reconall --use-syn-sdc --ignore slicetiming \
                 --dummy-scans 1 --sloppy --write-graph \
                 --output-spaces MNI152NLin2009cAsym \
-                --mem_mb 4096 --nthreads 2 -vv \
+                --mem-mb 14336 --nthreads 4 -vv \
                 --random-seed 12987
       - run:
           name: Checking outputs of fMRIPrep
