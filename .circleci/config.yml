@@ -791,7 +791,7 @@ jobs:
             set -x +e
             COMMIT_MSG="$(git log --format='format:%s' -n 1 $CIRCLE_SHA1)"
             DOCBUILD="$(echo ${COMMIT_MSG} | grep -i -E '^docs?(\(\w+\))?:')"
-            SKIP_DS210="$(echo ${COMMIT_MSG} | grep -i -E '\[skip[ _]?ds054\]' )"
+            SKIP_DS210="$(echo ${COMMIT_MSG} | grep -i -E '\[skip[ _]?ds210\]' )"
             if [ -z "$CIRCLE_TAG" -a -n "$DOCBUILD" ]; then
               echo "Only docs build"
               circleci step halt
@@ -908,8 +908,7 @@ jobs:
                 --fs-no-reconall --use-syn-sdc --ignore slicetiming \
                 --dummy-scans 1 --sloppy --write-graph \
                 --output-spaces MNI152NLin2009cAsym \
-                --mem-mb 14336 --nthreads 4 -vv \
-                --random-seed 12987
+                --mem-mb 14336 --nthreads 4 -vv
       - run:
           name: Checking outputs of fMRIPrep
           command: |
