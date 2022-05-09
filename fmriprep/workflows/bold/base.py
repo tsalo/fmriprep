@@ -748,6 +748,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             mem_gb=mem_gb["resampled"],
             omp_nthreads=omp_nthreads,
             spaces=spaces,
+            multiecho=multiecho,
             name="bold_std_trans_wf",
             use_compression=not config.execution.low_mem,
         )
@@ -764,6 +765,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
             (bold_final, bold_std_trans_wf, [
                 ("mask", "inputnode.bold_mask"),
+                ("t2star", "inputnode.t2star"),
             ]),
             (bold_reg_wf, bold_std_trans_wf, [
                 ("outputnode.itk_bold_to_t1", "inputnode.itk_bold_to_t1"),
