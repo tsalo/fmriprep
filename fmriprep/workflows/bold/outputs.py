@@ -179,6 +179,7 @@ def init_func_derivatives_wf(
         'confounds', 'confounds_metadata', 'melodic_mix', 'nonaggr_denoised_file',
         'source_file', 'all_source_files',
         'surf_files', 'surf_refs', 'template', 'spatial_reference',
+        't2star_bold', 't2star_t1', 't2star_std',
         'bold2anat_xfm', 'anat2bold_xfm', 'acompcor_masks', 'tcompcor_mask']),
         name='inputnode')
 
@@ -244,6 +245,18 @@ def init_func_derivatives_wf(
             (raw_sources, ds_bold_mask_native, [('out', 'RawSources')]),
         ])
 
+        if multiecho:
+            ds_t2star_bold = pe.Node(
+                DerivativesDataSink(base_directory=output_dir, space='boldref',
+                                    suffix='T2starmap', compress=True, dismiss_entities=("echo",)),
+                name='ds_t2star_bold', run_without_submitting=True,
+                mem_gb=DEFAULT_MEMORY_MIN_GB)
+
+            workflow.connect([
+                (inputnode, ds_t2star_bold, [('source_file', 'source_file'),
+                                             ('t2star_bold', 'in_file')]),
+            ])
+
     if multiecho and config.execution.me_output_echos:
         ds_bold_echos_native = pe.MapNode(
             DerivativesDataSink(
@@ -306,6 +319,17 @@ def init_func_derivatives_wf(
                 (inputnode, ds_bold_aparc_t1, [('source_file', 'source_file'),
                                                ('bold_aparc_t1', 'in_file')]),
             ])
+        if multiecho:
+            ds_t2star_t1 = pe.Node(
+                DerivativesDataSink(base_directory=output_dir, space='T1w',
+                                    suffix='T2starmap', compress=True, dismiss_entities=("echo",)),
+                name='ds_t2star_t1', run_without_submitting=True,
+                mem_gb=DEFAULT_MEMORY_MIN_GB)
+
+            workflow.connect([
+                (inputnode, ds_t2star_t1, [('source_file', 'source_file'),
+                                           ('t2star_t1', 'in_file')]),
+            ])
 
     if use_aroma:
         ds_aroma_noise_ics = pe.Node(DerivativesDataSink(
@@ -346,9 +370,12 @@ def init_func_derivatives_wf(
             (s.fullname, s.spec) for s in spaces.cached.get_standard(dim=(3,))
         ])
 
-        select_std = pe.Node(KeySelect(
-            fields=['template', 'bold_std', 'bold_std_ref', 'bold_mask_std']),
-            name='select_std', run_without_submitting=True, mem_gb=DEFAULT_MEMORY_MIN_GB)
+        fields = ['template', 'bold_std', 'bold_std_ref', 'bold_mask_std']
+        if multiecho:
+            fields.append('t2star_std')
+        select_std = pe.Node(KeySelect(fields=fields),
+                             name='select_std', run_without_submitting=True,
+                             mem_gb=DEFAULT_MEMORY_MIN_GB)
 
         ds_bold_std = pe.Node(
             DerivativesDataSink(
@@ -371,6 +398,7 @@ def init_func_derivatives_wf(
             (inputnode, select_std, [('bold_std', 'bold_std'),
                                      ('bold_std_ref', 'bold_std_ref'),
                                      ('bold_mask_std', 'bold_mask_std'),
+                                     ('t2star_std', 't2star_std'),
                                      ('template', 'template'),
                                      ('spatial_reference', 'keys')]),
             (spacesource, select_std, [('uid', 'key')]),
@@ -424,6 +452,22 @@ def init_func_derivatives_wf(
                                                   ('density', 'density')]),
                 (inputnode, ds_bold_aseg_std, [('source_file', 'source_file')]),
                 (inputnode, ds_bold_aparc_std, [('source_file', 'source_file')])
+            ])
+
+        if multiecho:
+            ds_t2star_std = pe.Node(
+                DerivativesDataSink(base_directory=output_dir, suffix='T2starmap',
+                                    compress=True, dismiss_entities=("echo",)),
+                name='ds_t2star_std', run_without_submitting=True,
+                mem_gb=DEFAULT_MEMORY_MIN_GB)
+
+            workflow.connect([
+                (inputnode, ds_t2star_std, [('source_file', 'source_file')]),
+                (select_std, ds_t2star_std, [('t2star_std', 'in_file')]),
+                (spacesource, ds_t2star_std, [('space', 'space'),
+                                              ('cohort', 'cohort'),
+                                              ('resolution', 'resolution'),
+                                              ('density', 'density')]),
             ])
 
     fs_outputs = spaces.cached.get_fs_spaces()
