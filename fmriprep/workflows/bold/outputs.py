@@ -169,6 +169,11 @@ def init_func_derivatives_wf(
     # BOLD series will generally be unmasked unless multiecho,
     # as the optimal combination is undefined outside a bounded mask
     masked = multiecho
+    t2star_meta = {
+        'Units': 's',
+        'EstimationReference': 'doi:10.1002/mrm.20900',
+        'EstimationAlgorithm': 'monoexponential decay model',
+    }
 
     inputnode = pe.Node(niu.IdentityInterface(fields=[
         'aroma_noise_ics', 'bold_aparc_std', 'bold_aparc_t1', 'bold_aseg_std',
@@ -248,13 +253,15 @@ def init_func_derivatives_wf(
         if multiecho:
             ds_t2star_bold = pe.Node(
                 DerivativesDataSink(base_directory=output_dir, space='boldref',
-                                    suffix='T2starmap', compress=True, dismiss_entities=("echo",)),
+                                    suffix='T2starmap', compress=True, dismiss_entities=("echo",),
+                                    **t2star_meta),
                 name='ds_t2star_bold', run_without_submitting=True,
                 mem_gb=DEFAULT_MEMORY_MIN_GB)
 
             workflow.connect([
                 (inputnode, ds_t2star_bold, [('source_file', 'source_file'),
                                              ('t2star_bold', 'in_file')]),
+                (raw_sources, ds_t2star_bold, [('out', 'RawSources')]),
             ])
 
     if multiecho and config.execution.me_output_echos:
@@ -322,13 +329,15 @@ def init_func_derivatives_wf(
         if multiecho:
             ds_t2star_t1 = pe.Node(
                 DerivativesDataSink(base_directory=output_dir, space='T1w',
-                                    suffix='T2starmap', compress=True, dismiss_entities=("echo",)),
+                                    suffix='T2starmap', compress=True, dismiss_entities=("echo",),
+                                    **t2star_meta),
                 name='ds_t2star_t1', run_without_submitting=True,
                 mem_gb=DEFAULT_MEMORY_MIN_GB)
 
             workflow.connect([
                 (inputnode, ds_t2star_t1, [('source_file', 'source_file'),
                                            ('t2star_t1', 'in_file')]),
+                (raw_sources, ds_t2star_t1, [('out', 'RawSources')]),
             ])
 
     if use_aroma:
@@ -457,7 +466,8 @@ def init_func_derivatives_wf(
         if multiecho:
             ds_t2star_std = pe.Node(
                 DerivativesDataSink(base_directory=output_dir, suffix='T2starmap',
-                                    compress=True, dismiss_entities=("echo",)),
+                                    compress=True, dismiss_entities=("echo",),
+                                    **t2star_meta),
                 name='ds_t2star_std', run_without_submitting=True,
                 mem_gb=DEFAULT_MEMORY_MIN_GB)
 
@@ -468,6 +478,7 @@ def init_func_derivatives_wf(
                                               ('cohort', 'cohort'),
                                               ('resolution', 'resolution'),
                                               ('density', 'density')]),
+                (raw_sources, ds_t2star_std, [('out', 'RawSources')]),
             ])
 
     fs_outputs = spaces.cached.get_fs_spaces()
