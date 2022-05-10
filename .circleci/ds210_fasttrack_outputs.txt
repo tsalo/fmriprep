@@ -29,5 +29,6 @@ fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_space-MNI152NLin2009cAsym_desc-b
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.json
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_space-MNI152NLin2009cAsym_T2starmap.nii.gz
 fmriprep/sub-02.html
 /tmp/ds210/derivatives
