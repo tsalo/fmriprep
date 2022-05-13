@@ -119,24 +119,62 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     -------
     bold_t1
         BOLD series, resampled to T1w space
+    bold_t1_ref
+        BOLD reference image, resampled to T1w space
+    bold2anat_xfm
+        Affine transform from BOLD reference space to T1w space
+    anat2bold_xfm
+        Affine transform from T1w space to BOLD reference space
     bold_mask_t1
         BOLD series mask in T1w space
+    bold_aseg_t1
+        FreeSurfer ``aseg`` resampled to match ``bold_t1``
+    bold_aparc_t1
+        FreeSurfer ``aparc+aseg`` resampled to match ``bold_t1``
     bold_std
         BOLD series, resampled to template space
+    bold_std_ref
+        BOLD reference image, resampled to template space
     bold_mask_std
         BOLD series mask in template space
-    confounds
-        TSV of confounds
+    bold_aseg_std
+        FreeSurfer ``aseg`` resampled to match ``bold_std``
+    bold_aparc_std
+        FreeSurfer ``aparc+aseg`` resampled to match ``bold_std``
+    bold_native
+        BOLD series, with distortion corrections applied (native space)
+    bold_native_ref
+        BOLD reference image in native space
+    bold_mask_native
+        BOLD series mask in native space
+    bold_echos_native
+        Per-echo BOLD series, with distortion corrections applied
+    bold_cifti
+        BOLD CIFTI image
+    cifti_variant
+        combination of target spaces for ``bold_cifti``
+    cifti_metadata
+        Path of metadata files corresponding to ``bold_cifti``.
+    cifti_density
+        Density (i.e., either ``91k`` or ``170k``) of ``bold_cifti``.
     surfaces
         BOLD series, resampled to FreeSurfer surfaces
+    t2star_bold
+        Estimated T2\\* map in BOLD native space
+    t2star_t1
+        Estimated T2\\* map in T1w space
+    t2star_std
+        Estimated T2\\* map in template space
+    confounds
+        TSV of confounds
     aroma_noise_ics
         Noise components identified by ICA-AROMA
     melodic_mix
         FSL MELODIC mixing matrix
-    bold_cifti
-        BOLD CIFTI image
-    cifti_variant
-        combination of target spaces for `bold_cifti`
+    nonaggr_denoised_file
+        BOLD series, in native space, with non-agressive AROMA denoising applied
+    confounds_metadata
+        Confounds metadata dictionary
 
     See Also
     --------
