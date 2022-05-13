@@ -277,6 +277,8 @@ def init_bold_std_trans_wf(
         Skull-stripping mask of reference image
     bold_split
         Individual 3D volumes, not motion corrected
+    t2star
+        Estimated T2\\* map in BOLD native space
     fieldwarp
         a :abbr:`DFM (displacements field map)` in ITK format
     hmc_xforms
@@ -304,6 +306,8 @@ def init_bold_std_trans_wf(
     bold_aparc_std
         FreeSurfer's ``aparc+aseg.mgz`` atlas, in template space at the BOLD resolution
         (only if ``recon-all`` was run)
+    t2star_std
+        Estimated T2\\* map in template space
     template
         Template identifiers synchronized correspondingly to previously
         described outputs.
