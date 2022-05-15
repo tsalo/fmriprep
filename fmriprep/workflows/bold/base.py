@@ -49,7 +49,7 @@ from ...interfaces.reports import FunctionalSummary
 from .confounds import init_bold_confs_wf, init_carpetplot_wf
 from .hmc import init_bold_hmc_wf
 from .stc import init_bold_stc_wf
-from .t2s import init_bold_t2s_wf
+from .t2s import init_bold_t2s_wf, init_t2s_reporting_wf
 from .registration import init_bold_t1_trans_wf, init_bold_reg_wf
 from .resampling import (
     init_bold_surf_wf,
@@ -183,6 +183,7 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     * :py:func:`~fmriprep.workflows.bold.stc.init_bold_stc_wf`
     * :py:func:`~fmriprep.workflows.bold.hmc.init_bold_hmc_wf`
     * :py:func:`~fmriprep.workflows.bold.t2s.init_bold_t2s_wf`
+    * :py:func:`~fmriprep.workflows.bold.t2s.init_t2s_reporting_wf`
     * :py:func:`~fmriprep.workflows.bold.registration.init_bold_t1_trans_wf`
     * :py:func:`~fmriprep.workflows.bold.registration.init_bold_reg_wf`
     * :py:func:`~fmriprep.workflows.bold.confounds.init_bold_confs_wf`
@@ -595,6 +596,18 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             run_without_submitting=True,
         )
 
+        t2s_reporting_wf = init_t2s_reporting_wf()
+
+        ds_report_t2star_hist = pe.Node(
+            DerivativesDataSink(
+                desc="t2starhist",
+                datatype="figures",
+                dismiss_entities=("echo",),
+            ),
+            name="ds_report_t2star_hist",
+            run_without_submitting=True,
+        )
+
     bold_final = pe.Node(
         niu.IdentityInterface(fields=["bold", "boldref", "mask", "bold_echos", "t2star"]),
         name="bold_final"
@@ -734,6 +747,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_final, t2s_comparison, [("boldref", "before"),
                                           ("t2star", "after")]),
             (t2s_comparison, ds_report_t2scomp, [('out_report', 'in_file')]),
+            (inputnode, t2s_reporting_wf, [("t1w_dseg", "inputnode.label_file"),
+            (bold_final, t2s_reporting_wf, [("t2star", "inputnode.t2star_file")]),
+            (t2s_reporting_wf, ds_report_t2star_hist, [("outputnode.t2star_hist", "in_file")]),
         ])
         # fmt:on
 
