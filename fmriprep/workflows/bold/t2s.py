@@ -31,6 +31,7 @@ from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
 
 from ...interfaces.multiecho import T2SMap
+from ...interfaces.reports import LabeledHistogram
 from ... import config
 
 
@@ -105,6 +106,54 @@ The optimally combined time series was carried forward as the *preprocessed BOLD
                                   ('bold_mask', 'mask_file')]),
         (t2smap_node, outputnode, [('optimal_comb', 'bold'),
                                    ('t2star_map', 't2star_map')]),
+    ])
+
+    return workflow
+
+
+def init_t2s_reporting_wf(mem_gb, omp_nthreads, name='t2s_reporting_wf'):
+    r"""
+    Generate T2\*-map reports.
+
+    This workflow generates a histogram of esimated T2\* values (in seconds) in the
+    cortical and subcortical gray matter mask.
+
+    Parameters
+    ----------
+    mem_gb : :obj:`float`
+        Size of BOLD file in GB
+    omp_nthreads : :obj:`int`
+        Maximum number of threads an individual process may use
+    name : :obj:`str`
+        Name of workflow (default: ``t2s_reporting_wf``)
+
+    Inputs
+    ------
+    t2star_file
+        Estimated T2\* map
+    label_file
+        an integer label file identifying grey matter with value ``1``
+
+    Outputs
+    -------
+    t2star_hist
+        an SVG histogram showing estimated T2\* values in gray matter
+    """
+    from nipype.pipeline import engine as pe
+
+    workflow = pe.Workflow(name=name)
+
+    inputnode = pe.Node(niu.IdentityInterface(fields=['t2star_file', 'gm_mask']), name='inputnode')
+
+    outputnode = pe.Node(niu.IdentityInterface(fields=['t2star_hist']), name='outputnode')
+
+    t2s_hist = pe.Node(LabeledHistogram(mapping={1: "Gray matter"}, xlabel='T2* (s)'),
+                       name='t2s_hist')
+
+    workflow.connect([
+        (inputnode, t2s_hist, [('t2star_file', 'in_file'),
+                               ('label_file', 'label_file')]),
+        (t2s_hist, outputnode, [('out_report', 't2star_hist')]),
     ])
 
     return workflow
