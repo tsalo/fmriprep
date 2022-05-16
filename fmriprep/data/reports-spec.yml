@@ -103,6 +103,10 @@ sections:
       of the T2\* map and the BOLD reference map used for BOLD-T1w coregistration.
     static: false
     subtitle: T2\* map
+  - bids: {datatype: figures, desc: t2starhist, suffix: bold}
+    caption: A histogram of estimated T2\* values within the anatomically-derived gray-matter mask.
+    static: false
+    subtitle: T2\* gray-matter values
   - bids: {datatype: figures, desc: flirtnobbr, suffix: bold}
     caption: <code>mri_coreg</code> (FreeSurfer) was used to generate transformations
       from EPI space to T1 Space - BBR refinement using FSL <code>flirt</code> rejected.
