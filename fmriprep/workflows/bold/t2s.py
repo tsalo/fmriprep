@@ -111,7 +111,7 @@ The optimally combined time series was carried forward as the *preprocessed BOLD
     return workflow
 
 
-def init_t2s_reporting_wf(mem_gb, omp_nthreads, name='t2s_reporting_wf'):
+def init_t2s_reporting_wf(name='t2s_reporting_wf'):
     r"""
     Generate T2\*-map reports.
 
@@ -130,30 +130,65 @@ def init_t2s_reporting_wf(mem_gb, omp_nthreads, name='t2s_reporting_wf'):
     Inputs
     ------
     t2star_file
-        Estimated T2\* map
+        estimated T2\* map
+    boldref
+        reference BOLD file
     label_file
         an integer label file identifying grey matter with value ``1``
+    label_bold_xform
+        Affine matrix that maps the label file into alignment with the native
+        BOLD space; can be ``"identity"`` if label file is already aligned
 
     Outputs
     -------
     t2star_hist
         an SVG histogram showing estimated T2\* values in gray matter
+    t2s_comp_report
+        a before/after figure comparing the reference BOLD image and T2\* map
     """
     from nipype.pipeline import engine as pe
+    from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
+    from niworkflows.interfaces.reportlets.registration import (
+        SimpleBeforeAfterRPT as SimpleBeforeAfter,
+    )
 
     workflow = pe.Workflow(name=name)
 
-    inputnode = pe.Node(niu.IdentityInterface(fields=['t2star_file', 'gm_mask']), name='inputnode')
+    inputnode = pe.Node(
+        niu.IdentityInterface(
+            fields=['t2star_file', 'boldref', 'label_file', 'label_bold_xform']
+        ),
+        name='inputnode')
 
-    outputnode = pe.Node(niu.IdentityInterface(fields=['t2star_hist']), name='outputnode')
+    outputnode = pe.Node(
+        niu.IdentityInterface(fields=['t2star_hist', 't2s_comp_report']),
+        name='outputnode')
+
+    label_tfm = pe.Node(ApplyTransforms(interpolation="MultiLabel"), name="label_tfm")
 
     t2s_hist = pe.Node(LabeledHistogram(mapping={1: "Gray matter"}, xlabel='T2* (s)'),
                        name='t2s_hist')
 
+    t2s_comparison = pe.Node(
+        SimpleBeforeAfter(
+            before_label="BOLD Reference",
+            after_label="T2* Map",
+            dismiss_affine=True,
+        ),
+        name="t2s_comparison",
+        mem_gb=0.1,
+    )
+
     workflow.connect([
-        (inputnode, t2s_hist, [('t2star_file', 'in_file'),
-                               ('label_file', 'label_file')]),
+        (inputnode, label_tfm, [('label_file', 'input_image'),
+                                ('t2star_file', 'reference_image'),
+                                ('label_bold_xform', 'transforms')]),
+        (inputnode, t2s_hist, [('t2star_file', 'in_file')]),
+        (label_tfm, t2s_hist, [('output_image', 'label_file')]),
+        (inputnode, t2s_comparison, [('boldref', 'before'),
+                                     ('t2star_file', 'after')]),
         (t2s_hist, outputnode, [('out_report', 't2star_hist')]),
+        (t2s_comparison, outputnode, [('out_report', 't2s_comp_report')]),
     ])
 
     return workflow

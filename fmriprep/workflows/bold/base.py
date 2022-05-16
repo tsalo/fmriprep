@@ -576,15 +576,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             name="bold_t2smap_wf",
         )
 
-        t2s_comparison = pe.Node(
-            SimpleBeforeAfter(
-                before_label="BOLD Reference",
-                after_label="T2* Map",
-                dismiss_affine=True,
-            ),
-            name="t2s_comparison",
-            mem_gb=0.1,
-        )
+        t2s_reporting_wf = init_t2s_reporting_wf()
 
         ds_report_t2scomp = pe.Node(
             DerivativesDataSink(
@@ -595,8 +587,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             name="ds_report_t2scomp",
             run_without_submitting=True,
         )
-
-        t2s_reporting_wf = init_t2s_reporting_wf()
 
         ds_report_t2star_hist = pe.Node(
             DerivativesDataSink(
@@ -744,11 +734,13 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (split_opt_comb, bold_t1_trans_wf, [("out_files", "inputnode.bold_split")]),
             (bold_t2s_wf, bold_final, [("outputnode.bold", "bold"),
                                        ("outputnode.t2star_map", "t2star")]),
-            (bold_final, t2s_comparison, [("boldref", "before"),
-                                          ("t2star", "after")]),
-            (t2s_comparison, ds_report_t2scomp, [('out_report', 'in_file')]),
-            (inputnode, t2s_reporting_wf, [("t1w_dseg", "inputnode.label_file"),
-            (bold_final, t2s_reporting_wf, [("t2star", "inputnode.t2star_file")]),
+            (inputnode, t2s_reporting_wf, [("t1w_dseg", "inputnode.label_file")]),
+            (bold_reg_wf, t2s_reporting_wf, [
+                ("outputnode.itk_t1_to_bold", "inputnode.label_bold_xform")
+            ]),
+            (bold_final, t2s_reporting_wf, [("t2star", "inputnode.t2star_file"),
+                                            ("boldref", "inputnode.boldref")]),
+            (t2s_reporting_wf, ds_report_t2scomp, [('outputnode.t2s_comp_report', 'in_file')]),
             (t2s_reporting_wf, ds_report_t2star_hist, [("outputnode.t2star_hist", "in_file")]),
         ])
         # fmt:on
