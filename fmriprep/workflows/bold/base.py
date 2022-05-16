@@ -94,7 +94,7 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     t1w_dseg
         Segmentation of preprocessed structural image, including
         gray-matter (GM), white-matter (WM) and cerebrospinal fluid (CSF)
-    t1w_asec
+    t1w_aseg
         Segmentation of structural image, done with FreeSurfer.
     t1w_aparc
         Parcellation of structural image, done with FreeSurfer.
