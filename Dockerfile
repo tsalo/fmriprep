@@ -294,6 +294,10 @@ RUN find $HOME -type d -exec chmod go=u {} + && \
     find $HOME -type f -exec chmod go=u {} + && \
     rm -rf $HOME/.npm $HOME/.conda $HOME/.empty
 
+# HACK for FreeSurfer 7.2.0
+# Fixed in https://github.com/freesurfer/freesurfer/pull/886, so remove on release
+ENV FREESURFER="/opt/freesurfer"
+
 ENV IS_DOCKER_8395080871=1
 
 RUN ldconfig
