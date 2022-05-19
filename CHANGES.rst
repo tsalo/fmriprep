@@ -1,3 +1,23 @@
+21.0.2 (April 21, 2022)
+=======================
+Bug-fix releaase in the 21.0.x series.
+
+This release includes a few bug-fixes for susceptibility distortion correction (SDC) and multi-echo (ME).
+A few notable fixes include:
+- Added tolerance for affine precision differences when using EPI fieldmaps.
+- Removed hang-ups when reusing anatomical derivatives with ME data.
+- Increased BOLD masking workflow robustness.
+
+A full list of changes can be found below:
+
+  * DOCKER: Update multiarch deb package link (#2758)
+  * ENH: Add affine_tolerance flag to MergeSeries (nipreps/niworkflows#706)
+  * FIX: Initialize BIDS layout after cleaning working directory (#2741)
+  * FIX: Avoid double unwarping during resampling of processed multi-echo data (#2730)
+  * FIX: Account for potential lists of lists in multi-echo cases (nipreps/niworkflows#719)
+  * FIX: Improve reliability of BOLD masking workflow (nipreps/niworkflows#712)
+  * FIX: Relax tolerance for different affines when concatenating blips (nipreps/sdcflows#265)
+
 21.0.1 (January 24, 2022)
 =========================
 Bug-fix release in the 21.0.x series.
