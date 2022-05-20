@@ -106,7 +106,8 @@ sections:
     subtitle: T2* map
   - bids: {datatype: figures, desc: t2starhist, suffix: bold}
     caption: A histogram of estimated T2* values within the anatomically-derived gray-matter mask
-      shown in the previous plot.
+      shown in the previous plot. Note that values are clipped at 100ms, so any extreme outliers will
+      appear in the 100ms bin.
     static: false
     subtitle: T2* gray-matter values
   - bids: {datatype: figures, desc: flirtnobbr, suffix: bold}
