@@ -135,7 +135,7 @@ def init_t2s_reporting_wf(name='t2s_reporting_wf'):
     boldref
         reference BOLD file
     label_file
-        an integer label file identifying grey matter with value ``1``
+        an integer label file identifying gray matter with value ``1``
     label_bold_xform
         Affine matrix that maps the label file into alignment with the native
         BOLD space; can be ``"identity"`` if label file is already aligned
