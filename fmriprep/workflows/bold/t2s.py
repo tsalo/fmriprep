@@ -31,7 +31,7 @@ from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
 
 from ...interfaces.multiecho import T2SMap
-from ...interfaces.maths import Label2Mask
+from ...interfaces.maths import Label2Mask, Clip
 from ...interfaces.reports import LabeledHistogram
 from ... import config
 
@@ -169,6 +169,8 @@ def init_t2s_reporting_wf(name='t2s_reporting_wf'):
 
     gm_mask = pe.Node(Label2Mask(label_val=1), name="gm_mask")
 
+    clip_t2star = pe.Node(Clip(maximum=0.1), name="clip_t2star")
+
     t2s_hist = pe.Node(LabeledHistogram(mapping={1: "Gray matter"}, xlabel='T2* (s)'),
                        name='t2s_hist')
 
@@ -186,7 +188,8 @@ def init_t2s_reporting_wf(name='t2s_reporting_wf'):
         (inputnode, label_tfm, [('label_file', 'input_image'),
                                 ('t2star_file', 'reference_image'),
                                 ('label_bold_xform', 'transforms')]),
-        (inputnode, t2s_hist, [('t2star_file', 'in_file')]),
+        (inputnode, clip_t2star, [('t2star_file', 'in_file')]),
+        (clip_t2star, t2s_hist, [('out_file', 'in_file')]),
         (label_tfm, gm_mask, [('output_image', 'in_file')]),
         (gm_mask, t2s_hist, [('out_file', 'label_file')]),
         (inputnode, t2s_comparison, [('boldref', 'before'),
