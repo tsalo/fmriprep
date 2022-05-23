@@ -155,8 +155,9 @@ def merge_help(wrapper_help, target_help):
                 posargs.append(line)
         return " ".join(posargs)
 
-    # Matches all flags with up to one nested square bracket
-    opt_re = re.compile(r'(\[--?[\w-]+(?:[^\[\]]+(?:\[[^\[\]]+\])?)?\])')
+    # Matches all flags with up to two nested square brackets
+    # I'm sorry.
+    opt_re = re.compile(r'(\[--?[\w-]+(?:[^\[\]]+(?:\[(?:[^\[\]]+(?:\[[^\[\]]+\])?)+\])?)?\])')
     # Matches flag name only
     flag_re = re.compile(r'\[--?([\w-]+)[ \]]')
 
@@ -189,6 +190,7 @@ def merge_help(wrapper_help, target_help):
         'bids-filter-file',
         'fs-license-file',
         'fs-subjects-dir',
+        'output-spaces',
         'config-file',
         'h',
         'use-plugin',
