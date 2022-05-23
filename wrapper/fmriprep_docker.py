@@ -189,6 +189,7 @@ def merge_help(wrapper_help, target_help):
         'bids-filter-file',
         'fs-license-file',
         'fs-subjects-dir',
+        'output-spaces',
         'config-file',
         'h',
         'use-plugin',
