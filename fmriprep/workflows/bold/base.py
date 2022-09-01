@@ -231,12 +231,14 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     )
 
     # Find associated sbref, if possible
-    entities = (
-        config.execution.bids_filters.get('sbref', {}) if config.execution.bids_filters else {}
-    )
-    entities["suffix"] = "sbref"
-    entities["extension"] = [".nii", ".nii.gz"]  # Overwrite extensions
-    sbref_files = layout.get(return_type="file", **entities)
+    overrides = {
+        "suffix": "sbref",
+        "extension": [".nii", ".nii.gz"],
+    }
+    if config.execution.bids_filters:
+        overrides.update(config.execution.bids_filters.get('sbref', {}))
+    sb_ents = {**entities, **overrides}
+    sbref_files = layout.get(return_type="file", **sb_ents)
 
     sbref_msg = f"No single-band-reference found for {os.path.basename(ref_file)}."
     if sbref_files and "sbref" in config.workflow.ignore:
