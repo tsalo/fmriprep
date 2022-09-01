@@ -231,6 +231,9 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     )
 
     # Find associated sbref, if possible
+    entities = (
+        config.execution.bids_filters.get('sbref', {}) if config.execution.bids_filters else {}
+    )
     entities["suffix"] = "sbref"
     entities["extension"] = [".nii", ".nii.gz"]  # Overwrite extensions
     sbref_files = layout.get(return_type="file", **entities)
