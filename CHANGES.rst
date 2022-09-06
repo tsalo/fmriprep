@@ -1,6 +1,14 @@
+21.0.3 (September 6, 2022)
+==========================
+Bug-fix release in the 21.0.x series.
+
+This release includes a fix for `--bids-filter-file` not respecting `sbref` filtering.\
+
+  * FIX: Filter sbrefs by BIDS filters if available (#2843)
+
 21.0.2 (April 21, 2022)
 =======================
-Bug-fix releaase in the 21.0.x series.
+Bug-fix release in the 21.0.x series.
 
 This release includes a few bug-fixes for susceptibility distortion correction (SDC) and multi-echo (ME).
 A few notable fixes include:
