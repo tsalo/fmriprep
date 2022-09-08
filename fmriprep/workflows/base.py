@@ -79,7 +79,9 @@ def init_fmriprep_wf():
             BIDSFreeSurferDir(
                 derivatives=config.execution.output_dir,
                 freesurfer_home=os.getenv('FREESURFER_HOME'),
-                spaces=config.workflow.spaces.get_fs_spaces()),
+                spaces=config.workflow.spaces.get_fs_spaces(),
+                minimum_fs_version="7.0.0",
+            ),
             name='fsdir_run_%s' % config.execution.run_uuid.replace('-', '_'),
             run_without_submitting=True)
         if config.execution.fs_subjects_dir is not None:
