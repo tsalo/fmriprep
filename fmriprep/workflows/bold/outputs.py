@@ -216,13 +216,22 @@ def init_func_derivatives_wf(
                                          ('anat2bold_xfm', 'in_file')]),
     ])
 
-    if nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref')):
+    bold_output = nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref'))
+    if bold_output:
         ds_bold_native = pe.Node(
             DerivativesDataSink(
                 base_directory=output_dir, desc='preproc', compress=True, SkullStripped=masked,
                 TaskName=metadata.get('TaskName'), **timing_parameters),
             name='ds_bold_native', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
+
+        workflow.connect([
+            (inputnode, ds_bold_native, [('source_file', 'source_file'),
+                                         ('bold_native', 'in_file')]),
+        ])
+
+    # Save masks and boldref if we're going to save either orig BOLD series or echos
+    if bold_output or multiecho and config.execution.me_output_echos:
         ds_bold_native_ref = pe.Node(
             DerivativesDataSink(base_directory=output_dir, suffix='boldref', compress=True,
                                 dismiss_entities=("echo",)),
@@ -235,8 +244,6 @@ def init_func_derivatives_wf(
             mem_gb=DEFAULT_MEMORY_MIN_GB)
 
         workflow.connect([
-            (inputnode, ds_bold_native, [('source_file', 'source_file'),
-                                         ('bold_native', 'in_file')]),
             (inputnode, ds_bold_native_ref, [('source_file', 'source_file'),
                                              ('bold_native_ref', 'in_file')]),
             (inputnode, ds_bold_mask_native, [('source_file', 'source_file'),
