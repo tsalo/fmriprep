@@ -149,7 +149,7 @@ dependencies:
     - nibabel==3.2.1
     - niflow-nipype1-workflows==0.0.5
     - nilearn==0.6.2
-    - nipype==1.7.0
+    - nipype==1.7.1
     - nitime==0.9
     - nitransforms==20.0.0rc5
     - num2words==0.5.10
