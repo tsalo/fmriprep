@@ -12,7 +12,7 @@ dependencies:
   - chardet=3.0.4=py37_1
   - conda=4.5.11=py37_0
   - conda-env=2.6.0=1
-  - cryptography=2.3.1=py37hc365091_0
+  - cryptography=3.3.2=py37h3c74f83_0
   - cycler=0.10.0=py37_0
   - dbus=1.13.18=hb2f20db_0
   - expat=2.4.1=h2531618_2
@@ -51,7 +51,7 @@ dependencies:
   - ncurses=6.2=he6710b0_1
   - numpy=1.15.4=py37h1d66e8a_0
   - numpy-base=1.15.4=py37h81de0dd_0
-  - openssl=1.1.1l=h7f8727e_0
+  - openssl=1.1.1q=h7f8727e_0
   - pandas=0.23.4=py37h04863e7_0
   - pango=1.42.4=h049681c_0
   - pcre=8.45=h295c915_0
@@ -134,7 +134,7 @@ dependencies:
     - jupyter-core==4.9.1
     - jupyterlab-pygments==0.1.2
     - keyring==23.2.1
-    - keyrings.alt==4.1.0
+    - keyrings-alt==4.1.0
     - lockfile==0.12.2
     - lxml==4.6.3
     - markupsafe==2.0.1
