@@ -37,39 +37,44 @@ import os
 
 from nipype import logging
 from nipype.interfaces.base import (
-    traits, TraitedSpec, File,
-    CommandLine, CommandLineInputSpec)
+    CommandLine,
+    CommandLineInputSpec,
+    File,
+    TraitedSpec,
+    traits,
+)
 
 LOGGER = logging.getLogger('nipype.interface')
 
 
 class T2SMapInputSpec(CommandLineInputSpec):
-    in_files = traits.List(File(exists=True),
-                           argstr='-d %s',
-                           position=1,
-                           mandatory=True,
-                           minlen=3,
-                           desc='multi-echo BOLD EPIs')
-    echo_times = traits.List(traits.Float,
-                             argstr='-e %s',
-                             position=2,
-                             mandatory=True,
-                             minlen=3,
-                             desc='echo times')
-    mask_file = File(argstr='--mask %s',
-                     position=3,
-                     desc='mask file',
-                     exists=True)
-    fittype = traits.Enum('curvefit', 'loglin',
-                          argstr='--fittype %s',
-                          position=4,
-                          usedefault=True,
-                          desc=('Desired fitting method: '
-                                '"loglin" means that a linear model is fit '
-                                'to the log of the data. '
-                                '"curvefit" means that a more computationally '
-                                'demanding monoexponential model is fit '
-                                'to the raw data.'))
+    in_files = traits.List(
+        File(exists=True),
+        argstr='-d %s',
+        position=1,
+        mandatory=True,
+        minlen=3,
+        desc='multi-echo BOLD EPIs',
+    )
+    echo_times = traits.List(
+        traits.Float, argstr='-e %s', position=2, mandatory=True, minlen=3, desc='echo times'
+    )
+    mask_file = File(argstr='--mask %s', position=3, desc='mask file', exists=True)
+    fittype = traits.Enum(
+        'curvefit',
+        'loglin',
+        argstr='--fittype %s',
+        position=4,
+        usedefault=True,
+        desc=(
+            'Desired fitting method: '
+            '"loglin" means that a linear model is fit '
+            'to the log of the data. '
+            '"curvefit" means that a more computationally '
+            'demanding monoexponential model is fit '
+            'to the raw data.'
+        ),
+    )
 
 
 class T2SMapOutputSpec(TraitedSpec):
@@ -96,6 +101,7 @@ class T2SMap(CommandLine):
 sub-01_run-01_echo-3_bold.nii.gz -e 13.0 27.0 43.0 --fittype curvefit'
 
     """
+
     _cmd = 't2smap'
     input_spec = T2SMapInputSpec
     output_spec = T2SMapOutputSpec
