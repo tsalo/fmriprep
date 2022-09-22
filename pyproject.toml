@@ -4,6 +4,10 @@ requires = ["setuptools >= 40.8.0", "wheel"]
 
 [tool.black]
 line-length = 99
-target-version = ['py37']
+target-version = ['py39']
 skip-string-normalization = true
 extend-exclude = '_version.py|versioneer.py'
+
+[tool.isort]
+profile = 'black'
+extend_skip = '_version.py'
