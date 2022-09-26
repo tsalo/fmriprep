@@ -346,7 +346,7 @@ jobs:
             docker run -ti --rm=false \
               -e TEST_READONLY_FILESYSTEM=1 -v $HOME:/home/readonly:ro \
               --entrypoint="pytest" nipreps/fmriprep:latest \
-              /src/fmriprep/fmriprep -svx --doctest-modules
+              --pyargs fmriprep -svx --doctest-modules
 
       - run:
           name: Test fmriprep-wrapper (Python 2)
