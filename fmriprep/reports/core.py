@@ -66,14 +66,7 @@ def run_reports(
 
     .. testsetup::
 
-    >>> cwd = os.getcwd()
-    >>> os.chdir(tmpdir)
-
-    >>> from pkg_resources import resource_filename
-    >>> from shutil import copytree
-    >>> test_data_path = resource_filename('fmriprep', 'data/tests/work')
-    >>> testdir = Path(tmpdir)
-    >>> data_dir = copytree(test_data_path, str(testdir / 'work'))
+    >>> copytree_or_skip("data/tests/work", testdir)
     >>> (testdir / 'fmriprep').mkdir(parents=True, exist_ok=True)
 
     .. doctest::
@@ -81,10 +74,6 @@ def run_reports(
     >>> run_reports(testdir / 'out', '01', 'madeoutuuid', packagename='fmriprep',
     ...             reportlets_dir=testdir / 'work' / 'reportlets' / 'fmriprep')
     0
-
-    .. testcleanup::
-
-    >>> os.chdir(cwd)
 
     """
     return Report(

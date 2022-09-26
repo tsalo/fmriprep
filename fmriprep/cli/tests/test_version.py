@@ -22,7 +22,7 @@
 #
 """Test version checks."""
 from datetime import datetime
-from os import getenv
+from os import getenv, geteuid
 from pathlib import Path
 
 import pytest
@@ -205,6 +205,8 @@ def test_readonly(tmp_path, monkeypatch):
     cachedir = home_path / ".cache"
 
     if getenv("TEST_READONLY_FILESYSTEM") is None:
+        if geteuid() == 0:
+            pytest.skip("Cannot mock being unable to create directories as root")
         cachedir.mkdir(mode=0o555, exist_ok=True)
 
     # Make sure creating the folder will raise the exception.
