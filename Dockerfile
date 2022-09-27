@@ -126,21 +126,10 @@ ENV PATH="/usr/local/miniconda/bin:$PATH" \
     LC_ALL="C.UTF-8" \
     PYTHONNOUSERSITE=1
 
+COPY docker/files/environment.yml /usr/local/etc/environment.yml
+
 # Installing precomputed python packages
-RUN conda install -y python=3.7.1 \
-                     pip=19.1 \
-                     mkl=2018.0.3 \
-                     mkl-service \
-                     numpy=1.15.4 \
-                     scipy=1.1.0 \
-                     scikit-learn=0.19.1 \
-                     matplotlib=2.2.2 \
-                     pandas=0.23.4 \
-                     libxml2=2.9.8 \
-                     libxslt=1.1.32 \
-                     graphviz=2.40.1 \
-                     traits=4.6.0 \
-                     zlib; sync && \
+RUN conda env update -n base -f /usr/local/etc/environment.yml; sync && \
     chmod -R a+rX /usr/local/miniconda; sync && \
     chmod +x /usr/local/miniconda/bin/*; sync && \
     conda build purge-all; sync && \
@@ -161,9 +150,7 @@ RUN python -c "from matplotlib import font_manager" && \
     sed -i 's/\(backend *: \).*$/\1Agg/g' $( python -c "import matplotlib; print(matplotlib.matplotlib_fname())" )
 
 # Precaching atlases
-COPY setup.cfg fmriprep-setup.cfg
-RUN pip install --no-cache-dir "$( grep templateflow fmriprep-setup.cfg | xargs )" && \
-    python -c "from templateflow import api as tfapi; \
+RUN python -c "from templateflow import api as tfapi; \
                tfapi.get('MNI152NLin6Asym', resolution=(1, 2), suffix='T1w', desc=None); \
                tfapi.get('MNI152NLin6Asym', resolution=(1, 2), desc='brain', suffix='mask'); \
                tfapi.get('MNI152NLin2009cAsym', resolution=(1, 2), suffix='T1w', desc=None); \
@@ -176,12 +163,8 @@ RUN pip install --no-cache-dir "$( grep templateflow fmriprep-setup.cfg | xargs 
                tfapi.get('fsaverage', density='164k', desc='vaavg', suffix='midthickness'); \
                tfapi.get('fsLR', density='32k'); \
                tfapi.get('MNI152NLin6Asym', resolution=2, atlas='HCP', suffix='dseg')" && \
-    rm fmriprep-setup.cfg && \
     find $HOME/.cache/templateflow -type d -exec chmod go=u {} + && \
     find $HOME/.cache/templateflow -type f -exec chmod go=u {} +
-
-# Hack: Install packages that are binary compatible with pinned numpy
-RUN pip install --no-cache-dir scikit-image==0.17.2 pywavelets==1.1.1
 
 # Installing FMRIPREP
 COPY . /src/fmriprep
