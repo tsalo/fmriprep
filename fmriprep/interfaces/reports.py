@@ -238,9 +238,11 @@ class FunctionalSummary(SummaryInterface):
 
     def _generate_segment(self):
         dof = self.inputs.registration_dof
-        stc = {True: 'Applied', False: 'Not applied', 'TooShort': 'Skipped (too few volumes)'}[
-            self.inputs.slice_timing
-        ]
+        stc = {
+            True: 'Applied',
+            False: 'Not applied',
+            'TooShort': 'Skipped (too few volumes)',
+        }[self.inputs.slice_timing]
         # #TODO: Add a note about registration_init below?
         reg = {
             'FSL': [

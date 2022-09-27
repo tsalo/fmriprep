@@ -171,11 +171,10 @@ class RenameACompCor(SimpleInterface):
         a_orig = a_comp_cor["component"]
         a_new = [f"a_comp_cor_{i:02d}" for i in range(len(a_orig))]
 
-        (
-            components.rename(columns=dict(zip(c_orig, c_new)))
-            .rename(columns=dict(zip(w_orig, w_new)))
-            .rename(columns=dict(zip(a_orig, a_new)))
-        ).to_csv(self._results["components_file"], sep='\t', index=False)
+    final_components = components.rename(columns=dict(zip(c_orig, c_new)))
+    final_components.rename(columns=dict(zip(w_orig, w_new)), inplace=True)
+    final_components.rename(columns=dict(zip(a_orig, a_new)), inplace=True)
+    final_components.to_csv(self._results["components_file"], sep='\t', index=False)
 
         metadata.loc[c_comp_cor.index, "component"] = c_new
         metadata.loc[w_comp_cor.index, "component"] = w_new

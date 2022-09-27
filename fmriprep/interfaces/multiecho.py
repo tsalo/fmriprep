@@ -68,11 +68,9 @@ class T2SMapInputSpec(CommandLineInputSpec):
         usedefault=True,
         desc=(
             'Desired fitting method: '
-            '"loglin" means that a linear model is fit '
-            'to the log of the data. '
-            '"curvefit" means that a more computationally '
-            'demanding monoexponential model is fit '
-            'to the raw data.'
+            '"loglin" means that a linear model is fit to the log of the data. '
+            '"curvefit" means that a more computationally demanding '
+            'monoexponential model is fit to the raw data.'
         ),
     )
 

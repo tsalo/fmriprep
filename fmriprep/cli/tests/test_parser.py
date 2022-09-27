@@ -156,9 +156,9 @@ def test_parse_args(tmp_path):
             "participant",  # BIDS App
             "-w",
             str(work_dir),  # Don't pollute CWD
-            "--skip-bids-validation",
+            "--skip-bids-validation",  # Empty files make BIDS sad
         ]
-    )  # Empty files make BIDS sad
+    )
     assert config.execution.layout.root == bids_dir
     _reset_config()
 

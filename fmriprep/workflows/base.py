@@ -373,17 +373,16 @@ It is released under the [CC0]\
 
         if config.workflow.use_syn_sdc and not fmap_estimators:
             message = (
-                "Fieldmap-less (SyN) estimation was requested, but "
-                "PhaseEncodingDirection information appears to be "
-                "absent."
+                "Fieldmap-less (SyN) estimation was requested, but PhaseEncodingDirection "
+                "information appears to be absent."
             )
             config.loggers.workflow.error(message)
             if config.workflow.use_syn_sdc == "error":
                 raise ValueError(message)
 
-        if "fieldmaps" in config.workflow.ignore and [
-            f for f in fmap_estimators if f.method != fm.EstimatorType.ANAT
-        ]:
+        if "fieldmaps" in config.workflow.ignore and any(
+            f.method == fm.EstimatorType.ANAT for f in fmap_estimators
+        ):
             config.loggers.workflow.info(
                 'Option "--ignore fieldmaps" was set, but either "--use-syn-sdc" '
                 'or "--force-syn" were given, so fieldmap-less estimation will be executed.'
