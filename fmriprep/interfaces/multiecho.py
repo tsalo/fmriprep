@@ -26,12 +26,6 @@ Multi-echo EPI
 
 For using multi-echo EPI data.
 
-Change directory to provide relative paths for doctests
->>> import os
->>> filepath = os.path.dirname( os.path.realpath( __file__ ) )
->>> datadir = os.path.realpath(os.path.join(filepath, '../data/'))
->>> os.chdir(datadir)
-
 """
 import os
 
@@ -88,11 +82,16 @@ class T2SMap(CommandLine):
 
     Example
     =======
+
+    .. testsetup::
+
+        >>> chdir_or_skip()
+
     >>> from fmriprep.interfaces import multiecho
     >>> t2smap = multiecho.T2SMap()
-    >>> t2smap.inputs.in_files = ['sub-01_run-01_echo-1_bold.nii.gz', \
-                                  'sub-01_run-01_echo-2_bold.nii.gz', \
-                                  'sub-01_run-01_echo-3_bold.nii.gz']
+    >>> t2smap.inputs.in_files = ['sub-01_run-01_echo-1_bold.nii.gz',
+    ...                           'sub-01_run-01_echo-2_bold.nii.gz',
+    ...                           'sub-01_run-01_echo-3_bold.nii.gz']
     >>> t2smap.inputs.echo_times = [0.013, 0.027, 0.043]
     >>> t2smap.cmdline  # doctest: +ELLIPSIS
     't2smap -d sub-01_run-01_echo-1_bold.nii.gz sub-01_run-01_echo-2_bold.nii.gz \
