@@ -27,19 +27,21 @@ from .. import config
 
 def main():
     """Entry point."""
+    import gc
+    import sys
+    from multiprocessing import Manager, Process
     from os import EX_SOFTWARE
     from pathlib import Path
-    import sys
-    import gc
-    from multiprocessing import Process, Manager
+
+    from ..utils.bids import write_bidsignore, write_derivative_description
     from .parser import parse_args
-    from ..utils.bids import write_derivative_description, write_bidsignore
 
     parse_args()
 
     sentry_sdk = None
     if not config.execution.notrack:
         import sentry_sdk
+
         from ..utils.sentry import sentry_setup
 
         sentry_setup()
@@ -104,9 +106,7 @@ def main():
 
     config.loggers.workflow.log(
         15,
-        "\n".join(
-            ["fMRIPrep config:"] + ["\t\t%s" % s for s in config.dumps().splitlines()]
-        ),
+        "\n".join(["fMRIPrep config:"] + ["\t\t%s" % s for s in config.dumps().splitlines()]),
     )
     config.loggers.workflow.log(25, "fMRIPrep started!")
     errno = 1  # Default is error exit unless otherwise set
@@ -156,20 +156,17 @@ def main():
             )
 
         if config.workflow.run_reconall:
-            from templateflow import api
             from niworkflows.utils.misc import _copy_any
+            from templateflow import api
 
             dseg_tsv = str(api.get("fsaverage", suffix="dseg", extension=[".tsv"]))
-            _copy_any(
-                dseg_tsv, str(config.execution.fmriprep_dir / "desc-aseg_dseg.tsv")
-            )
-            _copy_any(
-                dseg_tsv, str(config.execution.fmriprep_dir / "desc-aparcaseg_dseg.tsv")
-            )
+            _copy_any(dseg_tsv, str(config.execution.fmriprep_dir / "desc-aseg_dseg.tsv"))
+            _copy_any(dseg_tsv, str(config.execution.fmriprep_dir / "desc-aparcaseg_dseg.tsv"))
         errno = 0
     finally:
-        from fmriprep.reports.core import generate_reports
         from pkg_resources import resource_filename as pkgrf
+
+        from fmriprep.reports.core import generate_reports
 
         # Generate reports phase
         failed_reports = generate_reports(
@@ -179,9 +176,7 @@ def main():
             config=pkgrf("fmriprep", "data/reports-spec.yml"),
             packagename="fmriprep",
         )
-        write_derivative_description(
-            config.execution.bids_dir, config.execution.fmriprep_dir
-        )
+        write_derivative_description(config.execution.bids_dir, config.execution.fmriprep_dir)
         write_bidsignore(config.execution.fmriprep_dir)
 
         if failed_reports and not config.execution.notrack:
