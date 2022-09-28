@@ -25,6 +25,7 @@ fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_echo-2_desc-preproc_bold.json
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_echo-2_desc-preproc_bold.nii.gz
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_echo-3_desc-preproc_bold.json
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_echo-3_desc-preproc_bold.nii.gz
+fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_from-scanner_to-boldref_mode-image_xfm.txt
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_from-scanner_to-T1w_mode-image_xfm.txt
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_from-T1w_to-scanner_mode-image_xfm.txt
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-01_space-boldref_T2starmap.json
