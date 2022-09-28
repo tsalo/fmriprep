@@ -506,6 +506,9 @@ jobs:
             sudo cp -a /tmp/${DATASET}/work /tmp/${DATASET}/work_partial
             sudo cp -a /tmp/${DATASET}/work /tmp/${DATASET}/work_bids
             sudo rm -rf /tmp/${DATASET}/work_partial/fmriprep_wf/single_subject_01_wf/func_preproc_task_mixedgamblestask_run_02_wf/ica_aroma_wf
+            # Nipype sometimes fails to pick up when the base directory changes
+            # This is a cheap workflow, so let's not fuss
+            sudo rm -rf /tmp/${DATASET}/work /tmp/${DATASET}/work_bids/fmriprep_wf/single_subject_01_wf/anat_preproc_wf/surface_recon_wf/gifti_surface_wf || true
       - run:
           name: Checking outputs of full fMRIPrep run
           command: |
