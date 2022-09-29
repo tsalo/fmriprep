@@ -56,9 +56,25 @@ any issues you find.
   * CI: Touch up CircleCI configuration (#2764)
   * CI: Update package builds to use python -m build (#2746)
 
+21.0.4 (September 29, 2022)
+===========================
+Bug-fix release in the 21.0.x series.
+
+  * FIX: Output brain mask and boldref in BOLD space if individual echos requested (#2852)
+  * FIX: Check for empty ACompCor results before trying to rename (#2851)
+  * CI: Fix non-fasttrack outputs for maint/21.0.x (#2866)
+
+21.0.3 (September 6, 2022)
+==========================
+Bug-fix release in the 21.0.x series.
+
+This release includes a fix for `--bids-filter-file` not respecting `sbref` filtering.
+
+  * FIX: Filter sbrefs by BIDS filters if available (#2843)
+
 21.0.2 (April 21, 2022)
 =======================
-Bug-fix releaase in the 21.0.x series.
+Bug-fix release in the 21.0.x series.
 
 This release includes a few bug-fixes for susceptibility distortion correction (SDC) and multi-echo (ME).
 A few notable fixes include:
