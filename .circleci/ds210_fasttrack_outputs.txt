@@ -16,6 +16,7 @@ fmriprep/sub-02/fmap/sub-02_run-1_fmapid-auto00000_desc-preproc_fieldmap.nii.gz
 fmriprep/sub-02/func
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-1_boldref.nii.gz
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-1_desc-brain_mask.json
+fmriprep/sub-02/func/sub-02_task-cuedSGT_run-1_desc-brain_mask.nii.gz
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-1_desc-confounds_timeseries.json
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-1_desc-confounds_timeseries.tsv
 fmriprep/sub-02/func/sub-02_task-cuedSGT_run-1_echo-1_desc-preproc_bold.json
