@@ -76,17 +76,19 @@ sections:
   reportlets:
   - bids: {datatype: figures, desc: summary, suffix: bold}
   - bids: {datatype: figures, desc: validation, suffix: bold}
-  - bids: {datatype: figures, desc: fieldmap, suffix: bold}
+  - bids: {datatype: figures, desc: fmapCoreg, suffix: bold}
     caption: The estimated fieldmap was aligned to the corresponding EPI reference
-      with a rigid-registration process of the magnitude part of the fieldmap,
+      with a rigid-registration process of the anatomical reference of the fieldmap,
       using <code>antsRegistration</code>.
-      Overlaid on top of the co-registration results, the displacements along the
-      phase-encoding direction are represented in arbitrary units.
-      Please note that the color scale is centered around zero (i.e. full transparency),
-      but the extremes might be different (i.e., the maximum of red colors could be
-      orders of magnitude above or below the minimum of blue colors.)
+      Overlaid on top of the co-registration results, the final BOLD mask is represented
+      with a red contour for reference.
     static: false
-    subtitle: Estimated fieldmap and alignment to the corresponding EPI reference
+    subtitle: Alignment between the anatomical reference of the fieldmap and the target EPI (debug mode)
+  - bids: {datatype: figures, space: boldrun, suffix: fieldmap}
+    caption: Estimated fieldmap, as reconstructed on the target BOLD run space to allow
+      the assessment of its alignement with the distorted data.
+    static: false
+    subtitle: "Reconstructed <em>B<sub>0</sub></em> map in the corresponding run's space (debug mode)"
   - bids: {datatype: figures, desc: sdc, suffix: bold}
     caption: Results of performing susceptibility distortion correction (SDC) on the
       EPI

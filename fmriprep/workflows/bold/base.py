@@ -1187,6 +1187,74 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     ])
     # fmt:on
 
+    if "fieldmaps" in config.execution.debug:
+        # Generate additional reportlets to assess SDC
+        from sdcflows.utils.misc import front as _pop
+        from sdcflows.interfaces.reportlets import FieldmapReportlet
+
+        # First, one for checking the co-registration between fieldmap and EPI
+        sdc_coreg_report = pe.Node(
+            SimpleBeforeAfter(
+                before_label="Distorted target",
+                after_label="Fieldmap ref.",
+            ),
+            name="sdc_coreg_report",
+            mem_gb=0.1,
+        )
+        ds_report_sdc_coreg = pe.Node(
+            DerivativesDataSink(
+                base_directory=fmriprep_dir,
+                datatype="figures",
+                desc="fmapCoreg",
+                dismiss_entities=("echo",),
+                suffix="bold",
+            ),
+            name="ds_report_sdc_coreg",
+            run_without_submitting=True,
+        )
+
+        # Second, showing the fieldmap reconstructed from coefficients in the EPI space
+        fmap_report = pe.Node(FieldmapReportlet(), "fmap_report")
+        fmap_report.interface._always_run = True
+
+        ds_fmap_report = pe.Node(
+            DerivativesDataSink(
+                base_directory=fmriprep_dir,
+                datatype="figures",
+                space="boldrun",
+                dismiss_entities=("echo", ),
+                suffix="fieldmap",
+            ),
+            name="ds_fmap_report",
+            run_without_submitting=True,
+        )
+
+        # fmt:off
+        workflow.connect([
+            (initial_boldref_wf, sdc_coreg_report, [
+                ("outputnode.ref_image", "before"),
+            ]),
+            (coeff2epi_wf, sdc_coreg_report, [
+                ("coregister.inverse_warped_image", "after"),
+            ]),
+            (final_boldref_wf, sdc_coreg_report, [
+                ("outputnode.bold_mask", "wm_seg"),
+            ]),
+            (inputnode, ds_report_sdc_coreg, [("bold_file", "source_file")]),
+            (sdc_coreg_report, ds_report_sdc_coreg, [("out_report", "in_file")]),
+            (unwarp_wf, fmap_report, [(("outputnode.fieldmap", _pop), "fieldmap")]),
+            (coeff2epi_wf, fmap_report, [
+                ("coregister.inverse_warped_image", "reference"),
+            ]),
+            (final_boldref_wf, fmap_report, [
+                ("outputnode.bold_mask", "mask"),
+            ]),
+
+            (fmap_report, ds_fmap_report, [("out_report", "in_file")]),
+            (inputnode, ds_fmap_report, [("bold_file", "source_file")]),
+        ])
+        # fmt:on
+
     if not multiecho:
         # fmt:off
         workflow.connect([
