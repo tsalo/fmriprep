@@ -1189,8 +1189,8 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
     if "fieldmaps" in config.execution.debug:
         # Generate additional reportlets to assess SDC
-        from sdcflows.utils.misc import front as _pop
         from sdcflows.interfaces.reportlets import FieldmapReportlet
+        from sdcflows.utils.misc import front as _pop
 
         # First, one for checking the co-registration between fieldmap and EPI
         sdc_coreg_report = pe.Node(
@@ -1222,7 +1222,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 base_directory=fmriprep_dir,
                 datatype="figures",
                 desc="fieldmap",
-                dismiss_entities=("echo", ),
+                dismiss_entities=("echo",),
                 suffix="bold",
             ),
             name="ds_fmap_report",
