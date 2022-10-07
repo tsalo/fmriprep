@@ -1221,9 +1221,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             DerivativesDataSink(
                 base_directory=fmriprep_dir,
                 datatype="figures",
-                space="boldrun",
+                desc="fieldmap",
                 dismiss_entities=("echo", ),
-                suffix="fieldmap",
+                suffix="bold",
             ),
             name="ds_fmap_report",
             run_without_submitting=True,
