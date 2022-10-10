@@ -1190,7 +1190,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     if "fieldmaps" in config.execution.debug:
         # Generate additional reportlets to assess SDC
         from sdcflows.interfaces.reportlets import FieldmapReportlet
-        from sdcflows.utils.misc import front as _pop
 
         # First, one for checking the co-registration between fieldmap and EPI
         sdc_coreg_report = pe.Node(
@@ -1215,7 +1214,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
         # Second, showing the fieldmap reconstructed from coefficients in the EPI space
         fmap_report = pe.Node(FieldmapReportlet(), "fmap_report")
-        fmap_report.interface._always_run = True
 
         ds_fmap_report = pe.Node(
             DerivativesDataSink(
@@ -1242,7 +1240,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
             (inputnode, ds_report_sdc_coreg, [("bold_file", "source_file")]),
             (sdc_coreg_report, ds_report_sdc_coreg, [("out_report", "in_file")]),
-            (unwarp_wf, fmap_report, [(("outputnode.fieldmap", _pop), "fieldmap")]),
+            (unwarp_wf, fmap_report, [(("outputnode.fieldmap", pop_file), "fieldmap")]),
             (coeff2epi_wf, fmap_report, [
                 ("coregister.inverse_warped_image", "reference"),
             ]),
