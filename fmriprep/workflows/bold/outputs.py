@@ -202,7 +202,6 @@ def init_func_derivatives_wf(
                 'bold_native_ref',
                 'bold_mask_native',
                 'bold_echos_native',
-                'cifti_variant',
                 'cifti_metadata',
                 'cifti_density',
                 'confounds',
