@@ -151,8 +151,6 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
         BOLD CIFTI image
     cifti_metadata
         Path of metadata files corresponding to ``bold_cifti``.
-    cifti_density
-        Density (i.e., either ``91k`` or ``170k``) of ``bold_cifti``.
     surfaces
         BOLD series, resampled to FreeSurfer surfaces
     t2star_bold
@@ -384,7 +382,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "bold_echos_native",
                 "bold_cifti",
                 "cifti_metadata",
-                "cifti_density",
                 "surfaces",
                 "t2star_bold",
                 "t2star_t1",
@@ -445,8 +442,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         use_aroma=config.workflow.use_aroma,
     )
     func_derivatives_wf.inputs.inputnode.all_source_files = bold_file
-    if config.workflow.cifti_output:
-        func_derivatives_wf.inputs.inputnode.cifti_density = config.workflow.cifti_output
+    func_derivatives_wf.inputs.inputnode.cifti_density = config.workflow.cifti_output
 
     # fmt:off
     workflow.connect([
@@ -470,7 +466,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ("nonaggr_denoised_file", "inputnode.nonaggr_denoised_file"),
             ("bold_cifti", "inputnode.bold_cifti"),
             ("cifti_metadata", "inputnode.cifti_metadata"),
-            ("cifti_density", "inputnode.cifti_density"),
             ("t2star_bold", "inputnode.t2star_bold"),
             ("t2star_t1", "inputnode.t2star_t1"),
             ("t2star_std", "inputnode.t2star_std"),
