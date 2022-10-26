@@ -973,7 +973,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
             # fmt:off
             workflow.connect([
-                (inputnode, bold_grayords_wf, [("subjects_dir", "inputnode.subjects_dir")]),
                 (bold_std_trans_wf, bold_grayords_wf, [
                     ("outputnode.bold_std", "inputnode.bold_std"),
                     ("outputnode.spatial_reference", "inputnode.spatial_reference"),
