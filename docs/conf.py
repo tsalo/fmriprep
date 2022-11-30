@@ -41,9 +41,9 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.mathjax",
     "sphinx.ext.linkcode",
+    "sphinx.ext.napoleon",
     "sphinxarg.ext",  # argparse extension
     "nipype.sphinxext.plot_workflow",
-    "sphinxcontrib.napoleon",
 ]
 
 # Mock modules in autodoc:
