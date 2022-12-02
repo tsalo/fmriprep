@@ -101,7 +101,7 @@ The optimally combined time series was carried forward as the *preprocessed BOLD
     t2smap_node = pe.Node(
         T2SMap(echo_times=list(echo_times)),
         name='t2smap_node',
-        mem_gb=2 * mem_gb * len(echo_times),
+        mem_gb=2.5 * mem_gb * len(echo_times),
     )
     # fmt:off
     workflow.connect([
