@@ -31,6 +31,7 @@ Orchestrating the BOLD-preprocessing workflow
 import os
 
 import nibabel as nb
+import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.interfaces.fsl import Split as FSLSplit
 from nipype.pipeline import engine as pe
@@ -1320,8 +1321,11 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
 
 def _create_mem_gb(bold_fname):
-    bold_size_gb = os.path.getsize(bold_fname) / (1024**3)
-    bold_tlen = nb.load(bold_fname).shape[-1]
+    img = nb.load(bold_fname)
+    nvox = int(np.prod(img.shape, dtype='u8'))
+    # Assume tools will coerce to 8-byte floats to be safe
+    bold_size_gb = 8 * nvox / (1024**3)
+    bold_tlen = img.shape[-1]
     mem_gb = {
         "filesize": bold_size_gb,
         "resampled": bold_size_gb * 4,
