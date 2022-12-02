@@ -14,6 +14,13 @@ defaults:
   run:
     shell: bash
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   stable:
     # Check each OS, all supported Python, minimum versions and latest releases
