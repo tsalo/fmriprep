@@ -564,7 +564,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         # create optimal combination, adaptive T2* map
         bold_t2s_wf = init_bold_t2s_wf(
             echo_times=tes,
-            mem_gb=mem_gb["resampled"],
+            mem_gb=mem_gb["filesize"],
             omp_nthreads=omp_nthreads,
             name="bold_t2smap_wf",
         )
