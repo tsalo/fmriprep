@@ -39,6 +39,20 @@ def main():
 
     parse_args()
 
+    # Code Carbon
+    if config.execution.track_carbon:
+        from codecarbon import OfflineEmissionsTracker
+
+        country_iso_code = config.execution.country_code
+        config.loggers.workflow.log(25, "CodeCarbon tracker started ...")
+        config.loggers.workflow.log(25, f"Using country_iso_code: {country_iso_code}")
+        config.loggers.workflow.log(25, f"Saving logs at: {config.execution.log_dir}")
+
+        tracker = OfflineEmissionsTracker(
+            output_dir=config.execution.log_dir, country_iso_code=country_iso_code
+        )
+        tracker.start()
+
     if "pdb" in config.execution.debug:
         from fmriprep.utils.debug import setup_exceptionhook
 
@@ -178,6 +192,13 @@ def main():
         errno = 0
     finally:
         from pkg_resources import resource_filename as pkgrf
+
+        # Code Carbon
+        if config.execution.track_carbon:
+            emissions: float = tracker.stop()
+            config.loggers.workflow.log(25, "CodeCarbon tracker has stopped.")
+            config.loggers.workflow.log(25, f"Saving logs at: {config.execution.log_dir}")
+            config.loggers.workflow.log(25, f"Carbon emissions: {emissions} kg")
 
         from fmriprep.reports.core import generate_reports
 

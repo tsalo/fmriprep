@@ -629,6 +629,20 @@ Useful for further Tedana processing post-fMRIPrep.""",
         help="Use low-quality tools for speed - TESTING ONLY",
     )
 
+    # Carbon tracker options
+    g_other.add_argument(
+        "--track-carbon",
+        action="store_true",
+        help="Tracks power draws using CodeCarbon package",
+    )
+    g_other.add_argument(
+        "--country-code",
+        action="store",
+        default="CAN",
+        type=str,
+        help="Country ISO code used by carbon trackers",
+    )
+
     latest = check_latest()
     if latest is not None and currentv < latest:
         print(
