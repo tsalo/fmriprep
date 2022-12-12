@@ -185,10 +185,10 @@ def _chunks(string, length=CHUNK_SIZE):
     return (string[i : i + length] for i in range(0, len(string), length))
 
 
-def setup_migas(init: bool = True) -> None:
+def setup_migas(init_ping: bool = True) -> None:
     """
     Prepare the migas python client to communicate with a migas server.
-    If ``init`` is ``True``, send an initial breadcrumb.
+    If ``init_ping`` is ``True``, send an initial breadcrumb.
     """
     # generate session UUID from generated run UUID
     session_id = None
@@ -196,8 +196,7 @@ def setup_migas(init: bool = True) -> None:
         session_id = config.execution.run_uuid.split('_', 1)[-1]
 
     migas.setup(session_id=session_id)
-    if init:
-        # send initial status ping
+    if init_ping:
         send_breadcrumb(status='R', status_desc='workflow start')
 
 
