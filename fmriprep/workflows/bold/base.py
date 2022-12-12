@@ -1112,6 +1112,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         write_coeff=True,
     )
     unwarp_wf = init_unwarp_wf(
+        free_mem=config.environment.free_mem,
         debug="fieldmaps" in config.execution.debug,
         omp_nthreads=config.nipype.omp_nthreads,
     )
