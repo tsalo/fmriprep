@@ -30,7 +30,7 @@ from niworkflows.utils.misc import read_crashfile
 from .. import __version__, config
 
 sentry_sdk = optional_package("sentry_sdk")[0]
-migas = optional_package["migas"][0]
+migas = optional_package("migas")[0]
 
 CHUNK_SIZE = 16384
 # Group common events with pre specified fingerprints
