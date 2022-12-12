@@ -71,7 +71,7 @@ def main():
 
         sentry_setup()
         setup_migas(init_ping=True)
-        atexit.register(_migas_exit)
+        atexit.register(migas_exit)
 
     # CRITICAL Save the config to a file. This is necessary because the execution graph
     # is built as a separate process to keep the memory footprint low. The most
