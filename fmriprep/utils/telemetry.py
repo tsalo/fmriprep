@@ -20,16 +20,17 @@
 #
 #     https://www.nipreps.org/community/licensing/
 #
-"""Stripped out routines for Sentry."""
+"""Stripped out routines for telemetry"""
 import os
 import re
 
 from nibabel.optpkg import optional_package
 from niworkflows.utils.misc import read_crashfile
 
-from .. import config
+from .. import __version__, config
 
 sentry_sdk = optional_package("sentry_sdk")[0]
+migas = optional_package["migas"][0]
 
 CHUNK_SIZE = 16384
 # Group common events with pre specified fingerprints
@@ -182,3 +183,27 @@ def _chunks(string, length=CHUNK_SIZE):
 
     """
     return (string[i : i + length] for i in range(0, len(string), length))
+
+
+def setup_migas(init: bool = True) -> None:
+    """
+    Prepare the migas python client to communicate with a migas server.
+    If ``init`` is ``True``, send an initial breadcrumb.
+    """
+    # generate session UUID from generated run UUID
+    session_id = None
+    if config.execution.run_uuid:
+        session_id = config.execution.run_uuid.split('_', 1)[-1]
+
+    migas.setup(session_id=session_id)
+    if init:
+        # send initial status ping
+        send_breadcrumb(status='R', status_desc='workflow start')
+
+
+def send_breadcrumb(**kwargs) -> dict:
+    """
+    Communicate with the migas telemetry server. This requires `migas.setup()` to be called.
+    """
+    res = migas.add_project("nipreps/fmriprep", __version__, **kwargs)
+    return res

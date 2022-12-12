@@ -399,7 +399,7 @@ class execution(_Config):
     md_only_boilerplate = False
     """Do not convert boilerplate from MarkDown to LaTex and HTML."""
     notrack = False
-    """Do not monitor *fMRIPrep* using Sentry.io."""
+    """Do not collect telemetry information for *fMRIPrep*."""
     track_carbon = False
     """Tracks power draws using CodeCarbon package."""
     country_code = "CAN"
