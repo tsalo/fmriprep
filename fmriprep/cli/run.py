@@ -24,6 +24,8 @@
 """fMRI preprocessing workflow."""
 from .. import config
 
+EXITCODE: int = -1
+
 
 def main():
     """Entry point."""
@@ -61,11 +63,15 @@ def main():
 
     sentry_sdk = None
     if not config.execution.notrack and not config.execution.debug:
+        import atexit
+
         import sentry_sdk
 
-        from ..utils.sentry import sentry_setup
+        from ..utils.telemetry import sentry_setup, setup_migas
 
         sentry_setup()
+        setup_migas(init_ping=True)
+        atexit.register(migas_exit)
 
     # CRITICAL Save the config to a file. This is necessary because the execution graph
     # is built as a separate process to keep the memory footprint low. The most
@@ -91,7 +97,8 @@ def main():
     else:
         retval = build_workflow(str(config_file), {})
 
-    retcode = retval.get("return_code", 0)
+    global EXITCODE
+    EXITCODE = retval.get("return_code", 0)
     fmriprep_wf = retval.get("workflow", None)
 
     # CRITICAL Load the config from the file. This is necessary because the ``build_workflow``
@@ -100,14 +107,14 @@ def main():
     config.load(config_file)
 
     if config.execution.reports_only:
-        sys.exit(int(retcode > 0))
+        sys.exit(int(EXITCODE > 0))
 
     if fmriprep_wf and config.execution.write_graph:
         fmriprep_wf.write_graph(graph2use="colored", format="svg", simple_form=True)
 
-    retcode = retcode or (fmriprep_wf is None) * EX_SOFTWARE
-    if retcode != 0:
-        sys.exit(retcode)
+    EXITCODE = EXITCODE or (fmriprep_wf is None) * EX_SOFTWARE
+    if EXITCODE != 0:
+        sys.exit(EXITCODE)
 
     # Generate boilerplate
     with Manager() as mgr:
@@ -118,7 +125,7 @@ def main():
         p.join()
 
     if config.execution.boilerplate_only:
-        sys.exit(int(retcode > 0))
+        sys.exit(int(EXITCODE > 0))
 
     # Clean up master process before running workflow, which may create forks
     gc.collect()
@@ -141,7 +148,7 @@ def main():
         fmriprep_wf.run(**config.nipype.get_plugin())
     except Exception as e:
         if not config.execution.notrack:
-            from ..utils.sentry import process_crashfile
+            from ..utils.telemetry import process_crashfile
 
             crashfolders = [
                 config.execution.fmriprep_dir
@@ -219,6 +226,37 @@ def main():
                 level="error",
             )
         sys.exit(int((errno + failed_reports) > 0))
+
+
+def migas_exit() -> None:
+    """
+    Send a final crumb to the migas server signaling if the run successfully completed
+    This function should be registered with `atexit` to run at termination.
+    """
+    import sys
+
+    from ..utils.telemetry import send_breadcrumb
+
+    global EXITCODE
+    migas_kwargs = {'status': 'C'}
+    # `sys` will not have these attributes unless an error has been handled
+    if hasattr(sys, 'last_type'):
+        migas_kwargs = {
+            'status': 'F',
+            'status_desc': 'Finished with error(s)',
+            'error_type': sys.last_type,
+            'error_desc': sys.last_value,
+        }
+    elif EXITCODE != 0:
+        migas_kwargs.update(
+            {
+                'status': 'F',
+                'status_desc': f'Completed with exitcode {EXITCODE}',
+            }
+        )
+    else:
+        migas_kwargs['status_desc'] = 'Success'
+    send_breadcrumb(**migas_kwargs)
 
 
 if __name__ == "__main__":

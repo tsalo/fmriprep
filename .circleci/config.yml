@@ -384,6 +384,7 @@ jobs:
       - FS_LICENSE: /tmp/fslicense/license.txt
       - DATASET: ds005
       - CHECK_DS005: true
+      - MIGAS_OPTOUT: 1
     steps:
       - checkout:
           path: *src
@@ -593,6 +594,7 @@ jobs:
       - FS_LICENSE: /tmp/fslicense/license.txt
       - DATASET: ds054
       - CHECK_DS054: true
+      - MIGAS_OPTOUT: 1
     steps:
       - checkout:
           path: *src
@@ -759,7 +761,7 @@ jobs:
                     --output-layout legacy \
                     --fs-no-reconall --sloppy --write-graph \
                     --output-spaces MNI152NLin2009cAsym \
-                    --mem-mb 14336 --nthreads 4 --anat-only -vv
+                    --mem-mb 14336 --nthreads 4 --anat-only -vv --notrack
             fi
       - run:
           name: Clean-up after anatomical run
