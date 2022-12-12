@@ -1,12 +1,59 @@
+22.1.0 (December 12, 2022)
+==========================
+New feature release in the 22.1.x series.
+
+This is an incremental improvement on the 22.0.x series, including features and fixes that
+are backwards incompatible with the 22.0.x work tree.
+
+Several significant issues with susceptibility distortion correction (SDC) have been fixed
+in `SDCFlows 2.2.0`_, in addition to the changes listed below.
+If you have been seeing issues with SDC in 21.0.x or 22.0.x, please test out this version
+and submit issues.
+
+Additionally, this version includes improvements to structural preprocessing, generating
+morphometric ``.shape.gii`` files from FreeSurfer derivatives.
+
+Finally, this release introduces a method for estimating the carbon footprint of using
+fMRIPrep. Add ``--track-carbon`` to your command to try this out. Note that it does not work
+in Docker containers, but should work for Singularity containers.
+
+With thanks to Nikhil Bhagwat for contributions.
+
+
+  * FIX: Conform --reports-only to match post-run report generation (#2900)
+  * FIX: Remove cortex masking during vol2surf sampling (#2879)
+  * FIX: Do not attempt to calculate TA if SliceTiming is degenerate (#2901)
+  * FIX: Pass CrownCompCor components to GatherConfounds (#2897)
+  * FIX: Output brain mask and boldref in BOLD space if individual echos requested (#2852)
+  * FIX: Check for empty ACompCor results before trying to rename (#2851)
+  * FIX: Filter sbrefs by BIDS filters if available (#2843)
+  * ENH: Provide free memory estimate to unwarp_wf for better resources allocation (#2910)
+  * ENH: Add migas telemetry in addition to sentry (#2817)
+  * ENH: Tag memory based on data shape, annotate T2SMap (#2898)
+  * ENH: Add of carbon tracker to estimate workflow emissions (#2834)
+  * ENH: Output BOLD HMC transforms and reference volume (#2860)
+  * RF: CIFTI generation (#2884)
+  * DOC: Correct description of --longitudinal behavior (#2905)
+  * MNT: Update fast track outputs, use latest smriprep (#2894)
+  * MNT: Deprecate ``--topup-max-vols`` (#2881)
+  * MNT: Add a ``--debug pdb`` to allow easier line-by-line debugging (#2871)
+  * MNT: Generate more verbose reports (here, showing fieldmaps) if running in debug mode (#2872)
+  * DOCKER: Build wheel and install in two-stage build (#2859)
+  * CI: Various updates (#2899)
+  * CI: Test on Python 3.10, bump actions versions (#2895)
+  * CI: Fix non-fasttrack outputs for maint/21.0.x (#2866)
+
+.. _`SDCFlows 2.2.0`: https://github.com/nipreps/sdcflows/releases/2.2.0
+
 22.0.2 (September 27, 2022)
 ===========================
 A patch release in the 22.0.x series.
 
 This release increases the minimum Nipype version to include better error messages on failures.
 Additionally, this includes a fix to allow SyN distortion correction in combination with the
-`--ignore fieldmaps` option.
+``--ignore fieldmaps`` option.
 
-  * MAINT: Add `pre-commit`, dev installation for consistent styling (#2857)
+  * MAINT: Add ``pre-commit``, dev installation for consistent styling (#2857)
   * CI: Upgrade docker orb (#2858)
 
 22.0.1 (September 13, 2022)
