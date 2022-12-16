@@ -159,8 +159,9 @@ jobs:
             export PY3=$(pyenv versions | grep '3\.' |
                          sed -e 's/.* 3\./3./' -e 's/ .*//')
             pyenv local $PY3
+            pip install hatch
             # Get version, update files.
-            THISVERSION=$( python3 get_version.py )
+            THISVERSION=$( hatch version )
             if [[ ${THISVERSION:0:1} == "0" ]] ; then
               echo "WARNING: latest git tag could not be found"
               echo "Please, make sure you fetch all tags from upstream with"
@@ -184,7 +185,7 @@ jobs:
                          sed -e 's/.* 3\./3./' -e 's/ .*//')
             pyenv local $PY3
             # Get version, update files.
-            THISVERSION=$( python3 get_version.py )
+            THISVERSION=$( hatch version )
             BUILT_VERSION=$( docker run --rm nipreps/fmriprep:latest --version )
             BUILT_VERSION=${BUILT_VERSION%$'\r'}
             BUILT_VERSION=${BUILT_VERSION#*"fMRIPrep v"}
@@ -911,7 +912,7 @@ jobs:
       - checkout
       - run:
           name: Update build tools
-          command: python -m pip install --user pip build twine
+          command: pip install --upgrade pip build twine hatch
       - run:
           name: Build fMRIPrep
           command: python -m build
@@ -920,8 +921,8 @@ jobs:
       - run:
           name: Check sdist distribution
           command: |
-            THISVERSION=$( python get_version.py )
-            THISVERSION=${THISVERSION%.dirty*}
+            THISVERSION=$( hatch version )
+            THISVERSION=${THISVERSION%.d*}
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
             python -m twine check dist/fmriprep*.tar.gz
             virtualenv --python=python sdist
@@ -938,8 +939,8 @@ jobs:
       - run:
           name: Check wheel distribution
           command: |
-            THISVERSION=$( python get_version.py )
-            THISVERSION=${THISVERSION%.dirty*}
+            THISVERSION=$( hatch version )
+            THISVERSION=${THISVERSION%.d*}
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
             python -m twine check dist/fmriprep*.whl
             virtualenv --python=python wheel
@@ -955,8 +956,8 @@ jobs:
       - run:
           name: Build fmriprep-docker
           command: |
-            THISVERSION=$( python get_version.py )
-            THISVERSION=${THISVERSION%.dirty*}
+            THISVERSION=$( hatch version )
+            THISVERSION=${THISVERSION%.d*}
             sed -i -E "s/(__version__ = )'[A-Za-z0-9.-]+'/\1'${CIRCLE_TAG:-$THISVERSION}'/" wrapper/fmriprep_docker.py
             python -m build wrapper/
       - store_artifacts:
@@ -968,15 +969,15 @@ jobs:
       - checkout
       - run:
           name: Update build tools
-          command: python -m pip install --user build twine
+          command: pip install --upgrade pip build twine hatch
       - run:
           name: Build fMRIPrep
           command: python -m build
       - run:
           name: Build fmriprep-docker
           command: |
-            THISVERSION=$( python get_version.py )
-            THISVERSION=${THISVERSION%.dirty*}
+            THISVERSION=$( hatch version )
+            THISVERSION=${THISVERSION%.d*}
             sed -i -E "s/(__version__ = )'[A-Za-z0-9.-]+'/\1'${CIRCLE_TAG:-$THISVERSION}'/" wrapper/fmriprep_docker.py
             python -m build wrapper/
       - run:
