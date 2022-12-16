@@ -682,7 +682,8 @@ def parse_args(args=None, namespace=None):
     # Deprecations
     if opts.topup_max_vols:
         config.loggers.cli.warning(
-            "--topup-max-vols input is no longer used and the flag will be removed in a future release."
+            "--topup-max-vols input is no longer used and "
+            "the flag will be removed in a future release."
         )
 
     if opts.config_file:
