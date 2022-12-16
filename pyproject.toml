@@ -1,9 +1,11 @@
 [build-system]
-requires = ["setuptools>=61.2", "versioneer[toml]"]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "fmriprep"
+description = "A robust and easy-to-use pipeline for preprocessing of diverse fMRI data"
+readme = "long_description.rst"
 authors = [{name = "The NiPreps Developers", email = "nipreps@gmail.com"}]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -14,8 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
 ]
-description = "fMRIPrep is a robust and easy-to-use pipeline for preprocessing of diverse fMRI data."
-license = {text = "Apache License, Version 2.0"}
+license = {file = "LICENSE"}
 requires-python = ">=3.8"
 dependencies = [
     'importlib_resources; python_version < "3.9"',
@@ -40,10 +41,6 @@ dependencies = [
     "APScheduler",
 ]
 dynamic = ["version"]
-
-[project.readme]
-file = "long_description.rst"
-content-type = "text/x-rst; charset=UTF-8"
 
 [project.urls]
 Homepage = "https://github.com/nipreps/fmriprep"
@@ -91,49 +88,18 @@ all = ["fmriprep[doc,maint,telemetry,test]"]
 fmriprep = "fmriprep.cli.run:main"
 
 [tool.setuptools]
-include-package-data = false
+packages = ["fmriprep"]
 
-[tool.setuptools.packages]
-find = {namespaces = false}
-
-[tool.setuptools.exclude-package-data]
-"*" = ["tests"]
-
-[tool.setuptools.package-data]
-fmriprep = [
-    "data/*.json",
-    "data/*.nii.gz",
-    "data/*.mat",
-    "data/NOTICE",
-    "data/boilerplate.bib",
-    "data/itkIdentityTransform.txt",
-    "data/flirtsch/bbr.sch",
-    "data/reports-spec.yml",
-    "data/tests/config.toml",
-    "data/tests/ds000005/*",
-    "data/tests/ds000005/sub-01/anat/*",
-    "data/tests/ds000005/sub-01/func/*",
-    "interfaces/tests/data/*",
-    "VERSION",
-]
-
-[tool.versioneer]
-VCS = "git"
-style = "pep440"
-versionfile_source = "fmriprep/_version.py"
-versionfile_build = "fmriprep/_version.py"
-tag_prefix = ""
-parentdir_prefix = ""
+[tool.setuptools_scm]
+write_to = "fmriprep/_version.py"
 
 [tool.black]
 line-length = 99
 target-version = ['py39']
 skip-string-normalization = true
-extend-exclude = '_version.py|versioneer.py'
 
 [tool.isort]
 profile = 'black'
-extend_skip = '_version.py'
 
 [tool.flake8]
 max-line-length = "99"
