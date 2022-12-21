@@ -555,15 +555,18 @@ Some of the estimated confounds are plotted with a "carpet" visualization of the
 :abbr:`BOLD (blood-oxygen level-dependent)` time series [Power2016]_.
 An example of these plots follows:
 
-.. figure:: _static/sub-01_task-mixedgamblestask_run-01_bold_carpetplot.svg
+.. figure:: _static/sub-405_ses-01_task-rest_run-01_desc-carpetplot_bold.svg
 
     The figure shows on top several confounds estimated for the BOLD series:
-    global signals ('GlobalSignal', 'WM', 'GM'), standardized DVARS ('stdDVARS'),
-    and framewise-displacement ('FramewiseDisplacement').
-    At the bottom, a 'carpetplot' summarizing the BOLD series.
-    The color-map on the left-side of the carpetplot denotes signals located
-    in cortical gray matter regions (blue), subcortical gray matter (orange),
-    cerebellum (green) and the union of white-matter and CSF compartments (red).
+    global signals ('GS', 'GSCSF', 'GSWM'),DVARS ('DVARS'),
+    and framewise-displacement ('FD').
+    At the bottom, a 'carpetplot' summarizing the BOLD series [Power2016]_.
+    The carpet plot rows correspond to voxelwise time series,
+    and are separated into regions: cortical gray matter, deep 
+    gray matter, white matter and cerebrospinal fluid, cerebellum 
+    and the brain-edge or “crown” [Provins2022]_.
+    The crown corresponds to the voxels located on a 
+    closed band around the brain [Patriat2015]_.
 
 Noise components computed during each CompCor decomposition are evaluated according
 to the fraction of variance that they explain across the nuisance ROI.
@@ -672,6 +675,10 @@ the following invocation::
   .. [Parkes2018] Parkes L, Fulcher B, Yücel M, Fornito A, An evaluation of the efficacy, reliability,
      and sensitivity of motion correction strategies for resting-state functional MRI. NeuroImage. 2018.
      doi:`10.1016/j.neuroimage.2017.12.073 <https://doi.org/10.1016/j.neuroimage.2017.12.073>`_
+
+  .. [Patriat2015] Patriat R, EK Molloy, RM Birn, T. Guitchev, and A. Popov. ,Using Edge Voxel Information to 
+     Improve Motion Regression for Rs-FMRI Connectivity Studies. Brain Connectivity. 2015. 
+     doi:`10.1089/brain.2014.0321 <https://doi.org/10.1089/brain.2014.0321>`_.
 
   .. [Patriat2017] Patriat R, Reynolds RC, Birn RM, An improved model of motion-related signal
      changes in fMRI. NeuroImage. 2017.
