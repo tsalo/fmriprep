@@ -179,7 +179,6 @@ jobs:
             done && [ "$e" -eq "0" ]
       - run:
           name: Check Docker image
-          no_output_timeout: 60m
           command: |
             export PY3=$(pyenv versions | grep '3\.' |
                          sed -e 's/.* 3\./3./' -e 's/ .*//')
@@ -191,6 +190,7 @@ jobs:
             BUILT_VERSION=${BUILT_VERSION#*"fMRIPrep v"}
             echo "VERSION: \"$THISVERSION\""
             echo "BUILT: \"$BUILT_VERSION\""
+            set -e
             test "$BUILT_VERSION" = "$THISVERSION"
       - run:
           name: Docker push to local registry
