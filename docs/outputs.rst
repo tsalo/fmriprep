@@ -558,7 +558,7 @@ An example of these plots follows:
 .. figure:: _static/sub-405_ses-01_task-rest_run-01_desc-carpetplot_bold.svg
 
     The figure shows on top several confounds estimated for the BOLD series:
-    global signals ('GS', 'GSCSF', 'GSWM'),DVARS ('DVARS'),
+    global signals ('GS', 'GSCSF', 'GSWM'), DVARS,
     and framewise-displacement ('FD').
     At the bottom, a 'carpetplot' summarizing the BOLD series [Power2016]_.
     The carpet plot rows correspond to voxelwise time series,
