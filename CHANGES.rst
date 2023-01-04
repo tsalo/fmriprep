@@ -1,3 +1,14 @@
+22.1.1 (January 04, 2023)
+=========================
+Bug fix release in the 22.1.x series.
+
+This release fixes the reported version in the distributed Docker image,
+and depends on SDCFlows 2.2.2, which fixes a bug affecting SDC estimation
+in some oblique datasets.
+
+  * FIX: Ensure version installed in Docker file is clean (#2922)
+
+
 22.1.0 (December 12, 2022)
 ==========================
 New feature release in the 22.1.x series.
