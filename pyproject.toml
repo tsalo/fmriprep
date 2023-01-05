@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "fmriprep"
@@ -87,11 +87,30 @@ all = ["fmriprep[doc,maint,telemetry,test]"]
 [project.scripts]
 fmriprep = "fmriprep.cli.run:main"
 
-[tool.setuptools]
-packages = ["fmriprep"]
+#
+# Hatch configurations
+#
 
-[tool.setuptools_scm]
-write_to = "fmriprep/_version.py"
+[tool.hatch.build.targets.sdist]
+exclude = [".git_archival.txt"]  # No longer needed in sdist
+
+[tool.hatch.build.targets.wheel]
+packages = ["fmriprep"]
+exclude = [
+    "fmriprep/data/tests",  # Large test data directory
+]
+
+##  The following two sections configure setuptools_scm in the hatch way
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "fmriprep/_version.py"
+
+#
+# Developer tool configurations
+#
 
 [tool.black]
 line-length = 99
