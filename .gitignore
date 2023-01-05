@@ -80,4 +80,4 @@ local_settings.py
 
 *.swp
 
-fmriprep/_version.py
+_version.py

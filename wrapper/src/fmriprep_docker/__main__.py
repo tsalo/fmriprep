@@ -20,8 +20,12 @@ import re
 import subprocess
 import sys
 
-__version__ = '99.99.99'
-__copyright__ = 'Copyright 2020, Center for Reproducible Neuroscience, Stanford University'
+try:
+    from ._version import __version__
+except ImportError:
+    __version__ = '0+unknown'
+
+__copyright__ = 'Copyright 2023, Center for Reproducible Neuroscience, Stanford University'
 __credits__ = [
     'Craig Moodie',
     'Ross Blair',
@@ -621,4 +625,6 @@ def main():
 
 
 if __name__ == '__main__':
+    if '__main__.py' in sys.argv[0]:
+        sys.argv[0] = '%s -m %s' % (sys.executable, module)
     sys.exit(main())
