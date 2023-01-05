@@ -142,16 +142,15 @@ def test_get_parser_blacklist(monkeypatch, capsys, flagged):
         assert (flagged[1] or "reason: unknown") in captured
 
 
-def test_parse_args(tmp_path):
+def test_parse_args(tmp_path, minimal_bids):
     """Basic smoke test showing that our parse_args() function
     implements the BIDS App protocol"""
-    bids_dir = pkgrf('fmriprep', 'data/tests/ds000005')
     out_dir = tmp_path / "out"
     work_dir = tmp_path / "work"
 
     parse_args(
         args=[
-            bids_dir,
+            str(minimal_bids),
             str(out_dir),
             "participant",  # BIDS App
             "-w",
@@ -159,7 +158,7 @@ def test_parse_args(tmp_path):
             "--skip-bids-validation",  # Empty files make BIDS sad
         ]
     )
-    assert config.execution.layout.root == bids_dir
+    assert config.execution.layout.root == str(minimal_bids)
     _reset_config()
 
 
