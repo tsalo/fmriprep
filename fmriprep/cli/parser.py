@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2022 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -682,7 +682,8 @@ def parse_args(args=None, namespace=None):
     # Deprecations
     if opts.topup_max_vols:
         config.loggers.cli.warning(
-            "--topup-max-vols input is no longer used and the flag will be removed in a future release."
+            "--topup-max-vols input is no longer used and "
+            "the flag will be removed in a future release."
         )
 
     if opts.config_file:

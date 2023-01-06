@@ -140,13 +140,13 @@ and some conference posters:
 
 License information
 -------------------
-*fMRIPrep* adheres to the 
+*fMRIPrep* adheres to the
 `general licensing guidelines <https://www.nipreps.org/community/licensing/>`__
 of the *NiPreps framework*.
 
 License
 ~~~~~~~
-Copyright (c) 2022, the *NiPreps* Developers.
+Copyright (c) 2023, the *NiPreps* Developers.
 
 As of the 21.0.x pre-release and release series, *fMRIPrep* is
 licensed under the Apache License, Version 2.0 (the "License");
