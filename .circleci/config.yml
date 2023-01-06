@@ -364,28 +364,36 @@ jobs:
               --pyargs fmriprep -svx --doctest-modules
 
       - run:
-          name: Test fmriprep-wrapper (Python 2)
+          name: Build fmriprep-docker wheel
           command: |
-            export PY2=$(pyenv versions | grep '2\.' |
-                         sed -e 's/.* 2\./2./' -e 's/ .*//')
-            pyenv local $PY2
-            echo -n "Python version: "
-            python --version
-            pip install --upgrade "pip<21" "setuptools<45"
-            pip install --upgrade wrapper/
-            which fmriprep-docker
-            fmriprep-docker -i nipreps/fmriprep:latest --help
-            fmriprep-docker -i nipreps/fmriprep:latest --version
+            export PY3=$(pyenv versions | grep '3\.' |
+                         sed -e 's/.* 3\./3./' -e 's/ .*//')
+            pyenv local $PY3
+            pip install --upgrade pip build
+            python -m build wrapper/
       - run:
-          name: Test fmriprep-wrapper (Python 3)
+          name: Install and test fmriprep-docker (Python 3)
           command: |
             export PY3=$(pyenv versions | grep '3\.' |
                          sed -e 's/.* 3\./3./' -e 's/ .*//')
             pyenv local $PY3
             echo -n "Python version: "
             python --version
-            pip install --upgrade pip setuptools
             pip install --upgrade wrapper/
+            pip install wrapper/dist/*.whl
+            which fmriprep-docker
+            fmriprep-docker -i nipreps/fmriprep:latest --help
+            fmriprep-docker -i nipreps/fmriprep:latest --version
+      - run:
+          name: Install and test fmriprep-docker (Python 2)
+          command: |
+            export PY2=$(pyenv versions | grep '2\.' |
+                         sed -e 's/.* 2\./2./' -e 's/ .*//')
+            pyenv local $PY2
+            echo -n "Python version: "
+            python --version
+            pip install --upgrade "pip<21"
+            pip install wrapper/dist/*.whl
             which fmriprep-docker
             fmriprep-docker -i nipreps/fmriprep:latest --help
             fmriprep-docker -i nipreps/fmriprep:latest --version
