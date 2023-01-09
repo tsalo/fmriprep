@@ -15,8 +15,7 @@ The ``fmriprep`` command-line options are documented in the :ref:`usage`
 section.
 The ``fmriprep`` command-line adheres to the `BIDS-Apps recommendations
 for the user interface <usage.html#execution-and-the-bids-format>`__.
-Therefore, the command-line has the following structure:
-::
+Therefore, the command-line has the following structure::
 
   $ fmriprep <input_bids_path> <derivatives_path> <analysis_level> <named_options>
 
@@ -24,8 +23,7 @@ On the other hand, if you chose a container infrastructure, then
 the command-line will be composed of a preamble to configure the
 container execution followed by the ``fmriprep`` command-line options
 as if you were running it on a *bare-metal* installation.
-The command-line structure above is then modified as follows:
-::
+The command-line structure above is then modified as follows::
 
   $ <container_command_and_options> <container_image> \
        <input_bids_path> <derivatives_path> <analysis_level> <fmriprep_named_options>
