@@ -462,28 +462,6 @@ Useful for further Tedana processing post-fMRIPrep.""",
         "based on the outcome of a heuristic to check whether the brain is already masked).",
     )
 
-    # Fieldmap options
-    g_fmap = parser.add_argument_group("Specific options for handling fieldmaps")
-    g_fmap.add_argument(
-        "--fmap-bspline",
-        action="store_true",
-        default=False,
-        help="fit a B-Spline field using least-squares (experimental)",
-    )
-    g_fmap.add_argument(
-        "--fmap-no-demean",
-        action="store_false",
-        default=True,
-        help="do not remove median (within mask) from fieldmap",
-    )
-    g_fmap.add_argument(
-        "--topup-max-vols",
-        action="store",
-        default=5,
-        type=int,
-        help="maximum number of volumes to use with TOPUP, per-series (EPI or BOLD)",
-    )
-
     # SyN-unwarp options
     g_syn = parser.add_argument_group("Specific options for SyN distortion correction")
     g_syn.add_argument(
