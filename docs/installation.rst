@@ -5,7 +5,7 @@ Installation
 ------------
 There are two ways to install *fMRIPrep*:
 
-* within a `Manually Prepared Environment (Python 3.7+)`_, also known as
+* within a `Manually Prepared Environment (Python 3.8+)`_, also known as
   *bare-metal installation*; or
 * using container technologies (RECOMMENDED).
 
@@ -44,7 +44,7 @@ or `Singularity <https://www.nipreps.org/apps/singularity/>`__ subsections.
 The *NiPreps* portal also containes
 `extended details of execution with the Docker wrapper <https://www.nipreps.org/apps/docker/#running-a-niprep-with-a-lightweight-wrapper>`__.
 
-Manually Prepared Environment (Python 3.7+)
+Manually Prepared Environment (Python 3.8+)
 ===========================================
 
 .. warning::
@@ -58,7 +58,7 @@ A relatively interpretable description of how your environment can be set-up
 is found in the `Dockerfile <https://github.com/nipreps/fmriprep/blob/master/Dockerfile>`_.
 As an additional installation setting, FreeSurfer requires a license file (see :ref:`fs_license`).
 
-On a functional Python 3.7 (or above) environment with ``pip`` installed,
+On a functional Python 3.8 (or above) environment with ``pip`` installed,
 *fMRIPrep* can be installed using the habitual command ::
 
     $ python -m pip install fmriprep
@@ -70,18 +70,18 @@ Check your installation with the ``--version`` argument ::
 
 External Dependencies
 ---------------------
-*fMRIPrep* is written using Python 3.7 (or above), and is based on
+*fMRIPrep* is written using Python 3.8 (or above), and is based on
 nipype_.
 
 *fMRIPrep* requires some other neuroimaging software tools that are
 not handled by the Python's packaging system (Pypi) used to deploy
 the ``fmriprep`` package:
 
-- FSL_ (version 6.0.6.2)
+- FSL_ (version 6.0.5.1)
 - ANTs_ (version 2.3.3 - NeuroDocker build)
-- AFNI_ (version Debian-23.0.00)
+- AFNI_ (version 22.3.06)
 - `C3D <https://sourceforge.net/projects/c3d/>`_ (version 1.3.0)
-- FreeSurfer_ (version 7.2.3)
+- FreeSurfer_ (version 7.3.2)
 - `ICA-AROMA <https://github.com/maartenmennes/ICA-AROMA/archive/v0.4.5.tar.gz>`_ (version 0.4.5)
 - `bids-validator <https://github.com/bids-standard/bids-validator>`_ (version 1.8.0)
 - `connectome-workbench <https://www.humanconnectome.org/software/connectome-workbench>`_ (version 1.5.0)
