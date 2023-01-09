@@ -3,7 +3,7 @@
 ------------
 Installation
 ------------
-There are two ways to get *fMRIPrep* installed:
+There are two ways to install *fMRIPrep*:
 
 * within a `Manually Prepared Environment (Python 3.7+)`_, also known as
   *bare-metal installation*; or
@@ -49,7 +49,7 @@ Manually Prepared Environment (Python 3.7+)
 
 .. warning::
 
-   This method is not recommended! Please checkout container alternatives.
+   This method is not recommended! Please consider using containers.
 
 Make sure all of *fMRIPrep*'s `External Dependencies`_ are installed.
 These tools must be installed and their binaries available in the
