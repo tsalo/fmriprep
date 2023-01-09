@@ -43,7 +43,7 @@ The command-line interface of the docker wrapper
 ------------------------------------------------
 
 .. argparse::
-   :ref: fmriprep_docker.get_parser
+   :ref: fmriprep_docker.__main__.get_parser
    :prog: fmriprep-docker
    :nodefault:
    :nodefaultconst:
