@@ -201,7 +201,8 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     )
     from niworkflows.interfaces.utility import DictMerge, KeySelect
 
-    nvols = nb.load(bold_file[0] if isinstance(bold_file, (list, tuple)) else bold_file).shape[3]
+    img = nb.load(bold_file[0] if isinstance(bold_file, (list, tuple)) else bold_file)
+    nvols = 1 if img.ndim < 4 else img.shape[3]
     if nvols <= 5 - config.execution.sloppy:
         config.loggers.workflow.warning(
             f"Too short BOLD series (<= 5 timepoints). Skipping processing of <{bold_file}>."
