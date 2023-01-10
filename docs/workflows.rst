@@ -448,6 +448,7 @@ Resampling BOLD runs onto standard spaces
         spaces=SpatialReferences(
             spaces=[('MNI152Lin', {}), ('MNIPediatricAsym', {'cohort': '6'})],
             checkpoint=True),
+        multiecho=False,
     )
 
 This sub-workflow concatenates the transforms calculated upstream (see

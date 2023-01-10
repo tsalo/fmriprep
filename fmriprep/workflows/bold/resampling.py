@@ -234,6 +234,7 @@ def init_bold_std_trans_wf(
                     spaces=["MNI152Lin",
                             ("MNIPediatricAsym", {"cohort": "6"})],
                     checkpoint=True),
+                multiecho=False,
             )
 
     Parameters
