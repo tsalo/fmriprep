@@ -53,7 +53,7 @@ class TShift(afni.TShift):
         return runtime
 
 
-def init_bold_stc_wf(metadata, name='bold_stc_wf'):
+def init_bold_stc_wf(metadata: dict, name='bold_stc_wf'):
     """
     Create a workflow for :abbr:`STC (slice-timing correction)`.
 
