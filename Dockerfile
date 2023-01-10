@@ -29,8 +29,8 @@ RUN apt-get update && \
 COPY . /src/fmriprep
 RUN python -m build /src/fmriprep
 
-# Use Ubuntu 20.04 LTS
-FROM ubuntu:focal-20210416
+# Use Ubuntu 22.04 LTS
+FROM ubuntu:jammy-20221130
 
 # Prepare environment
 RUN apt-get update && \
