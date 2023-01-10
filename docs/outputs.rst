@@ -33,8 +33,8 @@ upcoming `BEP 011`_ and `BEP 012`_).
        There are two exceptions to this principle (described in their corresponding
        sections below):
 
-         - ICA-AROMA's *non-aggressive* denoised outputs, and
-         - CompCor regressors, which are calculated after temporal high-pass filtering.
+       - ICA-AROMA's *non-aggressive* denoised outputs, and
+       - CompCor regressors, which are calculated after temporal high-pass filtering.
 
 Layout
 ------

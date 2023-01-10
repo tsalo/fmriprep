@@ -115,25 +115,19 @@ brain extraction workflow:
     wf = init_brain_extraction_wf()
 
 
-An example of brain extraction is shown below:
-
-.. figure:: _static/brainextraction_t1.svg
-
-    Brain extraction
-
-
 Once the brain mask is computed, FSL ``fast`` is utilized for brain tissue segmentation.
 
-.. figure:: _static/segmentation.svg
+fMRIPrep includes a single figure overlaying the brain mask (red), and tissue boundaries
+(blue = gray/white; magenta = tissue/CSF):
 
-    Brain tissue segmentation.
+.. figure:: _static/sub-01_dseg.svg
 
+    Brain extraction and segmentation report
 
 Finally, spatial normalization to standard spaces is performed using ANTs' ``antsRegistration``
 in a multiscale, mutual-information based, nonlinear registration scheme.
 See :ref:`output-spaces` for information about how standard and nonstandard spaces can
 be set to resample the preprocessed data onto the final output spaces.
-
 
 .. figure:: _static/T1MNINormalization.svg
 
@@ -193,14 +187,14 @@ All surface preprocessing may be disabled with the ``--fs-no-reconall`` flag.
     Surface processing will be skipped if the outputs already exist.
 
     In order to bypass reconstruction in *fMRIPrep*, place existing reconstructed
-    subjects in ``<output dir>/freesurfer`` prior to the run, or specify an external
-    subjects directory with the ``--fs-subjects-dir`` flag.
+    subjects in ``<output dir>/sourcedata/freesurfer`` prior to the run, or specify
+    an external subjects directory with the ``--fs-subjects-dir`` flag.
     *fMRIPrep* will perform any missing ``recon-all`` steps, but will not perform
     any steps whose outputs already exist.
 
 
 If FreeSurfer reconstruction is performed, the reconstructed subject is placed in
-``<output dir>/freesurfer/sub-<subject_label>/`` (see :ref:`fsderivs`).
+``<output dir>/sourcedata/freesurfer/sub-<subject_label>/`` (see :ref:`fsderivs`).
 
 Surface reconstruction is performed in three phases.
 The first phase initializes the subject with T1w and T2w (if available)
@@ -246,7 +240,7 @@ converted to GIFTI_ format and adjusted to be compatible with multiple software
 packages, including FreeSurfer and the `Connectome Workbench`_.
 
 .. note::
-    GIFTI surface outputs are aligned to the FreeSurfer T1.mgz image, which
+    GIFTI surface outputs are aligned to the FreeSurfer ``T1.mgz`` image, which
     may differ from the T1w space in some cases, to maintain compatibility
     with the FreeSurfer directory.
     Any measures sampled to the surface take into account any difference in
@@ -323,9 +317,11 @@ Further, the reference is fed to the :ref:`head-motion estimation
 workflow <bold_hmc>` and the :ref:`registration workflow to map
 BOLD series into the T1w image of the same subject <bold_reg>`.
 
-.. figure:: _static/brainextraction.svg
+.. figure:: _static/sub-01_task-balloonanalogrisktask_run-1_desc-rois_bold.svg
 
-    Calculation of a brain mask from the BOLD series.
+    The red contour shows the brain mask estimated for a BOLD reference volume.
+    The blue and magenta contours show the tCompCor and aCompCor masks,
+    respectively. (See :ref:`bold_confounds`, below.)
 
 .. _bold_hmc:
 
@@ -447,6 +443,7 @@ EPI to T1w registration
 The alignment between the reference :abbr:`EPI (echo-planar imaging)` image
 of each run and the reconstructed subject using the gray/white matter boundary
 (FreeSurfer's ``?h.white`` surfaces) is calculated by the ``bbregister`` routine.
+See :func:`fmriprep.workflows.bold.registration.init_bbreg_wf` for further details.
 
 .. figure:: _static/EPIT1Normalization.svg
 
@@ -455,8 +452,12 @@ of each run and the reconstructed subject using the gray/white matter boundary
 If FreeSurfer processing is disabled, FSL ``flirt`` is run with the
 :abbr:`BBR (boundary-based registration)` cost function, using the
 ``fast`` segmentation to establish the gray/white matter boundary.
-After :abbr:`BBR (boundary-based registration)` is run, the resulting affine transform will be compared to the initial transform found by FLIRT.
-Excessive deviation will result in rejecting the BBR refinement and accepting the original, affine registration.
+See :func:`fmriprep.workflows.bold.registration.init_fsl_bbr_wf` for further details.
+
+After either :abbr:`BBR (boundary-based registration)` workflow is run, the resulting affine
+transform will be compared to the initial transform found by FLIRT.
+Excessive deviation will result in rejecting the BBR refinement and accepting the
+original, affine registration.
 
 Resampling BOLD runs onto standard spaces
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
