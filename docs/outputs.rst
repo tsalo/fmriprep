@@ -61,7 +61,7 @@ records metadata recommended by the BIDS standard.
 This layout, now the default, may be explicitly specified with the
 ``--output-layout bids`` command-line option.
 For compatibility with versions of fMRIPrep prior to 21.0, the
-`legacy layout`_ is available via ``-output-layout legacy``.
+`legacy layout`_ is available via ``--output-layout legacy``.
 
 Visual Reports
 --------------
@@ -279,9 +279,9 @@ to perform more advanced denoising or alternative combination strategies.
    For example, when specifying a first-level model, you should set parameters in your
    software package or first-level model function accordingly (e.g., select the middle
    slice as reference).
-   Alternatively, you could manually adjust the volume onsets (e.g. as mentioned in 
+   Alternatively, you could manually adjust the volume onsets (e.g. as mentioned in
    the example above from [0, 2, 4] to [1, 3, 5]) or the event onsets accordingly.
-   
+
    Further information on this issue is found at
    `this blog post (with thanks to Russell Poldrack and Jeanette Mumford)
    <https://reproducibility.stanford.edu/slice-timing-correction-in-fmriprep-and-linear-modeling/>`__.
@@ -562,10 +562,10 @@ An example of these plots follows:
     and framewise-displacement ('FD').
     At the bottom, a 'carpetplot' summarizing the BOLD series [Power2016]_.
     The carpet plot rows correspond to voxelwise time series,
-    and are separated into regions: cortical gray matter, deep 
-    gray matter, white matter and cerebrospinal fluid, cerebellum 
+    and are separated into regions: cortical gray matter, deep
+    gray matter, white matter and cerebrospinal fluid, cerebellum
     and the brain-edge or “crown” [Provins2022]_.
-    The crown corresponds to the voxels located on a 
+    The crown corresponds to the voxels located on a
     closed band around the brain [Patriat2015]_.
 
 Noise components computed during each CompCor decomposition are evaluated according
@@ -676,8 +676,8 @@ the following invocation::
      and sensitivity of motion correction strategies for resting-state functional MRI. NeuroImage. 2018.
      doi:`10.1016/j.neuroimage.2017.12.073 <https://doi.org/10.1016/j.neuroimage.2017.12.073>`_
 
-  .. [Patriat2015] Patriat R, EK Molloy, RM Birn, T. Guitchev, and A. Popov. ,Using Edge Voxel Information to 
-     Improve Motion Regression for Rs-FMRI Connectivity Studies. Brain Connectivity. 2015. 
+  .. [Patriat2015] Patriat R, EK Molloy, RM Birn, T. Guitchev, and A. Popov. ,Using Edge Voxel Information to
+     Improve Motion Regression for Rs-FMRI Connectivity Studies. Brain Connectivity. 2015.
      doi:`10.1089/brain.2014.0321 <https://doi.org/10.1089/brain.2014.0321>`_.
 
   .. [Patriat2017] Patriat R, Reynolds RC, Birn RM, An improved model of motion-related signal
