@@ -364,11 +364,15 @@ It is released under the [CC0]\
 
         # SDC Step 1: Run basic heuristics to identify available data for fieldmap estimation
         # For now, no fmapless
+        filters = None
+        if config.execution.bids_filters is not None:
+            filters = config.execution.bids_filters.get("fmap")
         fmap_estimators = find_estimators(
             layout=config.execution.layout,
             subject=subject_id,
             fmapless=bool(config.workflow.use_syn_sdc),
             force_fmapless=config.workflow.force_syn,
+            bids_filters=filters,
         )
 
         if config.workflow.use_syn_sdc and not fmap_estimators:
