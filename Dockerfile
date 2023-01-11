@@ -42,6 +42,7 @@ RUN apt-get update && \
                     ca-certificates \
                     curl \
                     git \
+                    gnupg \
                     libtool \
                     lsb-release \
                     netbase \
@@ -158,10 +159,12 @@ ENV FSLDIR="/opt/fsl-6.0.5.1" \
     FSLGECUDAQ="cuda.q" \
     LD_LIBRARY_PATH="/opt/fsl-6.0.5.1/lib:$LD_LIBRARY_PATH"
 
+# Configure PPA for libpng12
+RUN GNUPGHOME=/tmp gpg --keyserver hkps://keyserver.ubuntu.com --no-default-keyring --keyring /usr/share/keyrings/linuxuprising.gpg --recv 0xEA8CACC073C3DB2A \
+    && echo "deb [signed-by=/usr/share/keyrings/linuxuprising.gpg] https://ppa.launchpadcontent.net/linuxuprising/libpng12/ubuntu jammy main" > /etc/apt/sources.list.d/linuxuprising.list
 # AFNI latest (neurodocker build)
 RUN apt-get update -qq \
     && apt-get install -y -q --no-install-recommends \
-           apt-utils \
            ed \
            gsl-bin \
            libglib2.0-0 \
@@ -169,6 +172,7 @@ RUN apt-get update -qq \
            libglw1-mesa \
            libgomp1 \
            libjpeg62 \
+           libpng12-0 \
            libxm4 \
            netpbm \
            tcsh \
@@ -182,9 +186,6 @@ RUN apt-get update -qq \
     && curl -sSL --retry 5 -o /tmp/libxp6.deb http://mirrors.kernel.org/debian/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb \
     && dpkg -i /tmp/libxp6.deb \
     && rm /tmp/libxp6.deb \
-    && curl -sSL --retry 5 -o /tmp/libpng.deb http://snapshot.debian.org/archive/debian-security/20160113T213056Z/pool/updates/main/libp/libpng/libpng12-0_1.2.49-1%2Bdeb7u2_amd64.deb \
-    && dpkg -i /tmp/libpng.deb \
-    && rm /tmp/libpng.deb \
     && apt-get install -f \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
