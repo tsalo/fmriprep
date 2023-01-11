@@ -128,11 +128,11 @@ jobs:
       - run: *check_skip_job
       - restore_cache:
           keys:
-            - build-v5-{{ .Branch }}-{{ .Revision }}
-            - build-v5--{{ .Revision }}
-            - build-v5-{{ .Branch }}-
-            - build-v5-master-
-            - build-v5-
+            - build-v6-{{ .Branch }}-{{ .Revision }}
+            - build-v6--{{ .Revision }}
+            - build-v6-{{ .Branch }}-
+            - build-v6-master-
+            - build-v6-
           paths:
             - /tmp/docker
             - /tmp/images
@@ -147,7 +147,7 @@ jobs:
               docker save registry:2 | gzip > /tmp/images/registry.tar.gz
             fi
       - run:
-          name: Pull Ubuntu/focal image
+          name: Pull Ubuntu/jammy image
           command: |
             set +e
             docker pull localhost:5000/ubuntu
@@ -155,11 +155,11 @@ jobs:
             set -e
             if [[ "$success" = "0" ]]; then
                 echo "Pulling from local registry"
-                docker tag localhost:5000/ubuntu ubuntu:focal
+                docker tag localhost:5000/ubuntu ubuntu:jammy
             else
                 echo "Pulling from Docker Hub"
-                docker pull ubuntu:focal
-                docker tag ubuntu:focal localhost:5000/ubuntu
+                docker pull ubuntu:jammy
+                docker tag ubuntu:jammy localhost:5000/ubuntu
                 docker push localhost:5000/ubuntu
             fi
       - run:
@@ -235,7 +235,7 @@ jobs:
           paths:
             - src/fmriprep
       - save_cache:
-         key: build-v5-{{ .Branch }}-{{ .Revision }}
+         key: build-v6-{{ .Branch }}-{{ .Revision }}
          paths:
             - /tmp/docker
             - /tmp/images
@@ -368,7 +368,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v5-{{ .Branch }}-{{ .Revision }}
+            - build-v6-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -441,7 +441,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v5-{{ .Branch }}-{{ .Revision }}
+            - build-v6-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -651,7 +651,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v5-{{ .Branch }}-{{ .Revision }}
+            - build-v6-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -777,7 +777,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v5-{{ .Branch }}-{{ .Revision }}
+            - build-v6-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -893,7 +893,7 @@ jobs:
             fi
       - restore_cache:
           keys:
-            - build-v5-{{ .Branch }}-{{ .Revision }}
+            - build-v6-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -916,7 +916,7 @@ jobs:
       - run: *check_skip_job
       - restore_cache:
           keys:
-            - build-v5-{{ .Branch }}-{{ .Revision }}
+            - build-v6-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
