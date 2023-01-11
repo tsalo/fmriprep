@@ -77,14 +77,14 @@ nipype_.
 not handled by the Python's packaging system (Pypi) used to deploy
 the ``fmriprep`` package:
 
-- FSL_ (version 5.0.9)
-- ANTs_ (version 2.2.0 - NeuroDocker build)
-- AFNI_ (version Debian-16.2.07)
-- `C3D <https://sourceforge.net/projects/c3d/>`_ (version 1.0.0)
-- FreeSurfer_ (version 6.0.1)
-- `ICA-AROMA <https://github.com/maartenmennes/ICA-AROMA/archive/e8d7a58.tar.gz>`_ (commit e8d7a58, post v0.4.4-beta)
-- `bids-validator <https://github.com/bids-standard/bids-validator>`_ (version 1.4.0)
-- `connectome-workbench <https://www.humanconnectome.org/software/connectome-workbench>`_ (version Debian-1.3.2)
+- FSL_ (version 6.0.6.2)
+- ANTs_ (version 2.3.3 - NeuroDocker build)
+- AFNI_ (version Debian-23.0.00)
+- `C3D <https://sourceforge.net/projects/c3d/>`_ (version 1.3.0)
+- FreeSurfer_ (version 7.2.3)
+- `ICA-AROMA <https://github.com/maartenmennes/ICA-AROMA/archive/v0.4.5.tar.gz>`_ (version 0.4.5)
+- `bids-validator <https://github.com/bids-standard/bids-validator>`_ (version 1.8.0)
+- `connectome-workbench <https://www.humanconnectome.org/software/connectome-workbench>`_ (version 1.5.0)
 
 Not running on a local machine? - Data transfer
 ===============================================
