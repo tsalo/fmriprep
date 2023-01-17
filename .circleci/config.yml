@@ -95,6 +95,31 @@ orbs:
   docker: circleci/docker@2.1.4
 
 jobs:
+  build_clean:
+    <<: *machine_defaults
+    steps:
+      - checkout:
+          path: *src
+      - docker/install-docker-credential-helper
+      - run: *docker_auth
+      - run:
+          name: Build Docker image
+          no_output_timeout: 60m
+          command: |
+            export PY3=$(pyenv versions | grep '3\.' |
+                         sed -e 's/.* 3\./3./' -e 's/ .*//')
+            pyenv local $PY3
+            pip install hatch
+            # Get version, update files
+            THISVERSION=$( hatch version )
+            # Build docker image
+            docker build --rm \
+              --cache-from=nipreps/fmriprep \
+              -t nipreps/fmriprep:latest \
+              --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
+              --build-arg VCS_REF=`git rev-parse --short HEAD` \
+              --build-arg VERSION="$THISVERSION" .
+
   build:
     <<: *machine_defaults
     steps:
@@ -992,6 +1017,20 @@ jobs:
 
 workflows:
   version: 2
+  build_from_scratch:
+    triggers:
+      - schedule:
+          cron: "0 13 * * 1"
+          filters:
+            branches:
+              only:
+                - master
+                - maint/20.2.x
+    jobs:
+      - build_clean:
+          context:
+            - nipreps-common
+
   build_test_deploy:
     jobs:
       - build:
