@@ -31,6 +31,7 @@ def main():
     """Entry point."""
     import gc
     import sys
+    import warnings
     from multiprocessing import Manager, Process
     from os import EX_SOFTWARE
     from pathlib import Path
@@ -40,6 +41,10 @@ def main():
     from .workflow import build_workflow
 
     parse_args()
+
+    # Deprecated flags
+    if config.workflow.use_aroma:
+        warnings.warn("ICA-AROMA support will be removed in fMRIPrep 23.1.0", FutureWarning)
 
     # Code Carbon
     if config.execution.track_carbon:
