@@ -37,7 +37,7 @@ NiPreps = "https://www.nipreps.org/"
 fmriprep-docker = "fmriprep_docker.__main__:main"
 
 #
-# Hatch configurations
+# Build tool configurations
 #
 
 [tool.hatch.build.targets.wheel]
@@ -49,6 +49,9 @@ raw-options = { version_scheme = "nipreps-calver", root = ".." }
 
 [tool.hatch.build.hooks.vcs]
 version-file = "src/fmriprep_docker/_version.py"
+
+[tool.distutils.bdist_wheel]
+universal = true
 
 #
 # Developer tool configurations
