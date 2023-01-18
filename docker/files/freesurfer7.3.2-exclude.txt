@@ -854,6 +854,11 @@ freesurfer/mni/share/mni_autoreg
 freesurfer/mni/share/N3
 freesurfer/models
 freesurfer/python/lib/python3.8/test
+freesurfer/python/lib/python3.8/site-packages/caffe2
+freesurfer/python/lib/python3.8/site-packages/sklearn
+freesurfer/python/lib/python3.8/site-packages/tensorflow
+freesurfer/python/lib/python3.8/site-packages/torch
+freesurfer/python/lib/python3.8/site-packages/**/tests
 freesurfer/python/**/__pycache__
 freesurfer/python/share
 freesurfer/SegmentNoLUT.txt
