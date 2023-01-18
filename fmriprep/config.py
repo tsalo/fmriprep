@@ -223,7 +223,10 @@ class _Config:
             if k in ignore or v is None:
                 continue
             if k in cls._paths:
-                setattr(cls, k, Path(v).absolute())
+                if isinstance(v, (list, tuple)):
+                    setattr(cls, k, [Path(val).absolute() for val in v])
+                else:
+                    setattr(cls, k, Path(v).absolute())
             elif hasattr(cls, k):
                 setattr(cls, k, v)
 
@@ -245,9 +248,12 @@ class _Config:
             if callable(getattr(cls, k)):
                 continue
             if k in cls._paths:
-                v = str(v)
+                if isinstance(v, (list, tuple)):
+                    v = [str(val) for val in v]
+                else:
+                    v = str(v)
             if isinstance(v, SpatialReferences):
-                v = " ".join([str(s) for s in v.references]) or None
+                v = " ".join(str(s) for s in v.references) or None
             if isinstance(v, Reference):
                 v = str(v) or None
             out[k] = v
@@ -364,10 +370,10 @@ class nipype(_Config):
 class execution(_Config):
     """Configure run-level settings."""
 
-    anat_derivatives = None
-    """A path where anatomical derivatives are found to fast-track *sMRIPrep*."""
     bids_dir = None
     """An existing path to the dataset, which must be BIDS-compliant."""
+    derivatives = []
+    """Path(s) to search for pre-computed derivatives"""
     bids_database_dir = None
     """Path to the directory containing SQLite database indices for the input BIDS dataset."""
     bids_description_hash = None
@@ -431,8 +437,8 @@ class execution(_Config):
     _layout = None
 
     _paths = (
-        "anat_derivatives",
         "bids_dir",
+        "derivatives",
         "bids_database_dir",
         "fmriprep_dir",
         "fs_license_file",

@@ -192,12 +192,13 @@ def _build_parser(**kwargs):
         % (currentv.base_version if is_release else "latest"),
     )
     g_bids.add_argument(
-        "--anat-derivatives",
+        "-d",
+        "--derivatives",
         action="store",
         metavar="PATH",
-        type=PathExists,
-        help="Reuse the anatomical derivatives from another fMRIPrep run or calculated "
-        "with an alternative processing tool (NOT RECOMMENDED).",
+        type=Path,
+        nargs="*",
+        help="Search PATH(s) for pre-computed derivatives.",
     )
     g_bids.add_argument(
         "--bids-database-dir",
