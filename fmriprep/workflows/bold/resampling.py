@@ -75,8 +75,8 @@ def init_bold_surf_wf(*, mem_gb, surface_spaces, medial_surface_nan, name="bold_
         FreeSurfer SUBJECTS_DIR
     subject_id
         FreeSurfer subject ID
-    t1w2fsnative_xfm
-        LTA-style affine matrix translating from T1w to FreeSurfer-conformed subject space
+    fsnative2t1w_xfm
+        ITK-style affine matrix translating from FreeSurfer-conformed subject space to T1w
 
     Outputs
     -------
@@ -86,6 +86,7 @@ def init_bold_surf_wf(*, mem_gb, surface_spaces, medial_surface_nan, name="bold_
     """
     from nipype.interfaces.io import FreeSurferSource
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+    from niworkflows.interfaces.nitransforms import ConcatenateXFMs
     from niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
 
     workflow = Workflow(name=name)
@@ -99,7 +100,7 @@ The BOLD time-series were resampled onto the following surfaces
 
     inputnode = pe.Node(
         niu.IdentityInterface(
-            fields=["source_file", "subject_id", "subjects_dir", "t1w2fsnative_xfm"]
+            fields=["source_file", "subject_id", "subjects_dir", "fsnative2t1w_xfm"]
         ),
         name="inputnode",
     )
@@ -126,7 +127,9 @@ The BOLD time-series were resampled onto the following surfaces
         run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
-    itk2lta = pe.Node(niu.Function(function=_itk2lta), name="itk2lta", run_without_submitting=True)
+    itk2lta = pe.Node(
+        ConcatenateXFMs(out_fmt="fs", inverse=True), name="itk2lta", run_without_submitting=True
+    )
     sampler = pe.MapNode(
         fs.SampleToSurface(
             interp_method="trilinear",
@@ -160,14 +163,14 @@ The BOLD time-series were resampled onto the following surfaces
                                    ("subjects_dir", "subjects_dir")]),
         (inputnode, targets, [("subject_id", "subject_id")]),
         (inputnode, rename_src, [("source_file", "in_file")]),
-        (inputnode, itk2lta, [("source_file", "src_file"),
-                              ("t1w2fsnative_xfm", "in_file")]),
-        (get_fsnative, itk2lta, [("T1", "dst_file")]),
+        (inputnode, itk2lta, [("source_file", "reference"),
+                              ("fsnative2t1w_xfm", "in_xfms")]),
+        (get_fsnative, itk2lta, [("T1", "moving")]),
         (inputnode, sampler, [("subjects_dir", "subjects_dir"),
                               ("subject_id", "subject_id")]),
         (itersource, targets, [("target", "space")]),
         (itersource, rename_src, [("target", "subject")]),
-        (itk2lta, sampler, [("out", "reg_file")]),
+        (itk2lta, sampler, [("out_inv", "reg_file")]),
         (targets, sampler, [("out", "target_subject")]),
         (rename_src, sampler, [("out_file", "source_file")]),
         (update_metadata, outputnode, [("out_file", "surfaces")]),
@@ -885,15 +888,3 @@ def _aslist(in_value):
 
 def _is_native(in_value):
     return in_value.get("resolution") == "native" or in_value.get("res") == "native"
-
-
-def _itk2lta(in_file, src_file, dst_file):
-    from pathlib import Path
-
-    import nitransforms as nt
-
-    out_file = Path("out.lta").absolute()
-    nt.linear.load(
-        in_file, fmt="fs" if in_file.endswith(".lta") else "itk", reference=src_file
-    ).to_filename(out_file, moving=dst_file, fmt="fs")
-    return str(out_file)

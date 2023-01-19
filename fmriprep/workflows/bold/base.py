@@ -107,8 +107,6 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
         FreeSurfer SUBJECTS_DIR
     subject_id
         FreeSurfer subject ID
-    t1w2fsnative_xfm
-        LTA-style affine matrix translating from T1w to FreeSurfer-conformed subject space
     fsnative2t1w_xfm
         LTA-style affine matrix translating from FreeSurfer-conformed subject space to T1w
 
@@ -347,7 +345,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "anat2std_xfm",
                 "std2anat_xfm",
                 "template",
-                "t1w2fsnative_xfm",
                 "fsnative2t1w_xfm",
                 "fmap",
                 "fmap_ref",
@@ -949,7 +946,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (inputnode, bold_surf_wf, [
                 ("subjects_dir", "inputnode.subjects_dir"),
                 ("subject_id", "inputnode.subject_id"),
-                ("t1w2fsnative_xfm", "inputnode.t1w2fsnative_xfm"),
+                ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
             ]),
             (bold_t1_trans_wf, bold_surf_wf, [("outputnode.bold_t1", "inputnode.source_file")]),
             (bold_surf_wf, outputnode, [("outputnode.surfaces", "surfaces")]),

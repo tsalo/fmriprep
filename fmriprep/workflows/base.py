@@ -421,7 +421,6 @@ tasks and sessions), the following preprocessing was performed.
                 # Undefined if --fs-no-reconall, but this is safe
                 ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
                 ('outputnode.subject_id', 'inputnode.subject_id'),
-                ('outputnode.t1w2fsnative_xfm', 'inputnode.t1w2fsnative_xfm'),
                 ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm')]),
         ])
         # fmt:on
