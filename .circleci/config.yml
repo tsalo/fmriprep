@@ -537,10 +537,7 @@ jobs:
           name: Checking outputs of full fMRIPrep run
           command: |
             mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_legacy_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_legacy_outputs.txt"
-            fi
+            CHECK_OUTPUTS_FILE="${DATASET}_legacy_outputs.txt"
             find /tmp/${DATASET}/derivatives \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives/++ | sort > /tmp/${DATASET}/test/outputs.out
             diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
             exit $?
@@ -573,10 +570,7 @@ jobs:
           name: Checking outputs of partial fMRIPrep run
           command: |
             mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_bids_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_bids_outputs.txt"
-            fi
+            CHECK_OUTPUTS_FILE="${DATASET}_bids_outputs.txt"
             find /tmp/${DATASET}/bids \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/++ | grep -v sourcedata | sort > /tmp/${DATASET}/test/outputs.out
             diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
             exit $?
@@ -608,10 +602,7 @@ jobs:
           name: Checking outputs of partial fMRIPrep run
           command: |
             mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_legacy_partial_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_legacy_partial_outputs.txt"
-            fi
+            CHECK_OUTPUTS_FILE="${DATASET}_legacy_partial_outputs.txt"
             sudo rm -rf /tmp/${DATASET}/derivatives_partial/freesurfer
             find /tmp/${DATASET}/derivatives_partial \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives_partial/++ | sort > /tmp/${DATASET}/test/outputs.out
             diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
@@ -717,10 +708,7 @@ jobs:
           name: Checking outputs of fMRIPrep
           command: |
             mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_outputs.txt"
-            fi
+            CHECK_OUTPUTS_FILE="${DATASET}_outputs.txt"
             find /tmp/${DATASET}/derivatives \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives/++ | sort > /tmp/${DATASET}/test/outputs.out
             diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
             exit $?
@@ -857,10 +845,7 @@ jobs:
           name: Checking outputs of fMRIPrep
           command: |
             mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_outputs.txt"
-            fi
+            CHECK_OUTPUTS_FILE="${DATASET}_outputs.txt"
             find /tmp/${DATASET}/derivatives \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives/++ | sort > /tmp/${DATASET}/test/outputs.out
             diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
             exit $?
