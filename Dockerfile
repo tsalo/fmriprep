@@ -29,8 +29,8 @@ RUN apt-get update && \
 COPY . /src/fmriprep
 RUN python -m build /src/fmriprep
 
-# Use Ubuntu 20.04 LTS
-FROM ubuntu:focal-20210416
+# Use Ubuntu 22.04 LTS
+FROM ubuntu:jammy-20221130
 
 # Prepare environment
 RUN apt-get update && \
@@ -42,6 +42,7 @@ RUN apt-get update && \
                     ca-certificates \
                     curl \
                     git \
+                    gnupg \
                     libtool \
                     lsb-release \
                     netbase \
@@ -55,9 +56,9 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     LC_ALL="en_US.UTF-8"
 
 # Installing freesurfer
-COPY docker/files/freesurfer7.2-exclude.txt /usr/local/etc/freesurfer7.2-exclude.txt
-RUN curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.2.0/freesurfer-linux-ubuntu18_amd64-7.2.0.tar.gz \
-￼    | tar zxv --no-same-owner -C /opt --exclude-from=/usr/local/etc/freesurfer7.2-exclude.txt
+COPY docker/files/freesurfer7.3.2-exclude.txt /usr/local/etc/freesurfer7.3.2-exclude.txt
+RUN curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer-linux-ubuntu22_amd64-7.3.2.tar.gz \
+     | tar zxv --no-same-owner -C /opt --exclude-from=/usr/local/etc/freesurfer7.3.2-exclude.txt
 
 # Simulate SetUpFreeSurfer.sh
 ENV FSL_DIR="/opt/fsl-6.0.5.1" \
@@ -158,21 +159,12 @@ ENV FSLDIR="/opt/fsl-6.0.5.1" \
     FSLGECUDAQ="cuda.q" \
     LD_LIBRARY_PATH="/opt/fsl-6.0.5.1/lib:$LD_LIBRARY_PATH"
 
-# Convert3D (neurodocker build)
-RUN echo "Downloading Convert3D ..." \
-    && mkdir -p /opt/convert3d-1.0.0 \
-    && curl -fsSL --retry 5 https://sourceforge.net/projects/c3d/files/c3d/1.0.0/c3d-1.0.0-Linux-x86_64.tar.gz/download \
-    | tar -xz -C /opt/convert3d-1.0.0 --strip-components 1 \
-    --exclude "c3d-1.0.0-Linux-x86_64/lib" \
-    --exclude "c3d-1.0.0-Linux-x86_64/share" \
-    --exclude "c3d-1.0.0-Linux-x86_64/bin/c3d_gui"
-ENV C3DPATH="/opt/convert3d-1.0.0" \
-    PATH="/opt/convert3d-1.0.0/bin:$PATH"
-
+# Configure PPA for libpng12
+RUN GNUPGHOME=/tmp gpg --keyserver hkps://keyserver.ubuntu.com --no-default-keyring --keyring /usr/share/keyrings/linuxuprising.gpg --recv 0xEA8CACC073C3DB2A \
+    && echo "deb [signed-by=/usr/share/keyrings/linuxuprising.gpg] https://ppa.launchpadcontent.net/linuxuprising/libpng12/ubuntu jammy main" > /etc/apt/sources.list.d/linuxuprising.list
 # AFNI latest (neurodocker build)
 RUN apt-get update -qq \
     && apt-get install -y -q --no-install-recommends \
-           apt-utils \
            ed \
            gsl-bin \
            libglib2.0-0 \
@@ -180,6 +172,7 @@ RUN apt-get update -qq \
            libglw1-mesa \
            libgomp1 \
            libjpeg62 \
+           libpng12-0 \
            libxm4 \
            netpbm \
            tcsh \
@@ -193,9 +186,6 @@ RUN apt-get update -qq \
     && curl -sSL --retry 5 -o /tmp/libxp6.deb http://mirrors.kernel.org/debian/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb \
     && dpkg -i /tmp/libxp6.deb \
     && rm /tmp/libxp6.deb \
-    && curl -sSL --retry 5 -o /tmp/libpng.deb http://snapshot.debian.org/archive/debian-security/20160113T213056Z/pool/updates/main/libp/libpng/libpng12-0_1.2.49-1%2Bdeb7u2_amd64.deb \
-    && dpkg -i /tmp/libpng.deb \
-    && rm /tmp/libpng.deb \
     && apt-get install -f \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -267,6 +257,15 @@ ENV PATH="/opt/conda/bin:$PATH" \
     LC_ALL="C.UTF-8" \
     PYTHONNOUSERSITE=1
 
+RUN conda install -y -n base \
+    -c anaconda \
+    -c conda-forge \
+    convert3d=1.3.0 \
+    && sync \
+    && conda clean -afy; sync \
+    && rm -rf ~/.conda ~/.cache/pip/*; sync \
+    && ldconfig
+
 # Unless otherwise specified each process should only use one thread - nipype
 # will handle parallelization
 ENV MKL_NUM_THREADS=1 \
@@ -296,10 +295,6 @@ RUN /opt/conda/bin/python -m pip install --no-cache-dir $( ls *.whl )[all]
 RUN find $HOME -type d -exec chmod go=u {} + && \
     find $HOME -type f -exec chmod go=u {} + && \
     rm -rf $HOME/.npm $HOME/.conda $HOME/.empty
-
-# HACK for FreeSurfer 7.2.0
-# Fixed in https://github.com/freesurfer/freesurfer/pull/886, so remove on release
-ENV FREESURFER="/opt/freesurfer"
 
 ENV IS_DOCKER_8395080871=1
 
