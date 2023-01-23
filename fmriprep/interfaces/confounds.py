@@ -555,12 +555,7 @@ class FMRISummary(SimpleInterface):
         else:
             data = dataframe[headers]
 
-        colnames = data.columns.ravel().tolist()
-
-        for name, newname in list(names.items()):
-            colnames[colnames.index(name)] = newname
-
-        data.columns = colnames
+        data = data.rename(columns=names)
 
         fig = fMRIPlot(
             dataset,
