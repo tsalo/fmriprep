@@ -94,7 +94,7 @@ def test_memory_arg(tmp_path, argval, gb):
     _fs_file = tmp_path / "license.txt"
     _fs_file.write_text("")
 
-    args = MIN_ARGS + ["--fs-license-file", str(_fs_file)] + ["--mem", argval]
+    args = [str(datapath)] + MIN_ARGS[1:] + ["--fs-license-file", str(_fs_file), "--mem", argval]
     opts = _build_parser().parse_args(args)
 
     assert opts.memory_gb == gb

@@ -50,13 +50,13 @@ from ...interfaces.confounds import (
 
 
 def init_bold_confs_wf(
-    mem_gb,
-    metadata,
-    regressors_all_comps,
-    regressors_dvars_th,
-    regressors_fd_th,
-    freesurfer=False,
-    name="bold_confs_wf",
+    mem_gb: float,
+    metadata: dict,
+    regressors_all_comps: bool,
+    regressors_dvars_th: float,
+    regressors_fd_th: float,
+    freesurfer: bool = False,
+    name: str = "bold_confs_wf",
 ):
     """
     Build a workflow to generate and write out confounding signals.
@@ -602,7 +602,9 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
     return workflow
 
 
-def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
+def init_carpetplot_wf(
+    mem_gb: float, metadata: dict, cifti_output: bool, name: str = "bold_carpet_wf"
+):
     """
     Build a workflow to generate *carpet* plots.
 
@@ -740,13 +742,13 @@ def init_carpetplot_wf(mem_gb, metadata, cifti_output, name="bold_carpet_wf"):
 
 
 def init_ica_aroma_wf(
-    mem_gb,
-    metadata,
-    omp_nthreads,
-    aroma_melodic_dim=-200,
-    err_on_aroma_warn=False,
-    name="ica_aroma_wf",
-    susan_fwhm=6.0,
+    mem_gb: float,
+    metadata: dict,
+    omp_nthreads: int,
+    aroma_melodic_dim: int = -200,
+    err_on_aroma_warn: bool = False,
+    name: str = "ica_aroma_wf",
+    susan_fwhm: float = 6.0,
 ):
     """
     Build a workflow that runs `ICA-AROMA`_.

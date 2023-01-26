@@ -128,19 +128,19 @@ def _build_parser(**kwargs):
         "bids_dir",
         action="store",
         type=PathExists,
-        help="the root folder of a BIDS valid dataset (sub-XXXXX folders should "
+        help="The root folder of a BIDS valid dataset (sub-XXXXX folders should "
         "be found at the top level in this folder).",
     )
     parser.add_argument(
         "output_dir",
         action="store",
         type=Path,
-        help="the output path for the outcomes of preprocessing and visual " "reports",
+        help="The output path for the outcomes of preprocessing and visual reports",
     )
     parser.add_argument(
         "analysis_level",
         choices=["participant"],
-        help='processing stage to be run, only "participant" in the case of '
+        help='Processing stage to be run, only "participant" in the case of '
         "fMRIPrep (see BIDS-Apps specification).",
     )
 
@@ -153,7 +153,7 @@ def _build_parser(**kwargs):
         "--skip-bids-validation",
         action="store_true",
         default=False,
-        help="assume the input dataset is BIDS compliant and skip the validation",
+        help="Assume the input dataset is BIDS compliant and skip the validation",
     )
     g_bids.add_argument(
         "--participant-label",
@@ -161,23 +161,23 @@ def _build_parser(**kwargs):
         action="store",
         nargs="+",
         type=_drop_sub,
-        help="a space delimited list of participant identifiers or a single "
+        help="A space delimited list of participant identifiers or a single "
         "identifier (the sub- prefix can be removed)",
     )
     # Re-enable when option is actually implemented
     # g_bids.add_argument('-s', '--session-id', action='store', default='single_session',
-    #                     help='select a specific session to be processed')
+    #                     help='Select a specific session to be processed')
     # Re-enable when option is actually implemented
     # g_bids.add_argument('-r', '--run-id', action='store', default='single_run',
-    #                     help='select a specific run to be processed')
+    #                     help='Select a specific run to be processed')
     g_bids.add_argument(
-        "-t", "--task-id", action="store", help="select a specific task to be processed"
+        "-t", "--task-id", action="store", help="Select a specific task to be processed"
     )
     g_bids.add_argument(
         "--echo-idx",
         action="store",
         type=int,
-        help="select a specific echo to be processed in a multiecho series",
+        help="Select a specific echo to be processed in a multiecho series",
     )
     g_bids.add_argument(
         "--bids-filter-file",
@@ -185,7 +185,7 @@ def _build_parser(**kwargs):
         action="store",
         type=BIDSFilter,
         metavar="FILE",
-        help="a JSON file describing custom BIDS input filters using PyBIDS. "
+        help="A JSON file describing custom BIDS input filters using PyBIDS. "
         "For further details, please check out "
         "https://fmriprep.readthedocs.io/en/%s/faq.html#"
         "how-do-I-select-only-certain-files-to-be-input-to-fMRIPrep"
@@ -216,13 +216,13 @@ def _build_parser(**kwargs):
         dest='nprocs',
         action="store",
         type=PositiveInt,
-        help="maximum number of threads across all processes",
+        help="Maximum number of threads across all processes",
     )
     g_perfm.add_argument(
         "--omp-nthreads",
         action="store",
         type=PositiveInt,
-        help="maximum number of threads per-process",
+        help="Maximum number of threads per-process",
     )
     g_perfm.add_argument(
         "--mem",
@@ -232,12 +232,12 @@ def _build_parser(**kwargs):
         action="store",
         type=_to_gb,
         metavar="MEMORY_MB",
-        help="upper bound memory limit for fMRIPrep processes",
+        help="Upper bound memory limit for fMRIPrep processes",
     )
     g_perfm.add_argument(
         "--low-mem",
         action="store_true",
-        help="attempt to reduce memory usage (will increase disk usage " "in working directory)",
+        help="Attempt to reduce memory usage (will increase disk usage in working directory)",
     )
     g_perfm.add_argument(
         "--use-plugin",
@@ -245,20 +245,20 @@ def _build_parser(**kwargs):
         action="store",
         metavar="FILE",
         type=IsFile,
-        help="nipype plugin configuration file",
+        help="Nipype plugin configuration file",
     )
-    g_perfm.add_argument("--anat-only", action="store_true", help="run anatomical workflows only")
+    g_perfm.add_argument("--anat-only", action="store_true", help="Run anatomical workflows only")
     g_perfm.add_argument(
         "--boilerplate_only",
         action="store_true",
         default=False,
-        help="generate boilerplate only",
+        help="Generate boilerplate only",
     )
     g_perfm.add_argument(
         "--md-only-boilerplate",
         action="store_true",
         default=False,
-        help="skip generation of HTML and LaTeX formatted citation with pandoc",
+        help="Skip generation of HTML and LaTeX formatted citation with pandoc",
     )
     g_perfm.add_argument(
         "--error-on-aroma-warnings",
@@ -274,7 +274,7 @@ def _build_parser(**kwargs):
         dest="verbose_count",
         action="count",
         default=0,
-        help="increases log verbosity for each occurence, debug level is -vvv",
+        help="Increases log verbosity for each occurence, debug level is -vvv",
     )
 
     g_conf = parser.add_argument_group("Workflow configuration")
@@ -285,13 +285,13 @@ def _build_parser(**kwargs):
         nargs="+",
         default=[],
         choices=["fieldmaps", "slicetiming", "sbref", "t2w", "flair"],
-        help="ignore selected aspects of the input dataset to disable corresponding "
+        help="Ignore selected aspects of the input dataset to disable corresponding "
         "parts of the workflow (a space delimited list)",
     )
     g_conf.add_argument(
         "--longitudinal",
         action="store_true",
-        help="treat dataset as longitudinal - may increase runtime",
+        help="Treat dataset as longitudinal - may increase runtime",
     )
     g_conf.add_argument(
         "--output-spaces",
@@ -375,7 +375,7 @@ Useful for further Tedana processing post-fMRIPrep.""",
         action="store",
         default=None,
         type=int,
-        help="Number of nonsteady-state volumes.",
+        help="Number of nonsteady-state volumes. Overrides automatic detection.",
     )
     g_conf.add_argument(
         "--random-seed",
@@ -392,7 +392,7 @@ Useful for further Tedana processing post-fMRIPrep.""",
         "--use-aroma",
         action="store_true",
         default=False,
-        help="add ICA_AROMA to your preprocessing stream",
+        help="Add ICA-AROMA to your preprocessing stream",
     )
     g_aroma.add_argument(
         "--aroma-melodic-dimensionality",
@@ -405,7 +405,7 @@ Useful for further Tedana processing post-fMRIPrep.""",
     )
 
     # Confounds options
-    g_confounds = parser.add_argument_group("Specific options for estimating confounds")
+    g_confounds = parser.add_argument_group("Specific options for generating confounds")
     g_confounds.add_argument(
         "--return-all-components",
         dest="regressors_all_comps",
@@ -433,7 +433,7 @@ Useful for further Tedana processing post-fMRIPrep.""",
         action="store",
         default=1.5,
         type=float,
-        help="Threshold for flagging a frame as an outlier on the basis of standardised " "DVARS",
+        help="Threshold for flagging a frame as an outlier on the basis of standardised DVARS",
     )
 
     #  ANTs options
@@ -442,12 +442,13 @@ Useful for further Tedana processing post-fMRIPrep.""",
         "--skull-strip-template",
         default="OASIS30ANTs",
         type=Reference.from_string,
-        help="select a template for skull-stripping with antsBrainExtraction",
+        help="Select a template for skull-stripping with antsBrainExtraction "
+        "(OASIS30ANTs, by default)",
     )
     g_ants.add_argument(
         "--skull-strip-fixed-seed",
         action="store_true",
-        help="do not use a random seed for skull-stripping - will ensure "
+        help="Do not use a random seed for skull-stripping - will ensure "
         "run-to-run replicability when used with --omp-nthreads 1 and "
         "matching --random-seed <int>",
     )
@@ -456,31 +457,9 @@ Useful for further Tedana processing post-fMRIPrep.""",
         action="store",
         choices=("auto", "skip", "force"),
         default="force",
-        help="determiner for T1-weighted skull stripping ('force' ensures skull "
+        help="Perform T1-weighted skull stripping ('force' ensures skull "
         "stripping, 'skip' ignores skull stripping, and 'auto' applies brain extraction "
         "based on the outcome of a heuristic to check whether the brain is already masked).",
-    )
-
-    # Fieldmap options
-    g_fmap = parser.add_argument_group("Specific options for handling fieldmaps")
-    g_fmap.add_argument(
-        "--fmap-bspline",
-        action="store_true",
-        default=False,
-        help="fit a B-Spline field using least-squares (experimental)",
-    )
-    g_fmap.add_argument(
-        "--fmap-no-demean",
-        action="store_false",
-        default=True,
-        help="do not remove median (within mask) from fieldmap",
-    )
-    g_fmap.add_argument(
-        "--topup-max-vols",
-        action="store",
-        default=5,
-        type=int,
-        help="maximum number of volumes to use with TOPUP, per-series (EPI or BOLD)",
     )
 
     # SyN-unwarp options
@@ -492,7 +471,7 @@ Useful for further Tedana processing post-fMRIPrep.""",
         action="store",
         const="error",
         default=False,
-        help="EXPERIMENTAL: Use fieldmap-free distortion correction; "
+        help="Use fieldmap-less distortion correction based on anatomical image; "
         "if unable, error (default) or warn based on optional argument.",
     )
     g_syn.add_argument(
@@ -520,14 +499,14 @@ Useful for further Tedana processing post-fMRIPrep.""",
         "(default: OUTPUT_DIR/freesurfer)",
     )
 
-    # Surface generation xor
     g_surfs = parser.add_argument_group("Surface preprocessing options")
     g_surfs.add_argument(
         "--no-submm-recon",
         action="store_false",
         dest="hires",
-        help="disable sub-millimeter (hires) reconstruction",
+        help="Disable sub-millimeter (hires) reconstruction",
     )
+    # Surface generation xor
     g_surfs_xor = g_surfs.add_mutually_exclusive_group()
     g_surfs_xor.add_argument(
         "--cifti-output",
@@ -536,7 +515,7 @@ Useful for further Tedana processing post-fMRIPrep.""",
         default=False,
         choices=("91k", "170k"),
         type=str,
-        help="output preprocessed BOLD as a CIFTI dense timeseries. "
+        help="Output preprocessed BOLD as a CIFTI dense timeseries. "
         "Optionally, the number of grayordinate can be specified "
         "(default is 91k, which equates to 2mm resolution)",
     )
@@ -544,7 +523,7 @@ Useful for further Tedana processing post-fMRIPrep.""",
         "--fs-no-reconall",
         action="store_false",
         dest="run_reconall",
-        help="disable FreeSurfer surface preprocessing.",
+        help="Disable FreeSurfer surface preprocessing.",
     )
 
     g_other = parser.add_argument_group("Other options")
@@ -564,26 +543,26 @@ Useful for further Tedana processing post-fMRIPrep.""",
         action="store",
         type=Path,
         default=Path("work").absolute(),
-        help="path where intermediate results should be stored",
+        help="Path where intermediate results should be stored",
     )
     g_other.add_argument(
         "--clean-workdir",
         action="store_true",
         default=False,
-        help="Clears working directory of contents. Use of this flag is not"
+        help="Clears working directory of contents. Use of this flag is not "
         "recommended when running concurrent processes of fMRIPrep.",
     )
     g_other.add_argument(
         "--resource-monitor",
         action="store_true",
         default=False,
-        help="enable Nipype's resource monitoring to keep track of memory and CPU usage",
+        help="Enable Nipype's resource monitoring to keep track of memory and CPU usage",
     )
     g_other.add_argument(
         "--reports-only",
         action="store_true",
         default=False,
-        help="only generate reports, don't run workflows. This will only rerun report "
+        help="Only generate reports, don't run workflows. This will only rerun report "
         "aggregation, not reportlet generation for specific nodes.",
     )
     g_other.add_argument(
@@ -603,7 +582,7 @@ Useful for further Tedana processing post-fMRIPrep.""",
         "--stop-on-first-crash",
         action="store_true",
         default=False,
-        help="Force stopping on first crash, even if a work directory" " was specified.",
+        help="Force stopping on first crash, even if a work directory was specified.",
     )
     g_other.add_argument(
         "--notrack",
@@ -678,13 +657,6 @@ def parse_args(args=None, namespace=None):
 
     parser = _build_parser()
     opts = parser.parse_args(args, namespace)
-
-    # Deprecations
-    if opts.topup_max_vols:
-        config.loggers.cli.warning(
-            "--topup-max-vols input is no longer used and "
-            "the flag will be removed in a future release."
-        )
 
     if opts.config_file:
         skip = {} if opts.reports_only else {"execution": ("run_uuid",)}

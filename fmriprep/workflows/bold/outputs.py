@@ -21,6 +21,10 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Writing out derivative files."""
+from __future__ import annotations
+
+import typing as ty
+
 import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
@@ -29,8 +33,11 @@ from fmriprep import config
 from fmriprep.config import DEFAULT_MEMORY_MIN_GB
 from fmriprep.interfaces import DerivativesDataSink
 
+if ty.TYPE_CHECKING:
+    from niworkflows.utils.spaces import SpatialReferences
 
-def prepare_timing_parameters(metadata):
+
+def prepare_timing_parameters(metadata: dict):
     """Convert initial timing metadata to post-realignment timing metadata
 
     In particular, SliceTiming metadata is invalid once STC or any realignment is applied,
@@ -133,14 +140,14 @@ def prepare_timing_parameters(metadata):
 
 
 def init_func_derivatives_wf(
-    bids_root,
-    cifti_output,
-    freesurfer,
-    all_metadata,
-    multiecho,
-    output_dir,
-    spaces,
-    use_aroma,
+    bids_root: str,
+    cifti_output: bool,
+    freesurfer: bool,
+    all_metadata: ty.List[dict],
+    multiecho: bool,
+    output_dir: str,
+    spaces: SpatialReferences,
+    use_aroma: bool,
     name='func_derivatives_wf',
 ):
     """
@@ -836,7 +843,11 @@ def init_func_derivatives_wf(
     return workflow
 
 
-def init_bold_preproc_report_wf(mem_gb, reportlets_dir, name='bold_preproc_report_wf'):
+def init_bold_preproc_report_wf(
+    mem_gb: float,
+    reportlets_dir: str,
+    name: str = 'bold_preproc_report_wf',
+):
     """
     Generate a visual report.
 

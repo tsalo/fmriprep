@@ -110,7 +110,7 @@ def init_fmriprep_wf():
     return fmriprep_wf
 
 
-def init_single_subject_wf(subject_id):
+def init_single_subject_wf(subject_id: str):
     """
     Organize the preprocessing pipeline for a single subject.
 

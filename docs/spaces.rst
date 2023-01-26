@@ -80,10 +80,10 @@ Space modifiers such as ``res`` are combinatorial:
 ``--output-spaces MNIPediatricAsym:cohort-1:cohort-2:res-native:res-1`` will
 generate conversions for the following combinations:
 
-  * cohort ``1`` and "native" resolution (meaning, the original BOLD resolution),
-  * cohort ``1`` and resolution ``1`` of the template,
-  * cohort ``2`` and "native" resolution (meaning, the original BOLD resolution), and
-  * cohort ``2`` and resolution ``1`` of the template.
+* cohort ``1`` and "native" resolution (meaning, the original BOLD resolution),
+* cohort ``1`` and resolution ``1`` of the template,
+* cohort ``2`` and "native" resolution (meaning, the original BOLD resolution), and
+* cohort ``2`` and resolution ``1`` of the template.
 
 Please mind that the selected resolutions specified must exist within TemplateFlow.
 
@@ -120,19 +120,19 @@ Nonstandard spaces
 Additionally, ``--output-spaces`` accepts identifiers of spatial references
 that do not generate *standardized* coordinate spaces:
 
-  * ``T1w`` or ``anat``: data are resampled into the individual's anatomical
-    reference generated with the T1w and T2w images available within the
-    BIDS structure.
-  * ``fsnative``: similarly to the ``anat`` space for volumetric references,
-    including the ``fsnative`` space will instruct *fMRIPrep* to sample the
-    original BOLD data onto FreeSurfer's reconstructed surfaces for this
-    individual.
-  * ``func``, ``bold``, ``run``, ``boldref`` or ``sbref`` can be used to
-    generate BOLD data in their original grid, after slice-timing,
-    head-motion, and susceptibility-distortion corrections.
-    These keywords are experimental, and expected to change because
-    **additional nonstandard spaces** are currently being discussed
-    `here <https://github.com/nipreps/fmriprep/issues/1604>`__.
+* ``T1w`` or ``anat``: data are resampled into the individual's anatomical
+  reference generated with the T1w and T2w images available within the
+  BIDS structure.
+* ``fsnative``: similarly to the ``anat`` space for volumetric references,
+  including the ``fsnative`` space will instruct *fMRIPrep* to sample the
+  original BOLD data onto FreeSurfer's reconstructed surfaces for this
+  individual.
+* ``func``, ``bold``, ``run``, ``boldref`` or ``sbref`` can be used to
+  generate BOLD data in their original grid, after slice-timing,
+  head-motion, and susceptibility-distortion corrections.
+  These keywords are experimental, and expected to change because
+  **additional nonstandard spaces** are currently being discussed
+  `here <https://github.com/nipreps/fmriprep/issues/1604>`__.
 
 Modifiers are not allowed when providing nonstandard spaces.
 
