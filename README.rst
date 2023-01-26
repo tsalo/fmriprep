@@ -44,7 +44,7 @@ interpretable and comprehensive error and output reporting.
 It performs basic processing steps (coregistration, normalization, unwarping,
 noise component extraction, segmentation, skull-stripping, etc.) providing
 outputs that can be easily submitted to a variety of group level analyses,
-including task-based or resting-state fMRI, graph theory measures, or surface
+including task-based or resting-state fMRI, graph theory measures, and surface
 or volume-based statistics.
 
 .. note::

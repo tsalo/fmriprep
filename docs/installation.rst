@@ -5,21 +5,21 @@ Installation
 ------------
 There are two ways to install *fMRIPrep*:
 
+* using container technologies (RECOMMENDED); or
 * within a `Manually Prepared Environment (Python 3.8+)`_, also known as
-  *bare-metal installation*; or
-* using container technologies (RECOMMENDED).
+  *bare-metal installation*.
 
-Once you have your *bare-metal* environment set-up (first option above),
-the next step is executing the ``fmriprep`` command-line.
-The ``fmriprep`` command-line options are documented in the :ref:`usage`
-section.
 The ``fmriprep`` command-line adheres to the `BIDS-Apps recommendations
 for the user interface <usage.html#execution-and-the-bids-format>`__.
 Therefore, the command-line has the following structure::
 
   $ fmriprep <input_bids_path> <derivatives_path> <analysis_level> <named_options>
 
-On the other hand, if you chose a container infrastructure, then
+The ``fmriprep`` command-line options are documented in the :ref:`usage`
+section.
+
+The command as shown works for a *bare-metal* environment set-up (second option above).
+If you choose the recommended container-based installation, then
 the command-line will be composed of a preamble to configure the
 container execution followed by the ``fmriprep`` command-line options
 as if you were running it on a *bare-metal* installation.
