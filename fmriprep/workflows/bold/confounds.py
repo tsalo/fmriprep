@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2022 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,19 +31,21 @@ Calculate BOLD confounds
 from os import getenv
 
 from nipype.algorithms import confounds as nac
-from nipype.interfaces import utility as niu, fsl
+from nipype.interfaces import fsl
+from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from templateflow.api import get as get_template
 
 from fmriprep import config
+
 from ...config import DEFAULT_MEMORY_MIN_GB
 from ...interfaces import DerivativesDataSink
 from ...interfaces.confounds import (
+    FilterDropped,
+    FMRISummary,
     GatherConfounds,
     ICAConfounds,
-    FMRISummary,
     RenameACompCor,
-    FilterDropped,
 )
 
 
@@ -154,15 +156,17 @@ def init_bold_confs_wf(
     from niworkflows.interfaces.confounds import ExpandModel, SpikeRegressors
     from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
     from niworkflows.interfaces.images import SignalExtraction
-    from niworkflows.interfaces.reportlets.masks import ROIsPlot
     from niworkflows.interfaces.morphology import BinaryDilation, BinarySubtraction
     from niworkflows.interfaces.nibabel import ApplyMask, Binarize
-    from niworkflows.interfaces.patches import (
-        RobustACompCor as ACompCor,
-        RobustTCompCor as TCompCor,
+    from niworkflows.interfaces.patches import RobustACompCor as ACompCor
+    from niworkflows.interfaces.patches import RobustTCompCor as TCompCor
+    from niworkflows.interfaces.plotting import (
+        CompCorVariancePlot,
+        ConfoundsCorrelationPlot,
     )
-    from niworkflows.interfaces.plotting import CompCorVariancePlot, ConfoundsCorrelationPlot
-    from niworkflows.interfaces.utility import AddTSVHeader, TSV2JSON, DictMerge
+    from niworkflows.interfaces.reportlets.masks import ROIsPlot
+    from niworkflows.interfaces.utility import TSV2JSON, AddTSVHeader, DictMerge
+
     from ...interfaces.confounds import aCompCorMasks
 
     gm_desc = (
@@ -250,10 +254,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         ApplyTransforms(interpolation="MultiLabel"),
         name="t1w_mask_tfm",
     )
-    union_mask = pe.Node(
-        niu.Function(function=_binary_union),
-        name="union_mask"
-    )
+    union_mask = pe.Node(niu.Function(function=_binary_union), name="union_mask")
 
     # Create the crown mask
     dilated_mask = pe.Node(BinaryDilation(), name="dilated_mask")
@@ -554,6 +555,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         (tcompcor, concat, [("components_file", "tcompcor"),
                             ("pre_filter_file", "cos_basis")]),
         (rename_acompcor, concat, [("components_file", "acompcor")]),
+        (crowncompcor, concat, [("components_file", "crowncompcor")]),
         (add_motion_headers, concat, [("out_file", "motion")]),
         (add_rmsd_header, concat, [("out_file", "rmsd")]),
         (add_dvars_header, concat, [("out_file", "dvars")]),
@@ -843,7 +845,7 @@ def init_ica_aroma_wf(
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.reportlets.segmentation import ICA_AROMARPT
-    from niworkflows.interfaces.utility import KeySelect, TSV2JSON
+    from niworkflows.interfaces.utility import TSV2JSON, KeySelect
 
     workflow = Workflow(name=name)
     workflow.__postdesc__ = """\
@@ -1059,8 +1061,9 @@ def _add_volumes(bold_file, bold_cut_file, skip_vols):
 def _binary_union(mask1, mask2):
     """Generate the union of two masks."""
     from pathlib import Path
-    import numpy as np
+
     import nibabel as nb
+    import numpy as np
 
     img = nb.load(mask1)
     mskarr1 = np.asanyarray(img.dataobj, dtype=int) > 0
@@ -1075,8 +1078,9 @@ def _binary_union(mask1, mask2):
 def _carpet_parcellation(segmentation, crown_mask, acompcor_mask, nifti=False):
     """Generate the union of two masks."""
     from pathlib import Path
-    import numpy as np
+
     import nibabel as nb
+    import numpy as np
 
     img = nb.load(segmentation)
 

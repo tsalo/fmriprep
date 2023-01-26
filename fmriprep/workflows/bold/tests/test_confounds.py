@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,24 +21,24 @@
 #     https://www.nipreps.org/community/licensing/
 #
 ''' Testing module for fmriprep.workflows.bold.confounds '''
-import pytest
 import os
+
 import nibabel as nib
+import pytest
 
 from ..confounds import _add_volumes, _remove_volumes
 
-
 skip_pytest = pytest.mark.skipif(
-    not os.getenv('FMRIPREP_REGRESSION_SOURCE')
-    or not os.getenv('FMRIPREP_REGRESSION_TARGETS'),
-    reason='FMRIPREP_REGRESSION_{SOURCE,TARGETS} env vars not set'
+    not os.getenv('FMRIPREP_REGRESSION_SOURCE') or not os.getenv('FMRIPREP_REGRESSION_TARGETS'),
+    reason='FMRIPREP_REGRESSION_{SOURCE,TARGETS} env vars not set',
 )
 
 
 @skip_pytest
 def test_remove_volumes():
-    bold_file = os.path.join(os.getenv('FMRIPREP_REGRESSION_SOURCE'),
-                             'ds001362/sub-01_task-taskname_run-01_bold.nii.gz')
+    bold_file = os.path.join(
+        os.getenv('FMRIPREP_REGRESSION_SOURCE'), 'ds001362/sub-01_task-taskname_run-01_bold.nii.gz'
+    )
     n_volumes = nib.load(bold_file).shape[3]
     skip_vols = 3
 
@@ -54,8 +54,9 @@ def test_remove_volumes():
 
 @skip_pytest
 def test_add_volumes():
-    bold_file = os.path.join(os.getenv('FMRIPREP_REGRESSION_SOURCE'),
-                             'ds001362/sub-01_task-taskname_run-01_bold.nii.gz')
+    bold_file = os.path.join(
+        os.getenv('FMRIPREP_REGRESSION_SOURCE'), 'ds001362/sub-01_task-taskname_run-01_bold.nii.gz'
+    )
     n_volumes = nib.load(bold_file).shape[3]
     add_vols = 3
 

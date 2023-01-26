@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -91,9 +91,7 @@ import os
 from multiprocessing import set_start_method
 
 # Disable NiPype etelemetry always
-_disable_et = bool(
-    os.getenv("NO_ET") is not None or os.getenv("NIPYPE_NO_ET") is not None
-)
+_disable_et = bool(os.getenv("NO_ET") is not None or os.getenv("NIPYPE_NO_ET") is not None)
 os.environ["NIPYPE_NO_ET"] = "1"
 os.environ["NO_ET"] = "1"
 
@@ -106,14 +104,15 @@ except RuntimeError:
 finally:
     # Defer all custom import for after initializing the forkserver and
     # ignoring the most annoying warnings
-    import sys
     import random
-    from uuid import uuid4
-    from time import strftime
-
+    import sys
     from pathlib import Path
+    from time import strftime
+    from uuid import uuid4
+
     from nipype import __version__ as _nipype_ver
     from templateflow import __version__ as _tf_ver
+
     from . import __version__
 
 if not hasattr(sys, "_is_pytest_session"):
@@ -146,7 +145,9 @@ DEFAULT_MEMORY_MIN_GB = 0.01
 if not _disable_et:
     # Just get so analytics track one hit
     from contextlib import suppress
-    from requests import get as _get_url, ConnectionError, ReadTimeout
+
+    from requests import ConnectionError, ReadTimeout
+    from requests import get as _get_url
 
     with suppress((ConnectionError, ReadTimeout)):
         _get_url("https://rig.mit.edu/et/projects/nipy/nipype", timeout=0.05)
@@ -171,15 +172,13 @@ if not _fs_license and os.getenv("FREESURFER_HOME"):
     del _fs_home
 
 _templateflow_home = Path(
-    os.getenv(
-        "TEMPLATEFLOW_HOME", os.path.join(os.getenv("HOME"), ".cache", "templateflow")
-    )
+    os.getenv("TEMPLATEFLOW_HOME", os.path.join(os.getenv("HOME"), ".cache", "templateflow"))
 )
 
 try:
     from psutil import virtual_memory
 
-    _free_mem_at_start = round(virtual_memory().free / 1024 ** 3, 1)
+    _free_mem_at_start = round(virtual_memory().free / 1024**3, 1)
 except Exception:
     _free_mem_at_start = None
 
@@ -196,20 +195,15 @@ try:
             _proc_oc_kbytes = Path("/proc/sys/vm/overcommit_kbytes")
             if _proc_oc_kbytes.exists():
                 _oc_limit = _proc_oc_kbytes.read_text().strip()
-            if (
-                _oc_limit in ("0", "n/a")
-                and Path("/proc/sys/vm/overcommit_ratio").exists()
-            ):
-                _oc_limit = "{}%".format(
-                    Path("/proc/sys/vm/overcommit_ratio").read_text().strip()
-                )
+            if _oc_limit in ("0", "n/a") and Path("/proc/sys/vm/overcommit_ratio").exists():
+                _oc_limit = "{}%".format(Path("/proc/sys/vm/overcommit_ratio").read_text().strip())
 except Exception:
     pass
 
 
 # Debug modes are names that influence the exposure of internal details to
 # the user, either through additional derivatives or increased verbosity
-DEBUG_MODES = ("compcor", "fieldmaps")
+DEBUG_MODES = ("compcor", "fieldmaps", "pdb")
 
 
 class _Config:
@@ -242,7 +236,7 @@ class _Config:
     @classmethod
     def get(cls):
         """Return defined settings."""
-        from niworkflows.utils.spaces import SpatialReferences, Reference
+        from niworkflows.utils.spaces import Reference, SpatialReferences
 
         out = {}
         for k, v in cls.__dict__.items():
@@ -364,9 +358,7 @@ class nipype(_Config):
         )
 
         if cls.omp_nthreads is None:
-            cls.omp_nthreads = min(
-                cls.nprocs - 1 if cls.nprocs > 1 else os.cpu_count(), 8
-            )
+            cls.omp_nthreads = min(cls.nprocs - 1 if cls.nprocs > 1 else os.cpu_count(), 8)
 
 
 class execution(_Config):
@@ -407,7 +399,11 @@ class execution(_Config):
     md_only_boilerplate = False
     """Do not convert boilerplate from MarkDown to LaTex and HTML."""
     notrack = False
-    """Do not monitor *fMRIPrep* using Sentry.io."""
+    """Do not collect telemetry information for *fMRIPrep*."""
+    track_carbon = False
+    """Tracks power draws using CodeCarbon package."""
+    country_code = "CAN"
+    """Country ISO code used by carbon trackers."""
     output_dir = None
     """Folder where derivatives will be stored."""
     me_output_echos = False
@@ -456,12 +452,11 @@ class execution(_Config):
 
         if cls._layout is None:
             import re
-            from bids.layout.index import BIDSLayoutIndexer
-            from bids.layout import BIDSLayout
 
-            _db_path = cls.bids_database_dir or (
-                cls.work_dir / cls.run_uuid / "bids_db"
-            )
+            from bids.layout import BIDSLayout
+            from bids.layout.index import BIDSLayoutIndexer
+
+            _db_path = cls.bids_database_dir or (cls.work_dir / cls.run_uuid / "bids_db")
             _db_path.mkdir(exist_ok=True, parents=True)
 
             # Recommended after PyBIDS 12.1
@@ -492,9 +487,7 @@ class execution(_Config):
             # unserialize pybids Query enum values
             for acq, filters in cls.bids_filters.items():
                 cls.bids_filters[acq] = {
-                    k: getattr(Query, v[7:-4])
-                    if not isinstance(v, Query) and "Query" in v
-                    else v
+                    k: getattr(Query, v[7:-4]) if not isinstance(v, Query) and "Query" in v else v
                     for k, v in filters.items()
                 }
 
@@ -569,8 +562,6 @@ class workflow(_Config):
     spaces = None
     """Keeps the :py:class:`~niworkflows.utils.spaces.SpatialReferences`
     instance keeping standard and nonstandard spaces."""
-    topup_max_vols = 5
-    """Maximum number of volumes to use with TOPUP, per-series (EPI or BOLD)."""
     use_aroma = None
     """Run ICA-:abbr:`AROMA (automatic removal of motion artifacts)`."""
     use_bbr = None
@@ -655,32 +646,64 @@ def _set_ants_seed():
 def _set_numpy_seed():
     """NumPy's random seed is independant from Python's `random` module"""
     import numpy as np
+
     val = random.randint(1, 65536)
     np.random.seed(val)
     return val
 
 
-def from_dict(settings):
-    """Read settings from a flat dictionary."""
-    nipype.load(settings)
-    execution.load(settings)
-    workflow.load(settings)
-    seeds.load(settings)
+def from_dict(settings, init=True, ignore=None):
+    """Read settings from a flat dictionary.
+
+    Arguments
+    ---------
+    setting : dict
+        Settings to apply to any configuration
+    init : `bool` or :py:class:`~collections.abc.Container`
+        Initialize all, none, or a subset of configurations.
+    ignore : :py:class:`~collections.abc.Container`
+        Collection of keys in ``setting`` to ignore
+    """
+
+    # Accept global True/False or container of configs to initialize
+    def initialize(x):
+        return init if init in (True, False) else x in init
+
+    nipype.load(settings, init=initialize('nipype'), ignore=ignore)
+    execution.load(settings, init=initialize('execution'), ignore=ignore)
+    workflow.load(settings, init=initialize('workflow'), ignore=ignore)
+    seeds.load(settings, init=initialize('seeds'), ignore=ignore)
+
     loggers.init()
 
 
-def load(filename, skip=None):
-    """Load settings from file."""
+def load(filename, skip=None, init=True):
+    """Load settings from file.
+
+    Arguments
+    ---------
+    filename : :py:class:`os.PathLike`
+        TOML file containing fMRIPrep configuration.
+    skip : dict or None
+        Sets of values to ignore during load, keyed by section name
+    init : `bool` or :py:class:`~collections.abc.Container`
+        Initialize all, none, or a subset of configurations.
+    """
     from toml import loads
 
     skip = skip or {}
+
+    # Accept global True/False or container of configs to initialize
+    def initialize(x):
+        return init if init in (True, False) else x in init
+
     filename = Path(filename)
     settings = loads(filename.read_text())
     for sectionname, configs in settings.items():
         if sectionname != "environment":
             section = getattr(sys.modules[__name__], sectionname)
             ignore = skip.get(sectionname)
-            section.load(configs, ignore=ignore)
+            section.load(configs, ignore=ignore, init=initialize(sectionname))
     init_spaces()
 
 

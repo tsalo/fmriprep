@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,22 +21,22 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Test version checks."""
-from os import getenv
 from datetime import datetime
+from os import getenv, geteuid
 from pathlib import Path
-from packaging.version import Version
+
 import pytest
+from packaging.version import Version
+
 from .. import version as _version
-from ..version import check_latest, DATE_FMT, requests, is_flagged
+from ..version import DATE_FMT, check_latest, is_flagged, requests
 
 
 class MockResponse:
     """Mocks the requests module so that Pypi is not actually queried."""
 
     status_code = 200
-    _json = {
-        "releases": {"1.0.0": None, "1.0.1": None, "1.1.0": None, "1.1.1rc1": None}
-    }
+    _json = {"releases": {"1.0.0": None, "1.0.1": None, "1.1.0": None, "1.1.1rc1": None}}
 
     def __init__(self, code=200, json=None):
         """Allow setting different response codes."""
@@ -200,13 +200,13 @@ def test_is_flagged(monkeypatch, result, version, code, json):
 
 def test_readonly(tmp_path, monkeypatch):
     """Test behavior when $HOME/.cache/fmriprep/latest can't be written out."""
-    home_path = (
-        Path("/home/readonly") if getenv("TEST_READONLY_FILESYSTEM") else tmp_path
-    )
+    home_path = Path("/home/readonly") if getenv("TEST_READONLY_FILESYSTEM") else tmp_path
     monkeypatch.setenv("HOME", str(home_path))
     cachedir = home_path / ".cache"
 
     if getenv("TEST_READONLY_FILESYSTEM") is None:
+        if geteuid() == 0:
+            pytest.skip("Cannot mock being unable to create directories as root")
         cachedir.mkdir(mode=0o555, exist_ok=True)
 
     # Make sure creating the folder will raise the exception.

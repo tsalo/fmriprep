@@ -1,3 +1,155 @@
+22.1.1 (January 04, 2023)
+=========================
+Bug fix release in the 22.1.x series.
+
+This release fixes the reported version in the distributed Docker image,
+and depends on SDCFlows 2.2.2, which fixes a bug affecting SDC estimation
+in some oblique datasets.
+
+  * FIX: Ensure version installed in Docker file is clean (#2922)
+
+
+22.1.0 (December 12, 2022)
+==========================
+New feature release in the 22.1.x series.
+
+This is an incremental improvement on the 22.0.x series, including features and fixes that
+are backwards incompatible with the 22.0.x work tree.
+
+Several significant issues with susceptibility distortion correction (SDC) have been fixed
+in `SDCFlows 2.2.0`_, in addition to the changes listed below.
+If you have been seeing issues with SDC in 21.0.x or 22.0.x, please test out this version
+and submit issues.
+
+Additionally, this version includes improvements to structural preprocessing, generating
+morphometric ``.shape.gii`` files from FreeSurfer derivatives.
+
+Finally, this release introduces a method for estimating the carbon footprint of using
+fMRIPrep. Add ``--track-carbon`` to your command to try this out. Note that it does not work
+in Docker containers, but should work for Singularity containers.
+
+With thanks to Nikhil Bhagwat for contributions.
+
+
+  * FIX: Conform --reports-only to match post-run report generation (#2900)
+  * FIX: Remove cortex masking during vol2surf sampling (#2879)
+  * FIX: Do not attempt to calculate TA if SliceTiming is degenerate (#2901)
+  * FIX: Pass CrownCompCor components to GatherConfounds (#2897)
+  * FIX: Output brain mask and boldref in BOLD space if individual echos requested (#2852)
+  * FIX: Check for empty ACompCor results before trying to rename (#2851)
+  * FIX: Filter sbrefs by BIDS filters if available (#2843)
+  * ENH: Provide free memory estimate to unwarp_wf for better resources allocation (#2910)
+  * ENH: Add migas telemetry in addition to sentry (#2817)
+  * ENH: Tag memory based on data shape, annotate T2SMap (#2898)
+  * ENH: Add of carbon tracker to estimate workflow emissions (#2834)
+  * ENH: Output BOLD HMC transforms and reference volume (#2860)
+  * RF: CIFTI generation (#2884)
+  * DOC: Correct description of --longitudinal behavior (#2905)
+  * MNT: Update fast track outputs, use latest smriprep (#2894)
+  * MNT: Deprecate ``--topup-max-vols`` (#2881)
+  * MNT: Add a ``--debug pdb`` to allow easier line-by-line debugging (#2871)
+  * MNT: Generate more verbose reports (here, showing fieldmaps) if running in debug mode (#2872)
+  * DOCKER: Build wheel and install in two-stage build (#2859)
+  * CI: Various updates (#2899)
+  * CI: Test on Python 3.10, bump actions versions (#2895)
+  * CI: Fix non-fasttrack outputs for maint/21.0.x (#2866)
+
+.. _`SDCFlows 2.2.0`: https://github.com/nipreps/sdcflows/releases/2.2.0
+
+22.0.2 (September 27, 2022)
+===========================
+A patch release in the 22.0.x series.
+
+This release increases the minimum Nipype version to include better error messages on failures.
+Additionally, this includes a fix to allow SyN distortion correction in combination with the
+``--ignore fieldmaps`` option.
+
+  * MAINT: Add ``pre-commit``, dev installation for consistent styling (#2857)
+  * CI: Upgrade docker orb (#2858)
+
+22.0.1 (September 13, 2022)
+===========================
+Patch release in the 22.0.x series.
+
+This release includes relaxed tolerance in the case where fieldmap affines slightly differed,
+and a fix for running FreeSurfer 7 with an outdated fsaverage folder.
+
+  * ENH: Add check to ensure latest fsaverage folder is used (#2847)
+  * FIX: Filter sbrefs by BIDS filters if available (#2843)
+  * FIX: Avoid crashing on empty ACompCor results (#2850)
+
+22.0.0 (July 28, 2022)
+======================
+New feature release in the 22.0.x series.
+
+This release has been tested to work with Python 3.9 and FreeSurfer 7.2,
+which are now bundled in the Docker image.
+
+This release also features improvements to T2\* and carpetplot reporting.
+
+For the next release, we are investigating issues with susceptibility
+distortion correction (SDC). Please check your results carefully and report
+any issues you find.
+
+  * FIX: Update wrapper python path (#2783)
+  * FIX: Preserve ``collect_data`` behavior by using named args (#2754)
+  * FIX: Update *fMRIPrep* version in bibliography at run time (#2738)
+  * FIX: Plot carpetplot with CIFTI-specific colorbar (#2737)
+  * FIX: Two minor typos in report spec (#2708)
+  * ENH: Clip T2\* values at 100ms to keep consistent histogram axes (#2781)
+  * ENH: Plot histogram of T2\* values in gray-matter mask (#2778)
+  * ENH: Save T2starmap files in all requested output spaces, if calculated (#2776)
+  * ENH: Compare T2\* map to BOLD reference (#2751)
+  * ENH: Add edge-regressors to confounds & crown to carpetplot (#2621)
+  * ENH: Add major/minor versions to base workflow name (#2716)
+  * DOC: Fix JSON typo in config in FAQ (#2771)
+  * DOC: Clarify calculation of confounding signals (#2724)
+  * MNT: Build on Python 3.9 environment (#2782)
+  * MNT: Seed ignore-revs file and script to tag new hashes with log entries (#2748)
+  * MNT: Require PyBIDS 0.15+ to allow fMRIPrep to preserve zero-padding in run entity (#2745)
+  * MNT: Upload artifacts after each step of Circle's workflow (#2736)
+  * MNT: Normalize code style of ``workflows.confounds`` (#2729)
+  * MNT: Ask for fmriprep-docker RUNNING line (#2670)
+  * DOCKER: Bundle FreeSurfer 7 (#2779)
+  * CI: Touch up CircleCI configuration (#2764)
+  * CI: Update package builds to use python -m build (#2746)
+
+21.0.4 (September 29, 2022)
+===========================
+Bug-fix release in the 21.0.x series.
+
+  * FIX: Output brain mask and boldref in BOLD space if individual echos requested (#2852)
+  * FIX: Check for empty ACompCor results before trying to rename (#2851)
+  * CI: Fix non-fasttrack outputs for maint/21.0.x (#2866)
+
+21.0.3 (September 6, 2022)
+==========================
+Bug-fix release in the 21.0.x series.
+
+This release includes a fix for `--bids-filter-file` not respecting `sbref` filtering.
+
+  * FIX: Filter sbrefs by BIDS filters if available (#2843)
+
+21.0.2 (April 21, 2022)
+=======================
+Bug-fix release in the 21.0.x series.
+
+This release includes a few bug-fixes for susceptibility distortion correction (SDC) and multi-echo (ME).
+A few notable fixes include:
+- Added tolerance for affine precision differences when using EPI fieldmaps.
+- Removed hang-ups when reusing anatomical derivatives with ME data.
+- Increased BOLD masking workflow robustness.
+
+A full list of changes can be found below:
+
+  * DOCKER: Update multiarch deb package link (#2758)
+  * ENH: Add affine_tolerance flag to MergeSeries (nipreps/niworkflows#706)
+  * FIX: Initialize BIDS layout after cleaning working directory (#2741)
+  * FIX: Avoid double unwarping during resampling of processed multi-echo data (#2730)
+  * FIX: Account for potential lists of lists in multi-echo cases (nipreps/niworkflows#719)
+  * FIX: Improve reliability of BOLD masking workflow (nipreps/niworkflows#712)
+  * FIX: Relax tolerance for different affines when concatenating blips (nipreps/sdcflows#265)
+
 21.0.1 (January 24, 2022)
 =========================
 Bug-fix release in the 21.0.x series.

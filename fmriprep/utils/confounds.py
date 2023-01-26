@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,8 +31,8 @@ def mask2vf(in_file, zooms=None, out_file=None):
     by the zooms given as argument.
 
     """
-    import numpy as np
     import nibabel as nb
+    import numpy as np
     from scipy.ndimage import gaussian_filter
 
     img = nb.load(in_file)
@@ -107,8 +107,9 @@ def acompcor_masks(in_files, is_aseg=False, zooms=None):
 
     """
     from pathlib import Path
-    import numpy as np
+
     import nibabel as nb
+    import numpy as np
     from scipy.ndimage import binary_dilation
     from skimage.morphology import ball
 

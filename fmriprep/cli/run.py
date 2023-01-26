@@ -2,7 +2,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,25 +24,54 @@
 """fMRI preprocessing workflow."""
 from .. import config
 
+EXITCODE: int = -1
+
 
 def main():
     """Entry point."""
+    import gc
+    import sys
+    from multiprocessing import Manager, Process
     from os import EX_SOFTWARE
     from pathlib import Path
-    import sys
-    import gc
-    from multiprocessing import Process, Manager
+
+    from ..utils.bids import write_bidsignore, write_derivative_description
     from .parser import parse_args
-    from ..utils.bids import write_derivative_description, write_bidsignore
+    from .workflow import build_workflow
 
     parse_args()
 
+    # Code Carbon
+    if config.execution.track_carbon:
+        from codecarbon import OfflineEmissionsTracker
+
+        country_iso_code = config.execution.country_code
+        config.loggers.workflow.log(25, "CodeCarbon tracker started ...")
+        config.loggers.workflow.log(25, f"Using country_iso_code: {country_iso_code}")
+        config.loggers.workflow.log(25, f"Saving logs at: {config.execution.log_dir}")
+
+        tracker = OfflineEmissionsTracker(
+            output_dir=config.execution.log_dir, country_iso_code=country_iso_code
+        )
+        tracker.start()
+
+    if "pdb" in config.execution.debug:
+        from fmriprep.utils.debug import setup_exceptionhook
+
+        setup_exceptionhook()
+        config.nipype.plugin = "Linear"
+
     sentry_sdk = None
-    if not config.execution.notrack:
+    if not config.execution.notrack and not config.execution.debug:
+        import atexit
+
         import sentry_sdk
-        from ..utils.sentry import sentry_setup
+
+        from ..utils.telemetry import sentry_setup, setup_migas
 
         sentry_setup()
+        setup_migas(init_ping=True)
+        atexit.register(migas_exit)
 
     # CRITICAL Save the config to a file. This is necessary because the execution graph
     # is built as a separate process to keep the memory footprint low. The most
@@ -54,16 +83,23 @@ def main():
     # CRITICAL Call build_workflow(config_file, retval) in a subprocess.
     # Because Python on Linux does not ever free virtual memory (VM), running the
     # workflow construction jailed within a process preempts excessive VM buildup.
-    with Manager() as mgr:
-        from .workflow import build_workflow
+    if "pdb" not in config.execution.debug:
+        with Manager() as mgr:
+            retval = mgr.dict()
+            p = Process(target=build_workflow, args=(str(config_file), retval))
+            p.start()
+            p.join()
+            retval = dict(retval.items())  # Convert to base dictionary
 
-        retval = mgr.dict()
-        p = Process(target=build_workflow, args=(str(config_file), retval))
-        p.start()
-        p.join()
+            if p.exitcode:
+                retval["return_code"] = p.exitcode
 
-        retcode = p.exitcode or retval.get("return_code", 0)
-        fmriprep_wf = retval.get("workflow", None)
+    else:
+        retval = build_workflow(str(config_file), {})
+
+    global EXITCODE
+    EXITCODE = retval.get("return_code", 0)
+    fmriprep_wf = retval.get("workflow", None)
 
     # CRITICAL Load the config from the file. This is necessary because the ``build_workflow``
     # function executed constrained in a process may change the config (and thus the global
@@ -71,14 +107,14 @@ def main():
     config.load(config_file)
 
     if config.execution.reports_only:
-        sys.exit(int(retcode > 0))
+        sys.exit(int(EXITCODE > 0))
 
     if fmriprep_wf and config.execution.write_graph:
         fmriprep_wf.write_graph(graph2use="colored", format="svg", simple_form=True)
 
-    retcode = retcode or (fmriprep_wf is None) * EX_SOFTWARE
-    if retcode != 0:
-        sys.exit(retcode)
+    EXITCODE = EXITCODE or (fmriprep_wf is None) * EX_SOFTWARE
+    if EXITCODE != 0:
+        sys.exit(EXITCODE)
 
     # Generate boilerplate
     with Manager() as mgr:
@@ -89,7 +125,7 @@ def main():
         p.join()
 
     if config.execution.boilerplate_only:
-        sys.exit(int(retcode > 0))
+        sys.exit(int(EXITCODE > 0))
 
     # Clean up master process before running workflow, which may create forks
     gc.collect()
@@ -104,9 +140,7 @@ def main():
 
     config.loggers.workflow.log(
         15,
-        "\n".join(
-            ["fMRIPrep config:"] + ["\t\t%s" % s for s in config.dumps().splitlines()]
-        ),
+        "\n".join(["fMRIPrep config:"] + ["\t\t%s" % s for s in config.dumps().splitlines()]),
     )
     config.loggers.workflow.log(25, "fMRIPrep started!")
     errno = 1  # Default is error exit unless otherwise set
@@ -114,7 +148,7 @@ def main():
         fmriprep_wf.run(**config.nipype.get_plugin())
     except Exception as e:
         if not config.execution.notrack:
-            from ..utils.sentry import process_crashfile
+            from ..utils.telemetry import process_crashfile
 
             crashfolders = [
                 config.execution.fmriprep_dir
@@ -127,13 +161,13 @@ def main():
                 for crashfile in crashfolder.glob("crash*.*"):
                     process_crashfile(crashfile)
 
-            if "Workflow did not execute cleanly" not in str(e):
+            if sentry_sdk is not None and "Workflow did not execute cleanly" not in str(e):
                 sentry_sdk.capture_exception(e)
         config.loggers.workflow.critical("fMRIPrep failed: %s", e)
         raise
     else:
         config.loggers.workflow.log(25, "fMRIPrep finished successfully!")
-        if not config.execution.notrack:
+        if sentry_sdk is not None:
             success_message = "fMRIPrep finished without errors"
             sentry_sdk.add_breadcrumb(message=success_message, level="info")
             sentry_sdk.capture_message(success_message, level="info")
@@ -156,20 +190,24 @@ def main():
             )
 
         if config.workflow.run_reconall:
-            from templateflow import api
             from niworkflows.utils.misc import _copy_any
+            from templateflow import api
 
             dseg_tsv = str(api.get("fsaverage", suffix="dseg", extension=[".tsv"]))
-            _copy_any(
-                dseg_tsv, str(config.execution.fmriprep_dir / "desc-aseg_dseg.tsv")
-            )
-            _copy_any(
-                dseg_tsv, str(config.execution.fmriprep_dir / "desc-aparcaseg_dseg.tsv")
-            )
+            _copy_any(dseg_tsv, str(config.execution.fmriprep_dir / "desc-aseg_dseg.tsv"))
+            _copy_any(dseg_tsv, str(config.execution.fmriprep_dir / "desc-aparcaseg_dseg.tsv"))
         errno = 0
     finally:
-        from fmriprep.reports.core import generate_reports
         from pkg_resources import resource_filename as pkgrf
+
+        # Code Carbon
+        if config.execution.track_carbon:
+            emissions: float = tracker.stop()
+            config.loggers.workflow.log(25, "CodeCarbon tracker has stopped.")
+            config.loggers.workflow.log(25, f"Saving logs at: {config.execution.log_dir}")
+            config.loggers.workflow.log(25, f"Carbon emissions: {emissions} kg")
+
+        from fmriprep.reports.core import generate_reports
 
         # Generate reports phase
         failed_reports = generate_reports(
@@ -179,17 +217,46 @@ def main():
             config=pkgrf("fmriprep", "data/reports-spec.yml"),
             packagename="fmriprep",
         )
-        write_derivative_description(
-            config.execution.bids_dir, config.execution.fmriprep_dir
-        )
+        write_derivative_description(config.execution.bids_dir, config.execution.fmriprep_dir)
         write_bidsignore(config.execution.fmriprep_dir)
 
-        if failed_reports and not config.execution.notrack:
+        if sentry_sdk is not None and failed_reports:
             sentry_sdk.capture_message(
                 "Report generation failed for %d subjects" % failed_reports,
                 level="error",
             )
         sys.exit(int((errno + failed_reports) > 0))
+
+
+def migas_exit() -> None:
+    """
+    Send a final crumb to the migas server signaling if the run successfully completed
+    This function should be registered with `atexit` to run at termination.
+    """
+    import sys
+
+    from ..utils.telemetry import send_breadcrumb
+
+    global EXITCODE
+    migas_kwargs = {'status': 'C'}
+    # `sys` will not have these attributes unless an error has been handled
+    if hasattr(sys, 'last_type'):
+        migas_kwargs = {
+            'status': 'F',
+            'status_desc': 'Finished with error(s)',
+            'error_type': sys.last_type,
+            'error_desc': sys.last_value,
+        }
+    elif EXITCODE != 0:
+        migas_kwargs.update(
+            {
+                'status': 'F',
+                'status_desc': f'Completed with exitcode {EXITCODE}',
+            }
+        )
+    else:
+        migas_kwargs['status_desc'] = 'Success'
+    send_breadcrumb(**migas_kwargs)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2021 The NiPreps Developers <nipreps@gmail.com>
+# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,15 +24,17 @@
 import os
 from contextlib import contextmanager
 from pathlib import Path
+from tempfile import mkdtemp
+
 from pkg_resources import resource_filename as pkgrf
 from toml import loads
-from tempfile import mkdtemp
 
 
 @contextmanager
 def mock_config():
     """Create a mock config for documentation and testing purposes."""
     from .. import config
+
     _old_fs = os.getenv('FREESURFER_HOME')
     if not _old_fs:
         os.environ['FREESURFER_HOME'] = mkdtemp()

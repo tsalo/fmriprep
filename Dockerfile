@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2021 The NiPreps Developers
+# Copyright (c) 2023 The NiPreps Developers
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Use Ubuntu 20.04 LTS
-FROM ubuntu:focal-20210416
+FROM python:slim AS src
+RUN pip install build
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git
+COPY . /src/fmriprep
+RUN python -m build /src/fmriprep
+
+# Use Ubuntu 22.04 LTS
+FROM ubuntu:jammy-20221130
 
 # Prepare environment
 RUN apt-get update && \
@@ -35,6 +42,7 @@ RUN apt-get update && \
                     ca-certificates \
                     curl \
                     git \
+                    gnupg \
                     libtool \
                     lsb-release \
                     netbase \
@@ -48,26 +56,9 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     LC_ALL="en_US.UTF-8"
 
 # Installing freesurfer
-RUN curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz \
-    | tar zxv --no-same-owner -C /opt \
-    --exclude='freesurfer/diffusion' \
-    --exclude='freesurfer/docs' \
-    --exclude='freesurfer/fsfast' \
-    --exclude='freesurfer/lib/cuda' \
-    --exclude='freesurfer/lib/qt' \
-    --exclude='freesurfer/matlab' \
-    --exclude='freesurfer/mni/share/man' \
-    --exclude='freesurfer/subjects/fsaverage_sym' \
-    --exclude='freesurfer/subjects/fsaverage3' \
-    --exclude='freesurfer/subjects/fsaverage4' \
-    --exclude='freesurfer/subjects/cvs_avg35' \
-    --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
-    --exclude='freesurfer/subjects/bert' \
-    --exclude='freesurfer/subjects/lh.EC_average' \
-    --exclude='freesurfer/subjects/rh.EC_average' \
-    --exclude='freesurfer/subjects/sample-*.mgz' \
-    --exclude='freesurfer/subjects/V1_average' \
-    --exclude='freesurfer/trctrain'
+COPY docker/files/freesurfer7.3.2-exclude.txt /usr/local/etc/freesurfer7.3.2-exclude.txt
+RUN curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer-linux-ubuntu22_amd64-7.3.2.tar.gz \
+     | tar zxv --no-same-owner -C /opt --exclude-from=/usr/local/etc/freesurfer7.3.2-exclude.txt
 
 # Simulate SetUpFreeSurfer.sh
 ENV FSL_DIR="/opt/fsl-6.0.5.1" \
@@ -85,7 +76,7 @@ ENV SUBJECTS_DIR="$FREESURFER_HOME/subjects" \
     MNI_DATAPATH="$FREESURFER_HOME/mni/data"
 ENV PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5" \
     MNI_PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5" \
-    PATH="$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$FREESURFER_HOME/tktools:$MINC_BIN_DIR:$PATH"
+    PATH="$FREESURFER_HOME/bin:$FREESURFER_HOME/tktools:$MINC_BIN_DIR:$PATH"
 
 # FSL 6.0.5.1
 RUN apt-get update -qq \
@@ -168,21 +159,12 @@ ENV FSLDIR="/opt/fsl-6.0.5.1" \
     FSLGECUDAQ="cuda.q" \
     LD_LIBRARY_PATH="/opt/fsl-6.0.5.1/lib:$LD_LIBRARY_PATH"
 
-# Convert3D (neurodocker build)
-RUN echo "Downloading Convert3D ..." \
-    && mkdir -p /opt/convert3d-1.0.0 \
-    && curl -fsSL --retry 5 https://sourceforge.net/projects/c3d/files/c3d/1.0.0/c3d-1.0.0-Linux-x86_64.tar.gz/download \
-    | tar -xz -C /opt/convert3d-1.0.0 --strip-components 1 \
-    --exclude "c3d-1.0.0-Linux-x86_64/lib" \
-    --exclude "c3d-1.0.0-Linux-x86_64/share" \
-    --exclude "c3d-1.0.0-Linux-x86_64/bin/c3d_gui"
-ENV C3DPATH="/opt/convert3d-1.0.0" \
-    PATH="/opt/convert3d-1.0.0/bin:$PATH"
-
+# Configure PPA for libpng12
+RUN GNUPGHOME=/tmp gpg --keyserver hkps://keyserver.ubuntu.com --no-default-keyring --keyring /usr/share/keyrings/linuxuprising.gpg --recv 0xEA8CACC073C3DB2A \
+    && echo "deb [signed-by=/usr/share/keyrings/linuxuprising.gpg] https://ppa.launchpadcontent.net/linuxuprising/libpng12/ubuntu jammy main" > /etc/apt/sources.list.d/linuxuprising.list
 # AFNI latest (neurodocker build)
 RUN apt-get update -qq \
     && apt-get install -y -q --no-install-recommends \
-           apt-utils \
            ed \
            gsl-bin \
            libglib2.0-0 \
@@ -190,6 +172,7 @@ RUN apt-get update -qq \
            libglw1-mesa \
            libgomp1 \
            libjpeg62 \
+           libpng12-0 \
            libxm4 \
            netpbm \
            tcsh \
@@ -197,15 +180,12 @@ RUN apt-get update -qq \
            xvfb \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -sSL --retry 5 -o /tmp/multiarch.deb http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/multiarch-support_2.27-3ubuntu1.2_amd64.deb \
+    && curl -sSL --retry 5 -o /tmp/multiarch.deb http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/multiarch-support_2.27-3ubuntu1.5_amd64.deb \
     && dpkg -i /tmp/multiarch.deb \
     && rm /tmp/multiarch.deb \
     && curl -sSL --retry 5 -o /tmp/libxp6.deb http://mirrors.kernel.org/debian/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb \
     && dpkg -i /tmp/libxp6.deb \
     && rm /tmp/libxp6.deb \
-    && curl -sSL --retry 5 -o /tmp/libpng.deb http://snapshot.debian.org/archive/debian-security/20160113T213056Z/pool/updates/main/libp/libpng/libpng12-0_1.2.49-1%2Bdeb7u2_amd64.deb \
-    && dpkg -i /tmp/libpng.deb \
-    && rm /tmp/libpng.deb \
     && apt-get install -f \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -262,8 +242,8 @@ RUN curl -sSLO https://www.humanconnectome.org/storage/app/media/workbench/workb
 ENV PATH="/opt/workbench/bin_linux64:$PATH" \
     LD_LIBRARY_PATH="/opt/workbench/lib_linux64:$LD_LIBRARY_PATH"
 
-# nipreps/miniconda:py38_1.4.1
-COPY --from=nipreps/miniconda@sha256:ebbff214e6c9dc50ccc6fdbe679df1ffcbceaa45b47a75d6e34e8a064ef178da /opt/conda /opt/conda
+# nipreps/miniconda:py39_4.12.0rc0
+COPY --from=nipreps/miniconda@sha256:5aa4d2bb46e7e56fccf6e93ab3ff765add74e79f96ffa00449504b4869790cb9 /opt/conda /opt/conda
 
 RUN ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
@@ -276,6 +256,15 @@ ENV PATH="/opt/conda/bin:$PATH" \
     LANG="C.UTF-8" \
     LC_ALL="C.UTF-8" \
     PYTHONNOUSERSITE=1
+
+RUN conda install -y -n base \
+    -c anaconda \
+    -c conda-forge \
+    convert3d=1.3.0 \
+    && sync \
+    && conda clean -afy; sync \
+    && rm -rf ~/.conda ~/.cache/pip/*; sync \
+    && ldconfig
 
 # Unless otherwise specified each process should only use one thread - nipype
 # will handle parallelization
@@ -300,12 +289,8 @@ RUN /opt/conda/bin/python fetch_templates.py && \
     find $HOME/.cache/templateflow -type f -exec chmod go=u {} +
 
 # Installing FMRIPREP
-COPY . /src/fmriprep
-ARG VERSION
-# Force static versioning within container
-RUN echo "${VERSION}" > /src/fmriprep/fmriprep/VERSION && \
-    echo "include fmriprep/VERSION" >> /src/fmriprep/MANIFEST.in && \
-    /opt/conda/bin/python -m pip install --no-cache-dir "/src/fmriprep[all]"
+COPY --from=src /src/fmriprep/dist/*.whl .
+RUN /opt/conda/bin/python -m pip install --no-cache-dir $( ls *.whl )[all]
 
 RUN find $HOME -type d -exec chmod go=u {} + && \
     find $HOME -type f -exec chmod go=u {} + && \
