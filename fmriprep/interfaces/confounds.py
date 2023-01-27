@@ -507,8 +507,9 @@ class FMRISummary(SimpleInterface):
             nb.load(seg_file),
             remap_rois=False,
             labels=(
-                ("WM+CSF", "Edge") if has_cifti else
-                ("Ctx GM", "dGM", "sWM+sCSF", "dWM+dCSF", "Cb", "Edge")
+                ("WM+CSF", "Edge")
+                if has_cifti
+                else ("Ctx GM", "dGM", "sWM+sCSF", "dWM+dCSF", "Cb", "Edge")
             ),
         )
 

@@ -1086,9 +1086,9 @@ def _carpet_parcellation(segmentation, crown_mask, acompcor_mask, nifti=False):
 
     lut = np.zeros((256,), dtype="uint8")
     lut[100:201] = 1 if nifti else 0  # Ctx GM
-    lut[30:99] = 2 if nifti else 0    # dGM
-    lut[1:11] = 3 if nifti else 1     # WM+CSF
-    lut[255] = 5 if nifti else 0      # Cerebellum
+    lut[30:99] = 2 if nifti else 0  # dGM
+    lut[1:11] = 3 if nifti else 1  # WM+CSF
+    lut[255] = 5 if nifti else 0  # Cerebellum
     # Apply lookup table
     seg = lut[np.uint16(img.dataobj)]
     seg[np.bool(nb.load(crown_mask).dataobj)] = 6 if nifti else 2
