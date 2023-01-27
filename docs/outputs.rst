@@ -82,6 +82,7 @@ Anatomical derivatives are placed in each subject's ``anat`` subfolder::
   sub-<subject_label>/
     anat/
       sub-<subject_label>[_space-<space_label>]_desc-preproc_T1w.nii.gz
+      sub-<subject_label>[_space-<space_label>]_desc-preproc_T2w.nii.gz
       sub-<subject_label>[_space-<space_label>]_desc-brain_mask.nii.gz
       sub-<subject_label>[_space-<space_label>]_dseg.nii.gz
       sub-<subject_label>[_space-<space_label>]_label-CSF_probseg.nii.gz
@@ -91,6 +92,12 @@ Anatomical derivatives are placed in each subject's ``anat`` subfolder::
 Spatially-standardized derivatives are denoted with a space label,
 such as ``MNI152NLin2009cAsym``, while derivatives in
 the original ``T1w`` space omit the ``space-`` keyword.
+
+T2w images are aligned to the anatomical (``T1w``) space, if found.
+
+.. note::
+
+   T2w derivatives are only generated if FreeSurfer processing is enabled.
 
 Additionally, the following transforms are saved::
 

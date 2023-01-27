@@ -25,7 +25,7 @@
 try:
     from ._version import __version__
 except ImportError:
-    __version__ == "0+unknown"
+    __version__ = "0+unknown"
 
 __packagename__ = 'fmriprep'
 __copyright__ = 'Copyright 2023, The NiPreps Developers'
