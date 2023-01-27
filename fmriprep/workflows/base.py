@@ -202,6 +202,14 @@ reconall <{config.workflow.run_reconall}>)."""
             "All workflows require T1w images.".format(subject_id)
         )
 
+    if subject_data['roi']:
+        warnings.warn(
+            f"Lesion mask {subject_data['roi']} found. "
+            "Future versions of fMRIPrep will use alternative conventions. "
+            "Please refer to the documentation before upgrading.",
+            FutureWarning,
+        )
+
     workflow = Workflow(name=name)
     workflow.__desc__ = """
 Results included in this manuscript come from preprocessing

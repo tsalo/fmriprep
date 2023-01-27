@@ -141,9 +141,8 @@ normalization to standard space [Brett2001]_.
 ANTs will use this mask to minimize warping of healthy tissue into damaged
 areas (or vice-versa).
 Lesion masks should be binary NIfTI images (damaged areas = 1, everywhere else = 0)
-in the same space and resolution as the T1 image, and follow the naming convention specified in
-`BIDS Extension Proposal 3: Common Derivatives <https://docs.google.com/document/d/1Wwc4A6Mow4ZPPszDIWfCUCRNstn7d_zzaWPcfcHmgI4/edit#heading=h.9146wuepclkt>`_
-(e.g., ``sub-001_T1w_label-lesion_roi.nii.gz``).
+in the same space and resolution as the T1w image, and use the ``_roi`` suffix,
+for example, ``sub-001_label-lesion_roi.nii.gz``.
 This file should be placed in the ``sub-*/anat`` directory of the BIDS dataset
 to be run through *fMRIPrep*.
 Because lesion masks are not currently part of the BIDS specification, it is also necessary to
@@ -153,6 +152,20 @@ that your dataset is not valid BIDS, which prevents *fMRIPrep* from running.
 Your ``.bidsignore`` file should include the following line::
 
   *lesion_roi.nii.gz
+
+.. note::
+
+   The lesion masking instructions in this section predate the release of BIDS Derivatives.
+   As of BIDS 1.4.0, the recommended naming convention is::
+
+       manual_masks/
+       └─ sub-001/
+          └─ anat/
+             ├─ sub-001_desc-tumor_mask.nii.gz
+             └─ sub-001_desc-tumor_mask.json
+
+   In an upcoming version of fMRIPrep, we will search for lesion masks as pre-computed
+   derivatives. Until this is supported, we will continue to look for the ``_roi`` suffix.
 
 Longitudinal processing
 ~~~~~~~~~~~~~~~~~~~~~~~
