@@ -29,6 +29,10 @@ Resampling workflows
 .. autofunction:: init_bold_preproc_trans_wf
 
 """
+from __future__ import annotations
+
+import typing as ty
+
 import nipype.interfaces.workbench as wb
 from nipype.interfaces import freesurfer as fs
 from nipype.interfaces import utility as niu
@@ -36,8 +40,17 @@ from nipype.pipeline import engine as pe
 
 from ...config import DEFAULT_MEMORY_MIN_GB
 
+if ty.TYPE_CHECKING:
+    from niworkflows.utils.spaces import SpatialReferences
 
-def init_bold_surf_wf(*, mem_gb, surface_spaces, medial_surface_nan, name="bold_surf_wf"):
+
+def init_bold_surf_wf(
+    *,
+    mem_gb: float,
+    surface_spaces: ty.List[str],
+    medial_surface_nan: bool,
+    name: str = "bold_surf_wf",
+):
     """
     Sample functional images to FreeSurfer surfaces.
 
@@ -200,13 +213,13 @@ The BOLD time-series were resampled onto the following surfaces
 
 
 def init_bold_std_trans_wf(
-    freesurfer,
-    mem_gb,
-    omp_nthreads,
-    spaces,
-    multiecho,
-    name="bold_std_trans_wf",
-    use_compression=True,
+    freesurfer: bool,
+    mem_gb: float,
+    omp_nthreads: int,
+    spaces: SpatialReferences,
+    multiecho: bool,
+    name: str = "bold_std_trans_wf",
+    use_compression: bool = True,
 ):
     """
     Sample fMRI into standard space with a single-step resampling of the original BOLD series.
@@ -234,6 +247,7 @@ def init_bold_std_trans_wf(
                     spaces=["MNI152Lin",
                             ("MNIPediatricAsym", {"cohort": "6"})],
                     checkpoint=True),
+                multiecho=False,
             )
 
     Parameters
@@ -532,12 +546,12 @@ preprocessed BOLD runs*: {tpl}.
 
 
 def init_bold_preproc_trans_wf(
-    mem_gb,
-    omp_nthreads,
-    name="bold_preproc_trans_wf",
-    use_compression=True,
-    use_fieldwarp=False,
-    interpolation="LanczosWindowedSinc",
+    mem_gb: float,
+    omp_nthreads: int,
+    name: str = "bold_preproc_trans_wf",
+    use_compression: bool = True,
+    use_fieldwarp: bool = False,
+    interpolation: str = "LanczosWindowedSinc",
 ):
     """
     Resample in native (original) space.
@@ -656,7 +670,12 @@ the transforms to correct for head-motion"""
     return workflow
 
 
-def init_bold_grayords_wf(grayord_density, mem_gb, repetition_time, name="bold_grayords_wf"):
+def init_bold_grayords_wf(
+    grayord_density: ty.Literal['91k', '170k'],
+    mem_gb: float,
+    repetition_time: float,
+    name: str = "bold_grayords_wf",
+):
     """
     Sample Grayordinates files onto the fsLR atlas.
 

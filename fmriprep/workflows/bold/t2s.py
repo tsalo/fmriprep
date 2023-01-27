@@ -27,6 +27,8 @@ Generate T2* map from multi-echo BOLD images
 .. autofunction:: init_bold_t2s_wf
 
 """
+import typing as ty
+
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 
@@ -39,7 +41,12 @@ LOGGER = config.loggers.workflow
 
 
 # pylint: disable=R0914
-def init_bold_t2s_wf(echo_times, mem_gb, omp_nthreads, name='bold_t2s_wf'):
+def init_bold_t2s_wf(
+    echo_times: ty.Sequence[float],
+    mem_gb: float,
+    omp_nthreads: int,
+    name: str = 'bold_t2s_wf',
+):
     r"""
     Combine multiple echos of :abbr:`ME-EPI (multi-echo echo-planar imaging)`.
 
@@ -115,7 +122,7 @@ The optimally combined time series was carried forward as the *preprocessed BOLD
     return workflow
 
 
-def init_t2s_reporting_wf(name='t2s_reporting_wf'):
+def init_t2s_reporting_wf(name: str = 't2s_reporting_wf'):
     r"""
     Generate T2\*-map reports.
 

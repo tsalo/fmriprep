@@ -307,29 +307,19 @@ def get_parser():
     # Options for mapping files and directories into container
     # Update `expected_overlap` variable in merge_help() when adding to this
     g_wrap = parser.add_argument_group(
-        'Wrapper options', 'Standard options that require mapping files into the container'
+        'Wrapper options',
+        'Standard options that require mapping files into the container; see fmriprep '
+        'usage for complete descriptions',
     )
     g_wrap.add_argument(
         '-w',
         '--work-dir',
         action='store',
         type=os.path.abspath,
-        help='path where intermediate results should be stored',
     )
     g_wrap.add_argument(
         '--output-spaces',
         nargs="*",
-        help="""\
-Standard and non-standard spaces to resample anatomical and functional images to. \
-Standard spaces may be specified by the form \
-``<TEMPLATE>[:res-<resolution>][:cohort-<label>][...]``, where ``<TEMPLATE>`` is \
-a keyword (valid keywords: %s) or path pointing to a user-supplied template, and \
-may be followed by optional, colon-separated parameters. \
-Non-standard spaces (valid keywords: %s) imply specific orientations and sampling \
-grids. \
-Important to note, the ``res-*`` modifier does not define the resolution used for \
-the spatial normalization."""
-        % (', '.join('"%s"' % s for s in TF_TEMPLATES), ', '.join(NONSTANDARD_REFERENCES)),
     )
 
     g_wrap.add_argument(
@@ -337,29 +327,21 @@ the spatial normalization."""
         metavar='PATH',
         type=IsFile,
         default=os.getenv('FS_LICENSE', None),
-        help='Path to FreeSurfer license key file. Get it (for free) by registering'
-        ' at https://surfer.nmr.mgh.harvard.edu/registration.html',
     )
     g_wrap.add_argument(
         '--fs-subjects-dir',
         metavar='PATH',
         type=os.path.abspath,
-        help='Path to existing FreeSurfer subjects directory to reuse. '
-        '(default: OUTPUT_DIR/freesurfer)',
     )
     g_wrap.add_argument(
         '--config-file',
         metavar='PATH',
         type=os.path.abspath,
-        help="Use pre-generated configuration file. Values in file will be overridden "
-        "by command-line arguments.",
     )
     g_wrap.add_argument(
         '--anat-derivatives',
         metavar='PATH',
         type=os.path.abspath,
-        help='Path to existing sMRIPrep/fMRIPrep-anatomical derivatives to fasttrack '
-        'the anatomical workflow.',
     )
     g_wrap.add_argument(
         '--use-plugin',
@@ -367,23 +349,16 @@ the spatial normalization."""
         action='store',
         default=None,
         type=os.path.abspath,
-        help='nipype plugin configuration file',
     )
     g_wrap.add_argument(
         '--bids-database-dir',
         metavar='PATH',
         type=os.path.abspath,
-        help="Path to an existing PyBIDS database folder, for faster indexing "
-        "(especially useful for large datasets).",
     )
     g_wrap.add_argument(
         '--bids-filter-file',
         metavar='PATH',
         type=os.path.abspath,
-        help="a JSON file describing custom BIDS input filters using PyBIDS. "
-        "For further details, please check out "
-        "https://fmriprep.readthedocs.io/en/latest/faq.html#"
-        "how-do-I-select-only-certain-files-to-be-input-to-fMRIPrep",
     )
 
     # Developer patch/shell options
@@ -395,10 +370,11 @@ the spatial normalization."""
         nargs="+",
         metavar="PACKAGE=PATH",
         action=ToDict,
-        help='local repository to use within container',
+        help='Sequence of PACKAGE=PATH specifications to patch a Python package into the '
+        'container Python environment.',
     )
     g_dev.add_argument(
-        '--shell', action='store_true', help='open shell in image instead of running FMRIPREP'
+        '--shell', action='store_true', help='Open shell in image instead of running FMRIPREP'
     )
     g_dev.add_argument(
         '--config',
@@ -413,7 +389,7 @@ the spatial normalization."""
         action='append',
         nargs=2,
         metavar=('ENV_VAR', 'value'),
-        help='Set custom environment variable within container',
+        help='Set custom environment variables within container',
     )
     g_dev.add_argument(
         '-u',
