@@ -1009,6 +1009,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         def _last(inlist):
             return inlist[-1]
 
+        def _last(inlist):
+            return inlist[-1]
+
         # fmt:off
         workflow.connect([
             (initial_boldref_wf, carpetplot_wf, [
