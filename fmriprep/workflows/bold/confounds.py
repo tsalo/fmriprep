@@ -1093,9 +1093,9 @@ def _carpet_parcellation(segmentation, crown_mask, acompcor_mask, nifti=False):
     lut[255] = 5 if nifti else 0  # Cerebellum
     # Apply lookup table
     seg = lut[np.uint16(img.dataobj)]
-    seg[np.bool(nb.load(crown_mask).dataobj)] = 6 if nifti else 2
+    seg[np.bool_(nb.load(crown_mask).dataobj)] = 6 if nifti else 2
     # Separate deep from shallow WM+CSF
-    seg[np.bool(nb.load(acompcor_mask).dataobj)] = 4 if nifti else 1
+    seg[np.bool_(nb.load(acompcor_mask).dataobj)] = 4 if nifti else 1
 
     outimg = img.__class__(seg.astype("uint8"), img.affine, img.header)
     outimg.set_data_dtype("uint8")
