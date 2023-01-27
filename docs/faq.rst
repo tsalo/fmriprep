@@ -226,7 +226,8 @@ To do so, follow the next steps.
 After getting the resources you'll need, you will just need to make sure your
 runtime environment is able to access the filesystem, at the location of your
 *TemplateFlow home* directory.
-If you are a Singularity user, please check out :ref:`singularity_tf`.
+If you are an Apptainer (formerly Singularity) user, please check out `TemplateFlow and Singularity
+<https://www.nipreps.org/apps/singularity/#templateflow-and-singularity>`__.
 
 How do I select only certain files to be input to *fMRIPrep*?
 -------------------------------------------------------------
