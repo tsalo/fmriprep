@@ -1173,6 +1173,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         (initial_boldref_wf, coeff2epi_wf, [
             ("outputnode.ref_image", "inputnode.target_ref"),
             ("outputnode.bold_mask", "inputnode.target_mask")]),
+        (initial_boldref_wf, unwarp_wf, [
+            ("outputnode.ref_image", "inputnode.distorted_ref"),
+        ]),
         (coeff2epi_wf, unwarp_wf, [
             ("outputnode.fmap_coeff", "inputnode.fmap_coeff")]),
         (bold_hmc_wf, unwarp_wf, [
@@ -1266,11 +1269,11 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
             (unwarp_wf, bold_t1_trans_wf, [
                 # TEMPORARY: For the moment we can't use frame-wise fieldmaps
-                (("outputnode.fieldwarp", pop_file), "inputnode.fieldwarp"),
+                (("outputnode.fieldwarp_ref", pop_file), "inputnode.fieldwarp"),
             ]),
             (unwarp_wf, bold_std_trans_wf, [
                 # TEMPORARY: For the moment we can't use frame-wise fieldmaps
-                (("outputnode.fieldwarp", pop_file), "inputnode.fieldwarp"),
+                (("outputnode.fieldwarp_ref", pop_file), "inputnode.fieldwarp"),
             ]),
         ])
         # fmt:on
