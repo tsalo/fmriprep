@@ -255,20 +255,20 @@ def _build_parser(**kwargs):
     g_subset.add_argument(
         "--anat-only",
         action="store_true",
-        help="run anatomical workflows only"
+        help="Run anatomical workflows only"
     )
     g_subset.add_argument(
         "--boilerplate-only",
         "--boilerplate_only",
         action="store_true",
         default=False,
-        help="generate boilerplate only",
+        help="Generate boilerplate only",
     )
     g_subset.add_argument(
         "--reports-only",
         action="store_true",
         default=False,
-        help="only generate reports, don't run workflows. This will only rerun report "
+        help="Only generate reports, don't run workflows. This will only rerun report "
         "aggregation, not reportlet generation for specific nodes.",
     )
 
@@ -303,7 +303,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     g_conf.add_argument(
         "--longitudinal",
         action="store_true",
-        help="treat dataset as longitudinal - may increase runtime",
+        help="Treat dataset as longitudinal - may increase runtime",
     )
     g_conf.add_argument(
         "--bold2t1w-init",
@@ -394,7 +394,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         "--md-only-boilerplate",
         action="store_true",
         default=False,
-        help="skip generation of HTML and LaTeX formatted citation with pandoc",
+        help="Skip generation of HTML and LaTeX formatted citation with pandoc",
     )
     g_outputs.add_argument(
         "--cifti-output",
@@ -496,20 +496,13 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         "--fmap-bspline",
         action="store_true",
         default=False,
-        help="fit a B-Spline field using least-squares (experimental)",
+        help="Fit a B-Spline field using least-squares (experimental)",
     )
     g_fmap.add_argument(
         "--fmap-no-demean",
         action="store_false",
         default=True,
-        help="do not remove median (within mask) from fieldmap",
-    )
-    g_fmap.add_argument(
-        "--topup-max-vols",
-        action="store",
-        default=5,
-        type=int,
-        help="maximum number of volumes to use with TOPUP, per-series (EPI or BOLD)",
+        help="Do not remove median (within mask) from fieldmap",
     )
 
     # SyN-unwarp options
@@ -587,7 +580,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         dest="verbose_count",
         action="count",
         default=0,
-        help="increases log verbosity for each occurence, debug level is -vvv",
+        help="Increases log verbosity for each occurence, debug level is -vvv",
     )
     g_other.add_argument(
         "-w",
@@ -608,7 +601,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         "--resource-monitor",
         action="store_true",
         default=False,
-        help="enable Nipype's resource monitoring to keep track of memory and CPU usage",
+        help="Enable Nipype's resource monitoring to keep track of memory and CPU usage",
     )
     g_other.add_argument(
         "--config-file",
