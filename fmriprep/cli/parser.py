@@ -144,9 +144,6 @@ def _build_parser(**kwargs):
         "fMRIPrep (see BIDS-Apps specification).",
     )
 
-    # optional arguments
-    parser.add_argument("--version", action="version", version=verstr)
-
     g_bids = parser.add_argument_group("Options for filtering BIDS queries")
     g_bids.add_argument(
         "--skip_bids_validation",
@@ -247,34 +244,28 @@ def _build_parser(**kwargs):
         type=IsFile,
         help="Nipype plugin configuration file",
     )
-    g_perfm.add_argument("--anat-only", action="store_true", help="Run anatomical workflows only")
     g_perfm.add_argument(
+        "--sloppy",
+        action="store_true",
+        default=False,
+        help="Use low-quality tools for speed - TESTING ONLY",
+    )
+
+    g_subset = parser.add_argument_group("Options for performing only a subset of the workflow")
+    g_subset.add_argument("--anat-only", action="store_true", help="Run anatomical workflows only")
+    g_subset.add_argument(
+        "--boilerplate-only",
         "--boilerplate_only",
         action="store_true",
         default=False,
         help="Generate boilerplate only",
     )
-    g_perfm.add_argument(
-        "--md-only-boilerplate",
+    g_subset.add_argument(
+        "--reports-only",
         action="store_true",
         default=False,
-        help="Skip generation of HTML and LaTeX formatted citation with pandoc",
-    )
-    g_perfm.add_argument(
-        "--error-on-aroma-warnings",
-        action="store_true",
-        dest="aroma_err_on_warn",
-        default=False,
-        help="Raise an error if ICA_AROMA does not produce sensible output "
-        "(e.g., if all the components are classified as signal or noise)",
-    )
-    g_perfm.add_argument(
-        "-v",
-        "--verbose",
-        dest="verbose_count",
-        action="count",
-        default=0,
-        help="Increases log verbosity for each occurence, debug level is -vvv",
+        help="Only generate reports, don't run workflows. This will only rerun report "
+        "aggregation, not reportlet generation for specific nodes.",
     )
 
     g_conf = parser.add_argument_group("Workflow configuration")
@@ -287,11 +278,6 @@ def _build_parser(**kwargs):
         choices=["fieldmaps", "slicetiming", "sbref", "t2w", "flair"],
         help="Ignore selected aspects of the input dataset to disable corresponding "
         "parts of the workflow (a space delimited list)",
-    )
-    g_conf.add_argument(
-        "--longitudinal",
-        action="store_true",
-        help="Treat dataset as longitudinal - may increase runtime",
     )
     g_conf.add_argument(
         "--output-spaces",
@@ -311,14 +297,10 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         % (currentv.base_version if is_release else "latest"),
     )
     g_conf.add_argument(
-        "--me-output-echos",
+        "--longitudinal",
         action="store_true",
-        default=False,
-        help="""\
-Output individual echo time series with slice, motion and susceptibility correction. \
-Useful for further Tedana processing post-fMRIPrep.""",
+        help="Treat dataset as longitudinal - may increase runtime",
     )
-
     g_conf.add_argument(
         "--bold2t1w-init",
         action="store",
@@ -351,14 +333,6 @@ Useful for further Tedana processing post-fMRIPrep.""",
         help="Do not use boundary-based registration (no goodness-of-fit checks)",
     )
     g_conf.add_argument(
-        "--medial-surface-nan",
-        required=False,
-        action="store_true",
-        default=False,
-        help="Replace medial wall values with NaNs on functional GIFTI files. Only "
-        "performed for GIFTI files mapped to a freesurfer subject (fsaverage or fsnative).",
-    )
-    g_conf.add_argument(
         "--slice-time-ref",
         required=False,
         action="store",
@@ -386,7 +360,50 @@ Useful for further Tedana processing post-fMRIPrep.""",
         help="Initialize the random seed for the workflow",
     )
 
-    # ICA_AROMA options
+    g_outputs = parser.add_argument_group("Options for modulating outputs")
+    g_outputs.add_argument(
+        "--output-layout",
+        action="store",
+        default="bids",
+        choices=("bids", "legacy"),
+        help="Organization of outputs. \"bids\" (default) places fMRIPrep derivatives "
+        "directly in the output directory, and defaults to placing FreeSurfer "
+        "derivatives in <output-dir>/sourcedata/freesurfer. \"legacy\" creates "
+        "derivative datasets as subdirectories of outputs.",
+    )
+    g_outputs.add_argument(
+        "--me-output-echos",
+        action="store_true",
+        default=False,
+        help="Output individual echo time series with slice, motion and susceptibility "
+        "correction. Useful for further Tedana processing post-fMRIPrep.",
+    )
+    g_outputs.add_argument(
+        "--medial-surface-nan",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Replace medial wall values with NaNs on functional GIFTI files. Only "
+        "performed for GIFTI files mapped to a freesurfer subject (fsaverage or fsnative).",
+    )
+    g_outputs.add_argument(
+        "--md-only-boilerplate",
+        action="store_true",
+        default=False,
+        help="Skip generation of HTML and LaTeX formatted citation with pandoc",
+    )
+    g_outputs.add_argument(
+        "--cifti-output",
+        nargs="?",
+        const="91k",
+        default=False,
+        choices=("91k", "170k"),
+        type=str,
+        help="Output preprocessed BOLD as a CIFTI dense timeseries. "
+        "Optionally, the number of grayordinate can be specified "
+        "(default is 91k, which equates to 2mm resolution)",
+    )
+
     g_aroma = parser.add_argument_group("Specific options for running ICA_AROMA")
     g_aroma.add_argument(
         "--use-aroma",
@@ -403,9 +420,16 @@ Useful for further Tedana processing post-fMRIPrep.""",
         help="Exact or maximum number of MELODIC components to estimate "
         "(positive = exact, negative = maximum)",
     )
+    g_aroma.add_argument(
+        "--error-on-aroma-warnings",
+        action="store_true",
+        dest="aroma_err_on_warn",
+        default=False,
+        help="Raise an error if ICA_AROMA does not produce sensible output "
+        "(e.g., if all the components are classified as signal or noise)",
+    )
 
-    # Confounds options
-    g_confounds = parser.add_argument_group("Specific options for generating confounds")
+    g_confounds = parser.add_argument_group("Options relating to confounds")
     g_confounds.add_argument(
         "--return-all-components",
         dest="regressors_all_comps",
@@ -436,7 +460,7 @@ Useful for further Tedana processing post-fMRIPrep.""",
         help="Threshold for flagging a frame as an outlier on the basis of standardised DVARS",
     )
 
-    #  ANTs options
+    # ANTs options
     g_ants = parser.add_argument_group("Specific options for ANTs registrations")
     g_ants.add_argument(
         "--skull-strip-template",
@@ -460,6 +484,21 @@ Useful for further Tedana processing post-fMRIPrep.""",
         help="Perform T1-weighted skull stripping ('force' ensures skull "
         "stripping, 'skip' ignores skull stripping, and 'auto' applies brain extraction "
         "based on the outcome of a heuristic to check whether the brain is already masked).",
+    )
+
+    # Fieldmap options
+    g_fmap = parser.add_argument_group("Specific options for handling fieldmaps")
+    g_fmap.add_argument(
+        "--fmap-bspline",
+        action="store_true",
+        default=False,
+        help="Fit a B-Spline field using least-squares (experimental)",
+    )
+    g_fmap.add_argument(
+        "--fmap-no-demean",
+        action="store_false",
+        default=True,
+        help="Do not remove median (within mask) from fieldmap",
     )
 
     # SyN-unwarp options
@@ -498,44 +537,42 @@ Useful for further Tedana processing post-fMRIPrep.""",
         help="Path to existing FreeSurfer subjects directory to reuse. "
         "(default: OUTPUT_DIR/freesurfer)",
     )
-
-    g_surfs = parser.add_argument_group("Surface preprocessing options")
-    g_surfs.add_argument(
+    g_fs.add_argument(
         "--no-submm-recon",
         action="store_false",
         dest="hires",
         help="Disable sub-millimeter (hires) reconstruction",
     )
-    # Surface generation xor
-    g_surfs_xor = g_surfs.add_mutually_exclusive_group()
-    g_surfs_xor.add_argument(
-        "--cifti-output",
-        nargs="?",
-        const="91k",
-        default=False,
-        choices=("91k", "170k"),
-        type=str,
-        help="Output preprocessed BOLD as a CIFTI dense timeseries. "
-        "Optionally, the number of grayordinate can be specified "
-        "(default is 91k, which equates to 2mm resolution)",
-    )
-    g_surfs_xor.add_argument(
+    g_fs.add_argument(
         "--fs-no-reconall",
         action="store_false",
         dest="run_reconall",
         help="Disable FreeSurfer surface preprocessing.",
     )
 
-    g_other = parser.add_argument_group("Other options")
-    g_other.add_argument(
-        "--output-layout",
+    g_carbon = parser.add_argument_group("Options for carbon usage tracking")
+    g_carbon.add_argument(
+        "--track-carbon",
+        action="store_true",
+        help="Tracks power draws using CodeCarbon package",
+    )
+    g_carbon.add_argument(
+        "--country-code",
         action="store",
-        default="bids",
-        choices=("bids", "legacy"),
-        help="Organization of outputs. bids (default) places fMRIPrep derivatives "
-        "directly in the output directory, and defaults to placing FreeSurfer "
-        "derivatives in <output-dir>/sourcedata/freesurfer. legacy creates "
-        "derivative datasets as subdirectories of outputs.",
+        default="CAN",
+        type=str,
+        help="Country ISO code used by carbon trackers",
+    )
+
+    g_other = parser.add_argument_group("Other options")
+    g_other.add_argument("--version", action="version", version=verstr)
+    g_other.add_argument(
+        "-v",
+        "--verbose",
+        dest="verbose_count",
+        action="count",
+        default=0,
+        help="Increases log verbosity for each occurence, debug level is -vvv",
     )
     g_other.add_argument(
         "-w",
@@ -557,13 +594,6 @@ Useful for further Tedana processing post-fMRIPrep.""",
         action="store_true",
         default=False,
         help="Enable Nipype's resource monitoring to keep track of memory and CPU usage",
-    )
-    g_other.add_argument(
-        "--reports-only",
-        action="store_true",
-        default=False,
-        help="Only generate reports, don't run workflows. This will only rerun report "
-        "aggregation, not reportlet generation for specific nodes.",
     )
     g_other.add_argument(
         "--config-file",
@@ -599,27 +629,6 @@ Useful for further Tedana processing post-fMRIPrep.""",
         nargs="+",
         choices=config.DEBUG_MODES + ("all",),
         help="Debug mode(s) to enable. 'all' is alias for all available modes.",
-    )
-
-    g_other.add_argument(
-        "--sloppy",
-        action="store_true",
-        default=False,
-        help="Use low-quality tools for speed - TESTING ONLY",
-    )
-
-    # Carbon tracker options
-    g_other.add_argument(
-        "--track-carbon",
-        action="store_true",
-        help="Tracks power draws using CodeCarbon package",
-    )
-    g_other.add_argument(
-        "--country-code",
-        action="store",
-        default="CAN",
-        type=str,
-        help="Country ISO code used by carbon trackers",
     )
 
     latest = check_latest()
