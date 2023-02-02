@@ -252,11 +252,7 @@ def _build_parser(**kwargs):
     )
 
     g_subset = parser.add_argument_group("Options for performing only a subset of the workflow")
-    g_subset.add_argument(
-        "--anat-only",
-        action="store_true",
-        help="Run anatomical workflows only"
-    )
+    g_subset.add_argument("--anat-only", action="store_true", help="Run anatomical workflows only")
     g_subset.add_argument(
         "--boilerplate-only",
         "--boilerplate_only",
@@ -343,9 +339,9 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         default=None,
         type=SliceTimeRef,
         help="The time of the reference slice to correct BOLD values to, as a fraction "
-            "acquisition time. 0 indicates the start, 0.5 the midpoint, and 1 the end "
-            "of acquisition. The alias `start` corresponds to 0, and `middle` to 0.5. "
-            "The default value is 0.5.",
+        "acquisition time. 0 indicates the start, 0.5 the midpoint, and 1 the end "
+        "of acquisition. The alias `start` corresponds to 0, and `middle` to 0.5. "
+        "The default value is 0.5.",
     )
     g_conf.add_argument(
         "--dummy-scans",
@@ -373,14 +369,14 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         help="Organization of outputs. \"bids\" (default) places fMRIPrep derivatives "
         "directly in the output directory, and defaults to placing FreeSurfer "
         "derivatives in <output-dir>/sourcedata/freesurfer. \"legacy\" creates "
-        "derivative datasets as subdirectories of outputs."
+        "derivative datasets as subdirectories of outputs.",
     )
     g_outputs.add_argument(
         "--me-output-echos",
         action="store_true",
         default=False,
         help="Output individual echo time series with slice, motion and susceptibility "
-        "correction. Useful for further Tedana processing post-fMRIPrep."
+        "correction. Useful for further Tedana processing post-fMRIPrep.",
     )
     g_outputs.add_argument(
         "--medial-surface-nan",
@@ -569,11 +565,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     )
 
     g_other = parser.add_argument_group("Other options")
-    g_other.add_argument(
-        "--version",
-        action="version",
-        version=verstr
-    )
+    g_other.add_argument("--version", action="version", version=verstr)
     g_other.add_argument(
         "-v",
         "--verbose",
