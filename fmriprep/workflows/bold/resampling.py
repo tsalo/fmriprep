@@ -121,9 +121,11 @@ def init_bold_surf_wf(
         BOLD series, resampled to FreeSurfer surfaces
 
     """
+    import templateflow.api as tf
     from nipype.interfaces.io import FreeSurferSource
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
+
 
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
@@ -288,21 +290,38 @@ surface projection.
     # fmt: on
 
     if medial_surface_nan:
-        # fmt: off
-        workflow.connect([
-            (inputnode, medial_nans, [("subjects_dir", "subjects_dir")]),
-            (sampler, metric_dilate, [("out_file", "in_file")]),
-            (metric_dilate, medial_nans, [("out_file", "in_file")]),
-            (medial_nans, update_metadata, [("out_file", "in_file")]),
-        ])
-        # fmt: on
+        if project_goodvoxels:
+            # fmt: off
+            workflow.connect([
+                (inputnode, medial_nans, [("subjects_dir", "subjects_dir")]),
+                (sampler, metric_dilate, [("out_file", "in_file")]),
+                (metric_dilate, medial_nans, [("out_file", "in_file")]),
+                (medial_nans, update_metadata, [("out_file", "in_file")]),
+            ])
+            # fmt: on
+        else:
+            # fmt: off
+            workflow.connect([
+                (inputnode, medial_nans, [("subjects_dir", "subjects_dir")]),
+                (sampler, medial_nans, [("out_file", "in_file")]),
+                (medial_nans, update_metadata, [("out_file", "in_file")]),
+            ])
+            # fmt: on
+
     else:
-        # fmt: off
-        workflow.connect([
-            (sampler, metric_dilate, [("out_file", "in_file")]),
-            (metric_dilate, update_metadata, [("out_file", "in_file")]),
-        ])   
-        # fmt: on
+        if project_goodvoxels:
+            # fmt: off
+            workflow.connect([
+                (sampler, metric_dilate, [("out_file", "in_file")]),
+                (metric_dilate, update_metadata, [("out_file", "in_file")]),
+            ])
+            # fmt: on
+        else:
+            # fmt: off
+            workflow.connect([
+                (sampler, update_metadata, [("out_file", "in_file")]),
+            ])
+            # fmt: on
 
     return workflow
 
