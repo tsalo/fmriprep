@@ -41,9 +41,9 @@ from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 from niworkflows.interfaces.freesurfer import MedialNaNs
-from ...interfaces.metric import MetricDilate
 
 from ...config import DEFAULT_MEMORY_MIN_GB
+from ...interfaces.metric import MetricDilate
 
 if ty.TYPE_CHECKING:
     from niworkflows.utils.spaces import SpatialReferences
