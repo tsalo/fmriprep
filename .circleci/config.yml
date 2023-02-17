@@ -87,6 +87,28 @@ _setup_fmriprep_docker: &setup_fmriprep_docker
     pip install --upgrade pip
     pip install --upgrade /tmp/src/fmriprep/wrapper/
 
+_check_outputs: &check_outputs
+  name: Checking outputs of fMRIPrep run
+  command: |
+    set +e -x
+    mkdir -p /tmp/${DATASET}/test
+    find /tmp/${DATASET}/${SUBDIR:-derivatives} \( -path '*/figures' -o -path '*/log' -o -path '*/sourcedata' \) -prune -o -name "*" -print | cut -d/ -f 5- | sort > /tmp/${DATASET}/test/outputs.out
+
+    FASTTRACK_OUTPUTS="${DATASET}${VARIANT}_fasttrack_outputs.txt"
+    FULL_OUTPUTS="${DATASET}${VARIANT}_outputs.txt"
+    RET=1
+    if [ ! -f /tmp/.nofasttrack ]; then
+        echo "Checking fasttrack..."
+        diff /tmp/src/fmriprep/.circleci/${FASTTRACK_OUTPUTS} /tmp/${DATASET}/test/outputs.out
+        RET=$?
+    fi
+    if [ $RET -ne 0 ]; then
+        echo "Checking full..."
+        diff /tmp/src/fmriprep/.circleci/${FULL_OUTPUTS} /tmp/${DATASET}/test/outputs.out
+        RET=$?
+    fi
+    exit $RET
+
 
 version: 2.1
 aliases:
@@ -534,16 +556,9 @@ jobs:
             # This is a cheap workflow, so let's not fuss
             sudo rm -rf /tmp/${DATASET}/work /tmp/${DATASET}/work_bids/fmriprep_*_wf/single_subject_01_wf/anat_preproc_wf/surface_recon_wf/gifti_surface_wf || true
       - run:
-          name: Checking outputs of full fMRIPrep run
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_legacy_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_legacy_outputs.txt"
-            fi
-            find /tmp/${DATASET}/derivatives \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives/++ | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+          <<: *check_outputs
+          environment:
+            VARIANT: '_legacy'
       - run:
           name: Prepare BIDS Derivatives dataset
           command: |
@@ -570,16 +585,10 @@ jobs:
           path: /tmp/ds005/bids
           destination: bids-run
       - run:
-          name: Checking outputs of partial fMRIPrep run
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_bids_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_bids_outputs.txt"
-            fi
-            find /tmp/${DATASET}/bids \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/++ | grep -v sourcedata | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+          <<: *check_outputs
+          environment:
+            VARIANT: '_bids'
+            SUBDIR: 'bids'
       - run:
           name: Re-run fMRIPrep on single run of task data
           no_output_timeout: 2h
@@ -605,17 +614,10 @@ jobs:
           path: /tmp/ds005/derivatives_partial
           destination: partial-run
       - run:
-          name: Checking outputs of partial fMRIPrep run
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_legacy_partial_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_legacy_partial_outputs.txt"
-            fi
-            sudo rm -rf /tmp/${DATASET}/derivatives_partial/freesurfer
-            find /tmp/${DATASET}/derivatives_partial \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives_partial/++ | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+          <<: *check_outputs
+          environment:
+            VARIANT: '_legacy_partial'
+            SUBDIR: 'derivatives_partial'
       - run:
           name: Clean working directory
           when: on_success
@@ -713,17 +715,7 @@ jobs:
                 --fs-no-reconall --sloppy \
                 --output-spaces MNI152NLin2009cAsym:res-2 anat func \
                 --mem-mb 14336 --nthreads 4 -vv --debug compcor
-      - run:
-          name: Checking outputs of fMRIPrep
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_outputs.txt"
-            fi
-            find /tmp/${DATASET}/derivatives \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives/++ | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+      - run: *check_outputs
       - run:
           name: Generate report with one artificial error
           command: |
@@ -853,17 +845,7 @@ jobs:
                 --dummy-scans 1 --sloppy --write-graph \
                 --output-spaces MNI152NLin2009cAsym \
                 --mem-mb 14336 --nthreads 4 -vv
-      - run:
-          name: Checking outputs of fMRIPrep
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_fasttrack_outputs.txt"
-            if [ -f /tmp/.nofasttrack ]; then
-                CHECK_OUTPUTS_FILE="${DATASET}_outputs.txt"
-            fi
-            find /tmp/${DATASET}/derivatives \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives/++ | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+      - run: *check_outputs
       - run:
           name: Clean working directory
           when: on_success
