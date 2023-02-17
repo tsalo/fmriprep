@@ -1,3 +1,4 @@
+
 fmriprep
 fmriprep/.bidsignore
 fmriprep/dataset_description.json
@@ -84,4 +85,3 @@ fmriprep/sub-100185/func/sub-100185_task-machinegame_run-02_space-T1w_desc-brain
 fmriprep/sub-100185/func/sub-100185_task-machinegame_run-02_space-T1w_desc-preproc_bold.json
 fmriprep/sub-100185/func/sub-100185_task-machinegame_run-02_space-T1w_desc-preproc_bold.nii.gz
 fmriprep/sub-100185.html
-/tmp/ds054/derivatives
