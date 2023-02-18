@@ -16,6 +16,7 @@ bids/sub-01/anat/sub-01_desc-brain_mask.json
 bids/sub-01/anat/sub-01_desc-brain_mask.nii.gz
 bids/sub-01/anat/sub-01_desc-preproc_T1w.json
 bids/sub-01/anat/sub-01_desc-preproc_T1w.nii.gz
+bids/sub-01/anat/sub-01_desc-ribbon_mask.nii.gz
 bids/sub-01/anat/sub-01_dseg.nii.gz
 bids/sub-01/anat/sub-01_from-fsnative_to-T1w_mode-image_xfm.txt
 bids/sub-01/anat/sub-01_from-MNI152NLin2009cAsym_to-T1w_mode-image_xfm.h5
