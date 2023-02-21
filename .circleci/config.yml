@@ -609,7 +609,7 @@ jobs:
                 --sloppy --write-graph --use-syn-sdc --mem-mb 14336 \
                 --output-spaces MNI152NLin2009cAsym fsaverage5 fsnative MNI152NLin6Asym anat \
                 --aroma-melodic-dimensionality 2 --use-aroma \
-                --nthreads 4 --cifti-output -vv
+                --nthreads 4 --cifti-output --project-goodvoxels -vv
       - store_artifacts:
           path: /tmp/ds005/derivatives_partial
           destination: partial-run
