@@ -409,7 +409,7 @@ It is released under the [CC0]\
                 f"{[e.method for e in fmap_estimators]}."
             )
 
-    # Append the functional section to the existing anatomical exerpt
+    # Append the functional section to the existing anatomical excerpt
     # That way we do not need to stream down the number of bold datasets
     func_pre_desc = """
 Functional data preprocessing

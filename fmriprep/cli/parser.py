@@ -572,7 +572,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         dest="verbose_count",
         action="count",
         default=0,
-        help="Increases log verbosity for each occurence, debug level is -vvv",
+        help="Increases log verbosity for each occurrence, debug level is -vvv",
     )
     g_other.add_argument(
         "-w",
