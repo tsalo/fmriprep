@@ -28,7 +28,7 @@ Settings are passed across processes via filesystem, and a copy of the settings 
 each run and subject is left under
 ``<fmriprep_dir>/sub-<participant_id>/log/<run_unique_id>/fmriprep.toml``.
 Settings are stored using :abbr:`ToML (Tom's Markup Language)`.
-The module has a :py:func:`~fmriprep.config.to_filename` function to allow writting out
+The module has a :py:func:`~fmriprep.config.to_filename` function to allow writing out
 the settings to hard disk in *ToML* format, which looks like:
 
 .. literalinclude:: ../fmriprep/data/tests/config.toml
@@ -644,7 +644,7 @@ def _set_ants_seed():
 
 
 def _set_numpy_seed():
-    """NumPy's random seed is independant from Python's `random` module"""
+    """NumPy's random seed is independent from Python's `random` module"""
     import numpy as np
 
     val = random.randint(1, 65536)

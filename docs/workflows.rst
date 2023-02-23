@@ -431,7 +431,7 @@ original space.
 All volumes in the :abbr:`BOLD (blood-oxygen level-dependent)` series are
 resampled in their native space by concatenating the mappings found in previous
 correction workflows (:abbr:`HMC (head-motion correction)` and
-:abbr:`SDC (susceptibility-derived distortion correction)` if excecuted)
+:abbr:`SDC (susceptibility-derived distortion correction)` if executed)
 for a one-shot interpolation process.
 Interpolation uses a Lanczos kernel.
 

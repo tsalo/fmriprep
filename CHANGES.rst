@@ -506,7 +506,7 @@ This release also includes some maintenance changes handling old versions of sof
 Bug-fix release in the 20.1.x series.
 
 * FIX: Dependency conflict between *NiWorkflows* and *TemplateFlow* (#2269)
-* FIX: More targetted *TemplateFlow* queries to work with all later releases (#2268)
+* FIX: More targeted *TemplateFlow* queries to work with all later releases (#2268)
 * MAINT: Update dependency pinnings including ``niworkflows~=1.2.9`` and three minimal bug-fixes.
 
 20.1.2 (September 04, 2020)
@@ -1498,7 +1498,7 @@ With thanks to @mgxd and @naveau for contributions.
 ---------------------------
 * FIX: Pin niworkflows-0.2.4 to fix (#868).
 * FIX: Roll back run/task groupings after BIDS query (#918).
-  Groupings for the multi-echo extension will be reenabled soon.
+  Groupings for the multi-echo extension will be re-enabled soon.
 
 1.0.2 (2nd of January 2018)
 ---------------------------

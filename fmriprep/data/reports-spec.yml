@@ -86,7 +86,7 @@ sections:
     subtitle: Alignment between the anatomical reference of the fieldmap and the target EPI (debug mode)
   - bids: {datatype: figures, desc: fieldmap, suffix: bold}
     caption: Estimated fieldmap, as reconstructed on the target BOLD run space to allow
-      the assessment of its alignement with the distorted data.
+      the assessment of its alignment with the distorted data.
       The anatomical reference is the fieldmap's reference moved into the target EPI's grid through
       the estimated transformation.
       In other words, this plot should be equivalent to that of the 
