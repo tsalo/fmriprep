@@ -39,7 +39,7 @@ of containerized execution drawn from the BIDS-Apps protocols.
 For detailed information of containerized execution of *NiPreps*, please visit the corresponding
 `Docker <https://www.nipreps.org/apps/docker/>`__
 or `Singularity <https://www.nipreps.org/apps/singularity/>`__ subsections.
-The *NiPreps* portal also containes
+The *NiPreps* portal also contains
 `extended details of execution with the Docker wrapper <https://www.nipreps.org/apps/docker/#running-a-niprep-with-a-lightweight-wrapper>`__.
 
 Manually Prepared Environment (Python 3.8+)
