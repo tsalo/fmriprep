@@ -217,6 +217,15 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     freesurfer = config.workflow.run_reconall
     spaces = config.workflow.spaces
     fmriprep_dir = str(config.execution.fmriprep_dir)
+    freesurfer_spaces = spaces.get_fs_spaces()
+    project_goodvoxels = config.workflow.project_goodvoxels
+
+    if project_goodvoxels and freesurfer_spaces != ["fsaverage"]:
+        config.loggers.workflow.critical(
+            f"--project-goodvoxels only works with fsaverage (requested: {freesurfer_spaces})"
+        )
+        config.loggers.workflow.warn("Disabling --project-goodvoxels")
+        project_goodvoxels = False
 
     # Extract BIDS entities and metadata from BOLD file(s)
     entities = extract_entities(bold_file)
@@ -438,7 +447,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         bids_root=layout.root,
         cifti_output=config.workflow.cifti_output,
         freesurfer=freesurfer,
-        project_goodvoxels=config.workflow.project_goodvoxels,
+        project_goodvoxels=project_goodvoxels,
         all_metadata=all_metadata,
         multiecho=multiecho,
         output_dir=fmriprep_dir,
@@ -938,14 +947,13 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
     # SURFACES ##################################################################################
     # Freesurfer
-    freesurfer_spaces = spaces.get_fs_spaces()
     if freesurfer and freesurfer_spaces:
         config.loggers.workflow.debug("Creating BOLD surface-sampling workflow.")
         bold_surf_wf = init_bold_surf_wf(
             mem_gb=mem_gb["resampled"],
             surface_spaces=freesurfer_spaces,
             medial_surface_nan=config.workflow.medial_surface_nan,
-            project_goodvoxels=config.workflow.project_goodvoxels,
+            project_goodvoxels=project_goodvoxels,
             name="bold_surf_wf",
         )
         # fmt:off
