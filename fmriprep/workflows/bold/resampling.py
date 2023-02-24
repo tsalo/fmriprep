@@ -240,7 +240,7 @@ surface projection.
 
     # At this point, rename_src.in_file and update_metadata.in_file need connecting
     #
-    # These depend on two optional steps: goodvoxel projection and medial wall nan replacment
+    # These depend on two optional steps: goodvoxel projection and medial wall nan replacement
     #
     # inputnode -> optional(goodvoxels_bold_mask_wf) -> rename_src
     # sampler -> optional(metric_dilate) -> optional(medial_nans) -> update_metadata

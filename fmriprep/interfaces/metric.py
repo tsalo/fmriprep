@@ -92,7 +92,7 @@ class MetricDilateInputSpec(CommandLineInputSpec):
         position=11,
         argstr="-legacy-cutoff ",
         desc="use the v1.3.2 method of choosing how many vertices to "
-        "use when calulating the dilated value with weighted method",
+        "use when calculating the dilated value with weighted method",
     )
 
 
