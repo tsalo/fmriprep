@@ -31,6 +31,7 @@ fMRIPrep base processing workflows
 
 import os
 import sys
+import warnings
 from copy import deepcopy
 
 from nipype.interfaces import utility as niu

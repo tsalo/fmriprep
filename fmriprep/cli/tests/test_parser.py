@@ -26,7 +26,6 @@ from contextlib import nullcontext
 
 import pytest
 from packaging.version import Version
-from pkg_resources import resource_filename as pkgrf
 
 from ... import config
 from ...tests.test_config import _reset_config
