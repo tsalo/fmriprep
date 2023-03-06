@@ -1,3 +1,46 @@
+23.0.0 (To be determined)
+=========================
+New feature release in the 23.0.x series.
+
+This release adds improvements for workflows targeting the fsLR grayordinate space.
+Namely, morphometric (curvature, sulcal depth and cortical thickness) measures are
+output as ``.dscalar.nii`` files and high-variance voxels can be excluded from the
+resampling step using ``--project-goodvoxels``.
+
+Additionally, T2w images are now resampled to the T1w-defined subject space if FreeSurfer
+reconstruction is used. If multiple T2w images are provided, they are merged into a single
+image first.
+
+23.0.0 supports FreeSurfer 7.3.2, which is now bundled in the Docker image.
+
+ICA-AROMA support will be removed in 23.1.0.
+
+With thanks to Thomas Madison, Greg Conan, Celine Provins, Robert Smith and Yaroslav
+Halchenko for contributions.
+Thanks also to Steve Giavasis and colleagues at the Child Mind Institute
+for feedback on SDC processing.
+
+* FIX: Pass reference image to unwarp_wf, use reference fieldwarp for single shot (#2945)
+* FIX: Pass fmap filters to sdcflows (#2932)
+* ENH: Resample morphometrics to fsLR dscalar CIFTI-2 files if ``--cifti-output`` is used (#2959)
+* ENH: Add option to exclude projecting high variance voxels to surface (update of #2855) (#2956)
+* ENH: Separate deep from shallow WM+CSF in the carpetplot (#2744)
+* ENH: Merge T2w images and coregister to T1w template (#2941)
+* RF: Use DataFrame.rename instead of ad hoc process (#2937)
+* DOC: Update the description of the carpetplot in the sample report (#2950)
+* DOC: Altered CLI option grouping (#2944)
+* DOC: Update lesion ROI documentation, warn in docs and app about upcoming changes (#2943)
+* DOC: Update docs following read-through (#2930)
+* DOC: Update carpetplot in "Outputs of fMRIPrep" (#2923)
+* MNT: Codespell config, action + some typo fixups (#2958)
+* MNT: Warn that AROMA support will be removed in a future version (#2940)
+* MNT: Update Ubuntu, FreeSurfer, AFNI and Convert3D (#2931)
+* MNT: Switch to hatch build backend and update package metadata (#2914 + #2939)
+* MNT: Rotate CircleCI secrets and setup up org-level context (#2928)
+* CI: Minor updates to CircleCI config to improve resilience (#2957)
+* CI: Weekly docker build from scratch (#2938)
+
+
 22.1.1 (January 04, 2023)
 =========================
 Bug fix release in the 22.1.x series.
