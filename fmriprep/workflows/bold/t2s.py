@@ -126,7 +126,7 @@ def init_t2s_reporting_wf(name: str = 't2s_reporting_wf'):
     r"""
     Generate T2\*-map reports.
 
-    This workflow generates a histogram of esimated T2\* values (in seconds) in the
+    This workflow generates a histogram of estimated T2\* values (in seconds) in the
     cortical and subcortical gray matter mask.
 
     Parameters
