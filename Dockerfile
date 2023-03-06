@@ -280,6 +280,8 @@ ENV HOME="/home/fmriprep" \
 RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> $HOME/.bashrc && \
     echo "conda activate base" >> $HOME/.bashrc
 
+RUN /opt/conda/bin/python -m pip install --no-cache-dir --upgrade templateflow
+
 # Precaching atlases
 COPY scripts/fetch_templates.py fetch_templates.py
 
