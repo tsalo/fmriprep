@@ -223,14 +223,6 @@ WORKDIR $ANTSPATH
 RUN curl -sSL "https://dl.dropbox.com/s/gwf51ykkk5bifyj/ants-Linux-centos6_x86_64-v2.3.4.tar.gz" \
     | tar -xzC $ANTSPATH --strip-components 1
 
-# Installing and setting up ICA_AROMA
-WORKDIR /opt/ICA-AROMA
-RUN curl -sSL "https://github.com/oesteban/ICA-AROMA/archive/v0.4.5.tar.gz" \
-  | tar -xzC /opt/ICA-AROMA --strip-components 1 && \
-  chmod +x /opt/ICA-AROMA/ICA_AROMA.py
-ENV PATH="/opt/ICA-AROMA:$PATH" \
-    AROMA_VERSION="0.4.5"
-
 WORKDIR /opt
 RUN curl -sSLO https://www.humanconnectome.org/storage/app/media/workbench/workbench-linux64-v1.5.0.zip && \
     unzip workbench-linux64-v1.5.0.zip && \

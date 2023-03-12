@@ -413,29 +413,27 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         "(default is 91k, which equates to 2mm resolution)",
     )
 
-    g_aroma = parser.add_argument_group("Specific options for running ICA_AROMA")
+    g_aroma = parser.add_argument_group("[DEPRECATED] Options for running ICA_AROMA")
     g_aroma.add_argument(
         "--use-aroma",
         action="store_true",
         default=False,
-        help="Add ICA-AROMA to your preprocessing stream",
+        help="Deprecated. Will raise an error in 24.0.",
     )
     g_aroma.add_argument(
         "--aroma-melodic-dimensionality",
         dest="aroma_melodic_dim",
         action="store",
-        default=-200,
+        default=0,
         type=int,
-        help="Exact or maximum number of MELODIC components to estimate "
-        "(positive = exact, negative = maximum)",
+        help="Deprecated. Will raise an error in 24.0.",
     )
     g_aroma.add_argument(
         "--error-on-aroma-warnings",
         action="store_true",
         dest="aroma_err_on_warn",
         default=False,
-        help="Raise an error if ICA_AROMA does not produce sensible output "
-        "(e.g., if all the components are classified as signal or noise)",
+        help="Deprecated. Will raise an error in 24.0.",
     )
 
     g_confounds = parser.add_argument_group("Options relating to confounds")
