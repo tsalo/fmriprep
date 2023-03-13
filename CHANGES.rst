@@ -1,5 +1,5 @@
-23.0.0 (To be determined)
-=========================
+23.0.0 (March 13, 2023)
+=======================
 New feature release in the 23.0.x series.
 
 This release adds improvements for workflows targeting the fsLR grayordinate space.
@@ -10,6 +10,10 @@ resampling step using ``--project-goodvoxels``.
 Additionally, T2w images are now resampled to the T1w-defined subject space if FreeSurfer
 reconstruction is used. If multiple T2w images are provided, they are merged into a single
 image first.
+
+PEPolar fieldmaps with R/L phase-encoding directions or in non-standard orientations
+are now better supported. We continue to work toward better support for more SDC
+configurations.
 
 23.0.0 supports FreeSurfer 7.3.2, which is now bundled in the Docker image.
 
