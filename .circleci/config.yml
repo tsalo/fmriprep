@@ -931,6 +931,12 @@ jobs:
       - run:
           name: Build fMRIPrep
           command: python -m build
+      - run:
+          name: Twine check fmriprep
+          command: twine check dist/*
+      - run:
+          name: Pre-run hatch version
+          command: hatch version
       - store_artifacts:
           path: /tmp/src/fmriprep/dist
       - run:
@@ -939,10 +945,9 @@ jobs:
             THISVERSION=$( hatch version )
             THISVERSION=${THISVERSION%.d*}
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
-            python -m twine check dist/fmriprep*.tar.gz
             virtualenv --python=python sdist
             source sdist/bin/activate
-            python -m pip install --upgrade "pip>=19.1" numpy
+            python -m pip install --upgrade pip
             python -m pip install dist/fmriprep*.tar.gz
             which fmriprep | grep sdist\\/bin
             INSTALLED_VERSION=$(fmriprep --version)
@@ -957,7 +962,6 @@ jobs:
             THISVERSION=$( hatch version )
             THISVERSION=${THISVERSION%.d*}
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
-            python -m twine check dist/fmriprep*.whl
             virtualenv --python=python wheel
             source wheel/bin/activate
             python -m pip install dist/fmriprep*.whl
@@ -971,6 +975,9 @@ jobs:
       - run:
           name: Build fmriprep-docker
           command: python -m build wrapper
+      - run:
+          name: Twine check wrapper
+          command: twine check wrapper/dist/*
       - store_artifacts:
           path: /tmp/src/fmriprep/wrapper/dist
 
