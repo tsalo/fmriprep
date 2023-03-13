@@ -943,7 +943,6 @@ jobs:
           name: Check sdist distribution
           command: |
             THISVERSION=$( hatch version )
-            THISVERSION=${THISVERSION%.d*}
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
             virtualenv --python=python sdist
             source sdist/bin/activate
@@ -960,7 +959,6 @@ jobs:
           name: Check wheel distribution
           command: |
             THISVERSION=$( hatch version )
-            THISVERSION=${THISVERSION%.d*}
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
             virtualenv --python=python wheel
             source wheel/bin/activate
