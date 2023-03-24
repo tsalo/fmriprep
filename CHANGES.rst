@@ -1,3 +1,13 @@
+23.0.1 (March 24, 2023)
+=======================
+Bug fix release in the 23.0.x series.
+
+This release fixes issues with detecting partial fieldmaps, emitting a warning instead
+of an error. A small change in sMRIPrep fixes the name of a workflow, which may cause a
+duplication in a reused work directory from 23.0.0, but should not break any workflows
+or produce a change in derivatives.
+
+
 23.0.0 (March 13, 2023)
 =======================
 New feature release in the 23.0.x series.
