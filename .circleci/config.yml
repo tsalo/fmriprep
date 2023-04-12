@@ -119,6 +119,8 @@ orbs:
 jobs:
   build_clean:
     <<: *machine_defaults
+    environment:
+      DOCKER_BUILDKIT: 1
     steps:
       - checkout:
           path: *src
@@ -144,17 +146,19 @@ jobs:
 
   build:
     <<: *machine_defaults
+    environment:
+      DOCKER_BUILDKIT: 1
     steps:
       - checkout:
           path: *src
       - run: *check_skip_job
       - restore_cache:
           keys:
-            - build-v0-{{ .Branch }}-{{ .Revision }}
-            - build-v0--{{ .Revision }}
-            - build-v0-{{ .Branch }}-
-            - build-v0-master-
-            - build-v0-
+            - build-v2-{{ .Branch }}-{{ .Revision }}
+            - build-v2--{{ .Revision }}
+            - build-v2-{{ .Branch }}-
+            - build-v2-master-
+            - build-v2-
           paths:
             - /tmp/docker
             - /tmp/images
@@ -172,6 +176,14 @@ jobs:
           name: Pull Ubuntu/jammy image
           command: |
             set +e
+            # Source layers if available
+            docker pull localhost:5000/downloader
+            docker pull localhost:5000/freesurfer
+            docker pull localhost:5000/afni
+            docker pull localhost:5000/ants
+            docker pull localhost:5000/workbench
+            docker pull localhost:5000/micromamba
+
             docker pull localhost:5000/ubuntu
             success=$?
             set -e
@@ -219,7 +231,14 @@ jobs:
             e=1 && for i in {1..5}; do
               docker build --rm \
                 --cache-from=nipreps/fmriprep \
+                --cache-from=localhost:5000/downloader \
+                --cache-from=localhost:5000/freesurfer \
+                --cache-from=localhost:5000/afni \
+                --cache-from=localhost:5000/ants \
+                --cache-from=localhost:5000/workbench \
+                --cache-from=localhost:5000/micromamba \
                 -t nipreps/fmriprep:latest \
+                --target fmriprep \
                 --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
                 --build-arg VCS_REF=`git rev-parse --short HEAD` \
                 --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" . \
@@ -241,11 +260,27 @@ jobs:
             set -e
             test "$BUILT_VERSION" = "$THISVERSION"
       - run:
+          name: Build and tag stages
+          no_output_timeout: 40m
+          command: |
+            docker build -t localhost:5000/downloader --target downloader .
+            docker build -t localhost:5000/freesurfer --target freesurfer .
+            docker build -t localhost:5000/afni --target afni .
+            docker build -t localhost:5000/ants --target ants .
+            docker build -t localhost:5000/workbench --target workbench .
+            docker build -t localhost:5000/micromamba --target micromamba .
+      - run:
           name: Docker push to local registry
           no_output_timeout: 40m
           command: |
             docker tag nipreps/fmriprep:latest localhost:5000/fmriprep
             docker push localhost:5000/fmriprep
+            docker push localhost:5000/downloader
+            docker push localhost:5000/freesurfer
+            docker push localhost:5000/afni
+            docker push localhost:5000/ants
+            docker push localhost:5000/workbench
+            docker push localhost:5000/micromamba
       - run:
           name: Docker registry garbage collection
           command: |
@@ -257,7 +292,7 @@ jobs:
           paths:
             - src/fmriprep
       - save_cache:
-         key: build-v0-{{ .Branch }}-{{ .Revision }}
+         key: build-v2-{{ .Branch }}-{{ .Revision }}
          paths:
             - /tmp/docker
             - /tmp/images
@@ -390,7 +425,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v0-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -463,7 +498,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v0-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -651,7 +686,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v0-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -767,7 +802,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v0-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -776,11 +811,11 @@ jobs:
             - data-v0-{{ .Branch }}-{{ .Revision }}
       - restore_cache:
           keys:
-            - ds210-anat-v0-{{ .Branch }}-{{ .Revision }}
-            - ds210-anat-v0--{{ .Revision }}
-            - ds210-anat-v0-{{ .Branch }}-
-            - ds210-anat-v0-master-
-            - ds210-anat-v0-
+            - ds210-anat-v1-{{ .Branch }}-{{ .Revision }}
+            - ds210-anat-v1--{{ .Revision }}
+            - ds210-anat-v1-{{ .Branch }}-
+            - ds210-anat-v1-master-
+            - ds210-anat-v1-
       - docker/install-docker-credential-helper
       - run: *docker_auth
       - run: *setup_docker_registry
@@ -808,7 +843,7 @@ jobs:
             rm -rf /tmp/${DATASET}/work/reportlets
             rm -rf /tmp/${DATASET}/derivatives/fmriprep
       - save_cache:
-         key: ds210-anat-v0-{{ .Branch }}-{{ .Revision }}
+         key: ds210-anat-v1-{{ .Branch }}-{{ .Revision }}
          paths:
             - /tmp/ds210/work
 
@@ -873,7 +908,7 @@ jobs:
             fi
       - restore_cache:
           keys:
-            - build-v0-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -896,7 +931,7 @@ jobs:
       - run: *check_skip_job
       - restore_cache:
           keys:
-            - build-v0-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
