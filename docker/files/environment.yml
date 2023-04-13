@@ -100,7 +100,6 @@ dependencies:
     - ci-info==0.2.0
     - citeproc-py==0.6.0
     - click==8.0.3
-    - codecov==2.1.12
     - coverage==6.0.2
     - cython==0.29.24
     - datalad==0.15.2
