@@ -1,3 +1,10 @@
+23.0.2 (April 24, 2023)
+=======================
+
+This release fixes issues with `_phase1+2`, `_phasediff` and `_fieldmap`
+fieldmap files that are found with an orientation other than RAS.
+
+
 23.0.1 (March 24, 2023)
 =======================
 Bug fix release in the 23.0.x series.
