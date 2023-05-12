@@ -43,7 +43,7 @@ from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransf
 from niworkflows.interfaces.freesurfer import MedialNaNs
 
 from ...config import DEFAULT_MEMORY_MIN_GB
-from ...interfaces.metric import MetricDilate
+from ...interfaces.workbench import MetricDilate
 
 if ty.TYPE_CHECKING:
     from niworkflows.utils.spaces import SpatialReferences
