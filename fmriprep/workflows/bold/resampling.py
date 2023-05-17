@@ -54,7 +54,6 @@ def init_bold_surf_wf(
     mem_gb: float,
     surface_spaces: ty.List[str],
     medial_surface_nan: bool,
-    project_goodvoxels: bool,
     name: str = "bold_surf_wf",
 ):
     """
@@ -62,11 +61,6 @@ def init_bold_surf_wf(
 
     For each vertex, the cortical ribbon is sampled at six points (spaced 20% of thickness apart)
     and averaged.
-
-    If ``--project-goodvoxels`` is used, a "goodvoxels" BOLD mask, as described in [@hcppipelines],
-    is generated and applied to the functional image before sampling to surface. After sampling,
-    empty vertices are filled by dilating in data from the nearest "good" vertex, within a
-    radius of 10 mm (as measured on the target midthickness surface).
 
     Outputs are in GIFTI format.
 
@@ -79,7 +73,6 @@ def init_bold_surf_wf(
             wf = init_bold_surf_wf(mem_gb=0.1,
                                    surface_spaces=["fsnative", "fsaverage5"],
                                    medial_surface_nan=False,
-                                   project_goodvoxels=False,
                                    )
 
     Parameters
@@ -91,9 +84,6 @@ def init_bold_surf_wf(
         native surface.
     medial_surface_nan : :obj:`bool`
         Replace medial wall values with NaNs on functional GIFTI files
-    project_goodvoxels : :obj:`bool`
-        Exclude voxels with locally high coefficient of variation, or that lie outside the
-        cortical surfaces, from the surface projection.
 
     Inputs
     ------
@@ -105,10 +95,6 @@ def init_bold_surf_wf(
         FreeSurfer subject ID
     t1w2fsnative_xfm
         LTA-style affine matrix translating from T1w to FreeSurfer-conformed subject space
-    anat_ribbon
-        Cortical ribbon in T1w space
-    t1w_mask
-        Mask of the skull-stripped T1w image
 
     Outputs
     -------
@@ -130,14 +116,6 @@ The BOLD time-series were resampled onto the following surfaces
         out_spaces=", ".join(["*%s*" % s for s in surface_spaces])
     )
 
-    if project_goodvoxels:
-        workflow.__desc__ += """\
-Before resampling, a "goodvoxels" mask [@hcppipelines] was applied,
-excluding voxels whose time-series have a locally high coefficient of
-variation, or that lie outside the cortical surfaces, from the
-surface projection.
-"""
-
     inputnode = pe.Node(
         niu.IdentityInterface(
             fields=[
@@ -145,8 +123,6 @@ surface projection.
                 "subject_id",
                 "subjects_dir",
                 "t1w2fsnative_xfm",
-                "anat_ribbon",
-                "t1w_mask",
             ]
         ),
         name="inputnode",
@@ -204,7 +180,7 @@ surface projection.
     )
 
     outputnode = pe.Node(
-        niu.IdentityInterface(fields=["surfaces", "target", "goodvoxels_ribbon"]),
+        niu.IdentityInterface(fields=["surfaces", "target"]),
         name="outputnode",
     )
 
@@ -242,65 +218,25 @@ surface projection.
     #
     # These depend on two optional steps: goodvoxel projection and medial wall nan replacement
     #
-    # inputnode -> optional(goodvoxels_bold_mask_wf) -> rename_src
-    # sampler -> optional(metric_dilate) -> optional(medial_nans) -> update_metadata
+    # inputnode -> rename_src
+    # sampler -> optional(medial_nans) -> update_metadata
     #
-    metric_dilate = pe.MapNode(
-        MetricDilate(distance=10, nearest=True),
-        iterfield=["in_file", "surf_file"],
-        name="metric_dilate",
-        mem_gb=mem_gb * 3,
-    )
-    metric_dilate.inputs.surf_file = [
-        str(
-            tf.get(
-                "fsaverage",
-                hemi=hemi,
-                density="164k",
-                suffix="midthickness",
-                extension=".surf.gii",
-            )
-        )
-        for hemi in "LR"
-    ]
 
     # Refine if medial vertices should be NaNs
     medial_nans = pe.MapNode(
         MedialNaNs(), iterfield=["in_file"], name="medial_nans", mem_gb=DEFAULT_MEMORY_MIN_GB
     )
 
-    if project_goodvoxels:
-        goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb)
-
-        # fmt: off
-        workflow.connect([
-            (inputnode, goodvoxels_bold_mask_wf, [
-                ("source_file", "inputnode.bold_file"),
-                ("anat_ribbon", "inputnode.anat_ribbon"),
-            ]),
-            (goodvoxels_bold_mask_wf, rename_src, [("outputnode.masked_bold", "in_file")]),
-            (goodvoxels_bold_mask_wf, outputnode, [
-                ("outputnode.goodvoxels_ribbon", "goodvoxels_ribbon"),
-            ]),
-            (sampler, metric_dilate, [("out_file", "in_file")]),
-        ])
-        # fmt: on
-    else:
-        workflow.connect([(inputnode, rename_src, [("source_file", "in_file")])])
+    workflow.connect([(inputnode, rename_src, [("source_file", "in_file")])])
 
     if medial_surface_nan:
         # fmt: off
         workflow.connect([
             (inputnode, medial_nans, [("subjects_dir", "subjects_dir")]),
+            (sampler, medial_nans, [("out_file", "in_file")]),
             (medial_nans, update_metadata, [("out_file", "in_file")]),
         ])
-
-    if medial_surface_nan and project_goodvoxels:
-        workflow.connect([(metric_dilate, medial_nans, [("out_file", "in_file")])])
-    elif medial_surface_nan:
-        workflow.connect([(sampler, medial_nans, [("out_file", "in_file")])])
-    elif project_goodvoxels:
-        workflow.connect([(metric_dilate, update_metadata, [("out_file", "in_file")])])
+        # fmt: on
     else:
         workflow.connect([(sampler, update_metadata, [("out_file", "in_file")])])
 
@@ -352,7 +288,7 @@ def init_goodvoxels_bold_mask_wf(mem_gb: float, name: str = "goodvoxels_bold_mas
     outputnode = pe.Node(
         niu.IdentityInterface(
             fields=[
-                "masked_bold",
+                "goodvoxels_mask",
                 "goodvoxels_ribbon",
             ]
         ),
@@ -558,22 +494,12 @@ def init_goodvoxels_bold_mask_wf(mem_gb: float, name: str = "goodvoxels_bold_mas
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
-    apply_goodvoxels_ribbon_mask = pe.Node(
-        fsl.ApplyMask(),
-        name_source=['in_file'],
-        keep_extension=True,
-        name="apply_goodvoxels_ribbon_mask",
-        mem_gb=mem_gb * 3,
-    )
-
     # apply goodvoxels ribbon mask to bold
     workflow.connect(
         [
             (goodvoxels_mask, goodvoxels_ribbon_mask, [("out_file", "in_file")]),
             (ribbon_boldsrc_xfm, goodvoxels_ribbon_mask, [("output_image", "mask_file")]),
-            (goodvoxels_ribbon_mask, apply_goodvoxels_ribbon_mask, [("out_file", "mask_file")]),
-            (inputnode, apply_goodvoxels_ribbon_mask, [("bold_file", "in_file")]),
-            (apply_goodvoxels_ribbon_mask, outputnode, [("out_file", "masked_bold")]),
+            (goodvoxels_mask, outputnode, [("out_file", "goodvoxels_mask")]),
             (goodvoxels_ribbon_mask, outputnode, [("out_file", "goodvoxels_ribbon")]),
         ]
     )
