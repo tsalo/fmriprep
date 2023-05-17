@@ -33,7 +33,6 @@ from __future__ import annotations
 
 import typing as ty
 
-import nipype.interfaces.workbench as wb
 from nipype import Function
 from nipype.interfaces import freesurfer as fs
 from nipype.interfaces import fsl
@@ -102,7 +101,6 @@ def init_bold_surf_wf(
         BOLD series, resampled to FreeSurfer surfaces
 
     """
-    import templateflow.api as tf
     from nipype.interfaces.io import FreeSurferSource
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
