@@ -43,7 +43,7 @@ from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransf
 from niworkflows.interfaces.freesurfer import MedialNaNs
 
 from ...config import DEFAULT_MEMORY_MIN_GB
-from ...interfaces.workbench import MetricDilate
+from ...interfaces.workbench import MetricDilate, MetricMask, MetricResample
 
 if ty.TYPE_CHECKING:
     from niworkflows.utils.spaces import SpatialReferences
@@ -577,6 +577,189 @@ def init_goodvoxels_bold_mask_wf(mem_gb: float, name: str = "goodvoxels_bold_mas
             (goodvoxels_ribbon_mask, outputnode, [("out_file", "goodvoxels_ribbon")]),
         ]
     )
+
+    return workflow
+
+
+def init_bold_fsLR_resampling_wf(
+    grayord_density: ty.Literal['91k', '170k'],
+    estimate_goodvoxels: bool,
+    mem_gb: float,
+    name: str = "bold_fsLR_resampling_wf",
+):
+    """Resample BOLD time series to fsLR surface.
+
+    This workflow is derived heavily from three scripts within the DCAN-HCP pipelines scripts
+
+    Line numbers correspond to the locations of the code in the original scripts, found at:
+    https://github.com/DCAN-Labs/DCAN-HCP/tree/9291324/
+    """
+    import templateflow.api as tf
+    from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+    from smriprep import data as smriprep_data
+    from smriprep.interfaces.workbench import SurfaceResample
+
+    from fmriprep.interfaces.gifti import CreateROI
+    from fmriprep.interfaces.workbench import (
+        MetricFillHoles,
+        MetricRemoveIslands,
+        VolumeToSurfaceMapping,
+    )
+
+    fslr_density = "32k" if grayord_density == "91k" else "59k"
+
+    workflow = Workflow(name=name)
+
+    inputnode = pe.Node(
+        niu.IdentityInterface(
+            fields=[
+                'bold_file',
+                'surfaces',
+                'morphometrics',
+                'sphere_reg_fsLR',
+                'anat_ribbon',
+            ]
+        ),
+        name='inputnode',
+    )
+
+    itersource = pe.Node(
+        niu.IdentityInterface(fields=['hemi']),
+        name='itersource',
+        iterables=[('hemi', ['L', 'R'])],
+    )
+
+    outputnode = pe.JoinNode(
+        niu.IdentityInterface(fields=['bold_fsLR']),
+        name='outputnode',
+        joinsource='itersource',
+    )
+
+    # select white, midthickness and pial surfaces based on hemi
+    select_surfaces = pe.Node(
+        niu.Function(
+            function=_select_surfaces,
+            output_names=[
+                'white',
+                'pial',
+                'midthickness',
+                'thickness',
+                'sphere_reg',
+                'template_sphere',
+                'template_roi',
+            ],
+        ),
+        name='select_surfaces',
+    )
+    select_surfaces.inputs.template_spheres = [
+        str(sphere)
+        for sphere in tf.get(
+            template='fsLR',
+            density=fslr_density,
+            suffix='sphere',
+            space=None,
+            extension='.surf.gii',
+        )
+    ]
+    atlases = smriprep_data.load_resource('atlases')
+    select_surfaces.inputs.template_rois = [
+        str(atlases / 'L.atlasroi.32k_fs_LR.shape.gii'),
+        str(atlases / 'R.atlasroi.32k_fs_LR.shape.gii'),
+    ]
+
+    # Reimplements lines 282-290 of FreeSurfer2CaretConvertAndRegisterNonlinear.sh
+    initial_roi = pe.Node(CreateROI(), name="initial_roi", mem_gb=DEFAULT_MEMORY_MIN_GB)
+
+    # Lines 291-292
+    fill_holes = pe.Node(MetricFillHoles(), name="fill_holes", mem_gb=DEFAULT_MEMORY_MIN_GB)
+    native_roi = pe.Node(MetricRemoveIslands(), name="native_roi", mem_gb=DEFAULT_MEMORY_MIN_GB)
+
+    # Line 393 of FreeSurfer2CaretConvertAndRegisterNonlinear.sh
+    downsampled_midthickness = pe.Node(
+        SurfaceResample(method='BARYCENTRIC'),
+        name="downsampled_midthickness",
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    )
+
+    # RibbonVolumeToSurfaceMapping.sh
+    # Line 85 thru ...
+    volume_to_surface = pe.Node(
+        VolumeToSurfaceMapping(method="ribbon-constrained"),
+        name="volume_to_surface",
+        mem_gb=mem_gb * 3,
+    )
+    metric_dilate = pe.Node(MetricDilate(distance=10, nearest=True), name="metric_dilate")
+    mask_native = pe.Node(MetricMask(), name="mask_native")
+    resample_to_fsLR = pe.Node(
+        MetricResample(method='ADAP_BARY_AREA', area_surfs=True), name="resample_to_fsLR"
+    )
+    # ... line 89
+    mask_fsLR = pe.Node(MetricMask(), name="mask_fsLR")
+
+    # fmt: off
+    workflow.connect([
+        (inputnode, select_surfaces, [
+            ('surfaces', 'surfaces'),
+            ('morphometrics', 'morphometrics'),
+            ('sphere_reg_fsLR', 'spherical_registrations'),
+        ]),
+        (itersource, select_surfaces, [('hemi', 'hemi')]),
+        # Native ROI file from thickness
+        (itersource, initial_roi, [('hemi', 'hemisphere')]),
+        (select_surfaces, initial_roi, [('thickness', 'thickness_file')]),
+        (select_surfaces, fill_holes, [('midthickness', 'surface_file')]),
+        (select_surfaces, native_roi, [('midthickness', 'surface_file')]),
+        (initial_roi, fill_holes, [('roi_file', 'metric_file')]),
+        (fill_holes, native_roi, [('out_file', 'metric_file')]),
+        # Downsample midthickness to fsLR density
+        (select_surfaces, downsampled_midthickness, [
+            ('midthickness', 'surface_in'),
+            ('sphere_reg', 'current_sphere'),
+            ('template_sphere', 'new_sphere'),
+        ]),
+        # Resample BOLD to native surface, dilate and mask
+        (inputnode, volume_to_surface, [
+            ('bold_file', 'volume_file'),
+        ]),
+        (select_surfaces, volume_to_surface, [
+            ('midthickness', 'surface_file'),
+            ('white', 'inner_surface'),
+            ('pial', 'outer_surface'),
+        ]),
+        (select_surfaces, metric_dilate, [('midthickness', 'surf_file')]),
+        (volume_to_surface, metric_dilate, [('out_file', 'in_file')]),
+        (native_roi, mask_native, [('out_file', 'mask')]),
+        (metric_dilate, mask_native, [('out_file', 'in_file')]),
+        # Resample BOLD to fsLR and mask
+        (select_surfaces, resample_to_fsLR, [
+            ('sphere_reg', 'current_sphere'),
+            ('template_sphere', 'new_sphere'),
+            ('midthickness', 'current_area'),
+        ]),
+        (downsampled_midthickness, resample_to_fsLR, [('surface_out', 'new_area')]),
+        (native_roi, resample_to_fsLR, [('out_file', 'roi_metric')]),
+        (mask_native, resample_to_fsLR, [('out_file', 'in_file')]),
+        (select_surfaces, mask_fsLR, [('template_roi', 'mask')]),
+        (resample_to_fsLR, mask_fsLR, [('out_file', 'in_file')]),
+        # Output
+        (mask_fsLR, outputnode, [('out_file', 'bold_fsLR')]),
+    ])
+    # fmt: on
+
+    if estimate_goodvoxels:
+        goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb)
+
+        # fmt: off
+        workflow.connect([
+            (inputnode, goodvoxels_bold_mask_wf, [
+                ("bold_file", "inputnode.bold_file"),
+                ("anat_ribbon", "inputnode.anat_ribbon"),
+            ]),
+            (goodvoxels_bold_mask_wf, volume_to_surface, [
+                ("outputnode.goodvoxels_ribbon", "volume_roi"),
+            ]),
+        ])
+        # fmt: on
 
     return workflow
 
@@ -1285,3 +1468,32 @@ def _itk2lta(in_file, src_file, dst_file):
         in_file, fmt="fs" if in_file.endswith(".lta") else "itk", reference=src_file
     ).to_filename(out_file, moving=dst_file, fmt="fs")
     return str(out_file)
+
+
+def _select_surfaces(
+    hemi,
+    surfaces,
+    morphometrics,
+    spherical_registrations,
+    template_spheres,
+    template_rois,
+):
+    import os
+    import re
+
+    idx = 0 if hemi == "L" else 1
+    container = {
+        'white': [],
+        'pial': [],
+        'midthickness': [],
+        'thickness': [],
+        'sphere': sorted(spherical_registrations),
+        'template_sphere': sorted(template_spheres),
+        'template_roi': sorted(template_rois),
+    }
+    find_name = re.compile(r'(?:^|[^d])(?P<name>white|pial|midthickness|thickness)')
+    for surface in surfaces + morphometrics:
+        match = find_name.search(os.path.basename(surface))
+        if match:
+            container[match.group('name')].append(surface)
+    return tuple(sorted(surflist)[idx] for surflist in container.values())

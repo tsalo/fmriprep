@@ -353,6 +353,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "anat_ribbon",
                 "t1w2fsnative_xfm",
                 "fsnative2t1w_xfm",
+                "surfaces",
+                "morphometrics",
+                "sphere_reg_fsLR",
                 "fmap",
                 "fmap_ref",
                 "fmap_coeff",
@@ -894,7 +897,12 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
         # CIFTI output
         if config.workflow.cifti_output:
-            from .resampling import init_bold_grayords_wf
+            from .resampling import init_bold_fsLR_resampling_wf, init_bold_grayords_wf
+
+            bold_fsLR_resampling_wf = init_bold_fsLR_resampling_wf(
+                grayord_density=config.workflow.cifti_output,
+                mem_gb=mem_gb["resampled"],
+            )
 
             bold_grayords_wf = init_bold_grayords_wf(
                 grayord_density=config.workflow.cifti_output,
@@ -904,8 +912,17 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
             # fmt:off
             workflow.connect([
-                (bold_std_trans_wf, bold_grayords_wf, [
-                    ("outputnode.bold_std", "inputnode.bold_std"),
+                (inputnode, bold_fsLR_resampling_wf, [
+                    ("surfaces", "inputnode.surfaces"),
+                    ("morphometrics", "inputnode.morphometrics"),
+                    ("sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
+                    ("anat_ribbon", "inputnode.anat_ribbon"),
+                ]),
+                (bold_t1_trans_wf, bold_fsLR_resampling_wf, [
+                    ("outputnode.bold_t1", "inputnode.bold_file"),
+                ]),
+                (bold_fsLR_resampling_wf, bold_grayords_wf, [
+                    ("outputnode.bold_fsLR", "inputnode.bold_std"),
                     ("outputnode.spatial_reference", "inputnode.spatial_reference"),
                 ]),
                 (bold_surf_wf, bold_grayords_wf, [
