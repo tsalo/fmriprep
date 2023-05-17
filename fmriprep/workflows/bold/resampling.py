@@ -1193,7 +1193,6 @@ def init_bold_grayords_wf(
         BIDS metadata file corresponding to ``cifti_bold``.
 
     """
-    import templateflow.api as tf
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.cifti import GenerateCifti
     from niworkflows.interfaces.utility import KeySelect
@@ -1207,15 +1206,14 @@ surface space.
         density=grayord_density
     )
 
-    fslr_density, mni_density = ("32k", "2") if grayord_density == "91k" else ("59k", "1")
+    mni_density = "2" if grayord_density == "91k" else "1"
 
     inputnode = pe.Node(
         niu.IdentityInterface(
             fields=[
                 "bold_std",
+                "bold_fsLR",
                 "spatial_reference",
-                "surf_files",
-                "surf_refs",
             ]
         ),
         name="inputnode",
@@ -1235,84 +1233,6 @@ surface space.
     )
     select_std.inputs.key = "MNI152NLin6Asym_res-%s" % mni_density
 
-    select_fs_surf = pe.Node(
-        KeySelect(fields=["surf_files"]),
-        name="select_fs_surf",
-        run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
-    select_fs_surf.inputs.key = "fsaverage"
-
-    # Setup Workbench command. LR ordering for hemi can be assumed, as it is imposed
-    # by the iterfield of the MapNode in the surface sampling workflow above.
-    resample = pe.MapNode(
-        wb.MetricResample(method="ADAP_BARY_AREA", area_metrics=True),
-        name="resample",
-        iterfield=[
-            "in_file",
-            "out_file",
-            "new_sphere",
-            "new_area",
-            "current_sphere",
-            "current_area",
-        ],
-    )
-    resample.inputs.current_sphere = [
-        str(
-            tf.get(
-                "fsaverage",
-                hemi=hemi,
-                density="164k",
-                desc="std",
-                suffix="sphere",
-                extension=".surf.gii",
-            )
-        )
-        for hemi in "LR"
-    ]
-    resample.inputs.current_area = [
-        str(
-            tf.get(
-                "fsaverage",
-                hemi=hemi,
-                density="164k",
-                desc="vaavg",
-                suffix="midthickness",
-                extension=".shape.gii",
-            )
-        )
-        for hemi in "LR"
-    ]
-    resample.inputs.new_sphere = [
-        str(
-            tf.get(
-                "fsLR",
-                space="fsaverage",
-                hemi=hemi,
-                density=fslr_density,
-                suffix="sphere",
-                extension=".surf.gii",
-            )
-        )
-        for hemi in "LR"
-    ]
-    resample.inputs.new_area = [
-        str(
-            tf.get(
-                "fsLR",
-                hemi=hemi,
-                density=fslr_density,
-                desc="vaavg",
-                suffix="midthickness",
-                extension=".shape.gii",
-            )
-        )
-        for hemi in "LR"
-    ]
-    resample.inputs.out_file = [
-        "space-fsLR_hemi-%s_den-%s_bold.gii" % (h, grayord_density) for h in "LR"
-    ]
-
     gen_cifti = pe.Node(
         GenerateCifti(
             TR=repetition_time,
@@ -1325,11 +1245,8 @@ surface space.
     workflow.connect([
         (inputnode, select_std, [("bold_std", "bold_std"),
                                  ("spatial_reference", "keys")]),
-        (inputnode, select_fs_surf, [("surf_files", "surf_files"),
-                                     ("surf_refs", "keys")]),
-        (select_fs_surf, resample, [("surf_files", "in_file")]),
+        (inputnode, gen_cifti, [("bold_fsLR", "surface_bolds")]),
         (select_std, gen_cifti, [("bold_std", "bold_file")]),
-        (resample, gen_cifti, [("out_file", "surface_bolds")]),
         (gen_cifti, outputnode, [("out_file", "cifti_bold"),
                                  ("out_metadata", "cifti_metadata")]),
     ])

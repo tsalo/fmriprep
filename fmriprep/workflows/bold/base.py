@@ -883,46 +883,46 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])
         # fmt:on
 
-        # CIFTI output
-        if config.workflow.cifti_output:
-            from .resampling import init_bold_fsLR_resampling_wf, init_bold_grayords_wf
+    # CIFTI output
+    if config.workflow.cifti_output:
+        from .resampling import init_bold_fsLR_resampling_wf, init_bold_grayords_wf
 
-            bold_fsLR_resampling_wf = init_bold_fsLR_resampling_wf(
-                grayord_density=config.workflow.cifti_output,
-                mem_gb=mem_gb["resampled"],
-            )
+        bold_fsLR_resampling_wf = init_bold_fsLR_resampling_wf(
+            estimate_goodvoxels=project_goodvoxels,
+            grayord_density=config.workflow.cifti_output,
+            mem_gb=mem_gb["resampled"],
+        )
 
-            bold_grayords_wf = init_bold_grayords_wf(
-                grayord_density=config.workflow.cifti_output,
-                mem_gb=mem_gb["resampled"],
-                repetition_time=metadata["RepetitionTime"],
-            )
+        bold_grayords_wf = init_bold_grayords_wf(
+            grayord_density=config.workflow.cifti_output,
+            mem_gb=mem_gb["resampled"],
+            repetition_time=metadata["RepetitionTime"],
+        )
 
-            # fmt:off
-            workflow.connect([
-                (inputnode, bold_fsLR_resampling_wf, [
-                    ("surfaces", "inputnode.surfaces"),
-                    ("morphometrics", "inputnode.morphometrics"),
-                    ("sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
-                    ("anat_ribbon", "inputnode.anat_ribbon"),
-                ]),
-                (bold_t1_trans_wf, bold_fsLR_resampling_wf, [
-                    ("outputnode.bold_t1", "inputnode.bold_file"),
-                ]),
-                (bold_fsLR_resampling_wf, bold_grayords_wf, [
-                    ("outputnode.bold_fsLR", "inputnode.bold_std"),
-                    ("outputnode.spatial_reference", "inputnode.spatial_reference"),
-                ]),
-                (bold_surf_wf, bold_grayords_wf, [
-                    ("outputnode.surfaces", "inputnode.surf_files"),
-                    ("outputnode.target", "inputnode.surf_refs"),
-                ]),
-                (bold_grayords_wf, outputnode, [
-                    ("outputnode.cifti_bold", "bold_cifti"),
-                    ("outputnode.cifti_metadata", "cifti_metadata"),
-                ]),
-            ])
-            # fmt:on
+        # fmt:off
+        workflow.connect([
+            (inputnode, bold_fsLR_resampling_wf, [
+                ("surfaces", "inputnode.surfaces"),
+                ("morphometrics", "inputnode.morphometrics"),
+                ("sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
+                ("anat_ribbon", "inputnode.anat_ribbon"),
+            ]),
+            (bold_t1_trans_wf, bold_fsLR_resampling_wf, [
+                ("outputnode.bold_t1", "inputnode.bold_file"),
+            ]),
+            (bold_std_trans_wf, bold_grayords_wf, [
+                ("outputnode.bold_std", "inputnode.bold_std"),
+                ("outputnode.spatial_reference", "inputnode.spatial_reference"),
+            ]),
+            (bold_fsLR_resampling_wf, bold_grayords_wf, [
+                ("outputnode.bold_fsLR", "inputnode.bold_fsLR"),
+            ]),
+            (bold_grayords_wf, outputnode, [
+                ("outputnode.cifti_bold", "bold_cifti"),
+                ("outputnode.cifti_metadata", "cifti_metadata"),
+            ]),
+        ])
+        # fmt:on
 
     if spaces.get_spaces(nonstandard=False, dim=(3,)):
         carpetplot_wf = init_carpetplot_wf(
