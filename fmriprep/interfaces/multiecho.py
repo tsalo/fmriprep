@@ -83,10 +83,6 @@ class T2SMap(CommandLine):
     Example
     =======
 
-    .. testsetup::
-
-        >>> chdir_or_skip()
-
     >>> from fmriprep.interfaces import multiecho
     >>> t2smap = multiecho.T2SMap()
     >>> t2smap.inputs.in_files = ['sub-01_run-01_echo-1_bold.nii.gz',

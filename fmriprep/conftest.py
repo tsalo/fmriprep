@@ -15,14 +15,6 @@ except ImportError:  # PY<3.9
 os.environ['NO_ET'] = '1'
 
 
-def chdir_or_skip():
-    data_dir = ir_files('fmriprep') / 'data'
-    try:
-        os.chdir(data_dir)
-    except OSError:
-        pytest.skip(f"Cannot chdir into {data_dir!r}. Probably in a zipped distribution.")
-
-
 def copytree_or_skip(source, target):
     data_dir = ir_files('fmriprep') / source
     if not data_dir.exists():
@@ -36,7 +28,6 @@ def copytree_or_skip(source, target):
 
 @pytest.fixture(autouse=True)
 def populate_namespace(doctest_namespace, tmp_path):
-    doctest_namespace['chdir_or_skip'] = chdir_or_skip
     doctest_namespace['copytree_or_skip'] = copytree_or_skip
     doctest_namespace['testdir'] = tmp_path
 

@@ -207,14 +207,6 @@ class GatherConfounds(SimpleInterface):
     r"""
     Combine various sources of confounds in one TSV file
 
-    .. testsetup::
-
-    >>> from tempfile import TemporaryDirectory
-    >>> tmpdir = TemporaryDirectory()
-    >>> os.chdir(tmpdir.name)
-
-    .. doctest::
-
     >>> pd.DataFrame({'a': [0.1]}).to_csv('signals.tsv', index=False, na_rep='n/a')
     >>> pd.DataFrame({'b': [0.2]}).to_csv('dvars.tsv', index=False, na_rep='n/a')
 
@@ -229,10 +221,6 @@ class GatherConfounds(SimpleInterface):
     ...             engine='python')  # doctest: +NORMALIZE_WHITESPACE
          a    b
     0  0.1  0.2
-
-    .. testcleanup::
-
-    >>> tmpdir.cleanup()
 
     """
     input_spec = GatherConfoundsInputSpec
@@ -274,9 +262,6 @@ def _gather_confounds(
     Load confounds from the filenames, concatenate together horizontally
     and save new file.
 
-    >>> from tempfile import TemporaryDirectory
-    >>> tmpdir = TemporaryDirectory()
-    >>> os.chdir(tmpdir.name)
     >>> pd.DataFrame({'Global Signal': [0.1]}).to_csv('signals.tsv', index=False, na_rep='n/a')
     >>> pd.DataFrame({'stdDVARS': [0.2]}).to_csv('dvars.tsv', index=False, na_rep='n/a')
     >>> out_file, confound_list = _gather_confounds('signals.tsv', 'dvars.tsv')
@@ -287,7 +272,6 @@ def _gather_confounds(
     ...             engine='python')  # doctest: +NORMALIZE_WHITESPACE
        global_signal  std_dvars
     0            0.1        0.2
-    >>> tmpdir.cleanup()
 
 
     """
