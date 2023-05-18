@@ -128,6 +128,7 @@ RUN apt-get update && \
                     bc \
                     ca-certificates \
                     curl \
+                    git \
                     gnupg \
                     lsb-release \
                     netbase \
