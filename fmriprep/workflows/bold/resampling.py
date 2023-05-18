@@ -508,6 +508,7 @@ def init_goodvoxels_bold_mask_wf(mem_gb: float, name: str = "goodvoxels_bold_mas
 def init_bold_fsLR_resampling_wf(
     grayord_density: ty.Literal['91k', '170k'],
     estimate_goodvoxels: bool,
+    omp_nthreads: int,
     mem_gb: float,
     name: str = "bold_fsLR_resampling_wf",
 ):
@@ -611,11 +612,18 @@ def init_bold_fsLR_resampling_wf(
         VolumeToSurfaceMapping(method="ribbon-constrained"),
         name="volume_to_surface",
         mem_gb=mem_gb * 3,
+        n_procs=omp_nthreads,
     )
-    metric_dilate = pe.Node(MetricDilate(distance=10, nearest=True), name="metric_dilate")
+    metric_dilate = pe.Node(
+        MetricDilate(distance=10, nearest=True),
+        name="metric_dilate",
+        n_procs=omp_nthreads,
+    )
     mask_native = pe.Node(MetricMask(), name="mask_native")
     resample_to_fsLR = pe.Node(
-        MetricResample(method='ADAP_BARY_AREA', area_surfs=True), name="resample_to_fsLR"
+        MetricResample(method='ADAP_BARY_AREA', area_surfs=True),
+        name="resample_to_fsLR",
+        n_procs=omp_nthreads,
     )
     # ... line 89
     mask_fsLR = pe.Node(MetricMask(), name="mask_fsLR")

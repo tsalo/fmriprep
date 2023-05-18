@@ -6,6 +6,7 @@ import os
 
 from nipype import logging
 from nipype.interfaces.base import (
+    CommandLine,
     CommandLineInputSpec,
     File,
     TraitedSpec,
@@ -17,7 +18,36 @@ from nipype.interfaces.workbench.base import WBCommand
 iflogger = logging.getLogger("nipype.interface")
 
 
-class MetricDilateInputSpec(CommandLineInputSpec):
+class OpenMPTraitedSpec(CommandLineInputSpec):
+    num_threads = traits.Int(desc="allows for specifying more threads")
+
+
+class OpenMPCommandMixin(CommandLine):
+    input_spec = OpenMPTraitedSpec
+
+    _num_threads = None
+
+    def __init__(self, **inputs):
+        super().__init__(**inputs)
+        self.inputs.on_trait_change(self._num_threads_update, "num_threads")
+        if not self._num_threads:
+            self._num_threads = os.environ.get("OMP_NUM_THREADS", None)
+        if not isdefined(self.inputs.num_threads) and self._num_threads:
+            self.inputs.num_threads = int(self._num_threads)
+        self._num_threads_update()
+
+    def _num_threads_update(self):
+        if self.inputs.num_threads:
+            self.inputs.environ.update({"OMP_NUM_THREADS": str(self.inputs.num_threads)})
+
+    def run(self, **inputs):
+        if "num_threads" in inputs:
+            self.inputs.num_threads = inputs["num_threads"]
+        self._num_threads_update()
+        return super().run(**inputs)
+
+
+class MetricDilateInputSpec(OpenMPTraitedSpec):
     in_file = File(
         exists=True,
         mandatory=True,
@@ -106,7 +136,7 @@ class MetricDilateOutputSpec(TraitedSpec):
     out_file = File(exists=True, desc="output file")
 
 
-class MetricDilate(WBCommand):
+class MetricDilate(WBCommand, OpenMPCommandMixin):
     """Dilate a metric file on a surface.
 
     For all data values designated as bad, if they neighbor a good value or
@@ -132,7 +162,7 @@ class MetricDilate(WBCommand):
     _cmd = "wb_command -metric-dilate "
 
 
-class MetricResampleInputSpec(CommandLineInputSpec):
+class MetricResampleInputSpec(OpenMPTraitedSpec):
     in_file = File(
         exists=True,
         mandatory=True,
@@ -223,7 +253,7 @@ class MetricResampleOutputSpec(TraitedSpec):
     roi_file = File(desc="ROI of vertices that got data from valid source vertices")
 
 
-class MetricResample(WBCommand):
+class MetricResample(WBCommand, OpenMPCommandMixin):
     """Resample a metric file to a different mesh.
 
     Resamples a metric file, given two spherical surfaces that are in
@@ -270,14 +300,14 @@ class MetricResample(WBCommand):
         return super(MetricResample, self)._format_arg(opt, spec, val)
 
     def _list_outputs(self):
-        outputs = super(MetricResample, self)._list_outputs()
+        outputs = super()._list_outputs()
         if self.inputs.valid_roi_out:
             roi_file = self._gen_filename(self.inputs.in_file, suffix="_roi")
             outputs["roi_file"] = os.path.abspath(roi_file)
         return outputs
 
 
-class VolumeToSurfaceMappingInputSpec(CommandLineInputSpec):
+class VolumeToSurfaceMappingInputSpec(OpenMPTraitedSpec):
     volume_file = File(
         exists=True,
         argstr="%s",
@@ -498,7 +528,7 @@ class VolumeToSurfaceMappingOutputSpec(TraitedSpec):
     weights_text_file = File(desc="the output text filename")
 
 
-class VolumeToSurfaceMapping(WBCommand):
+class VolumeToSurfaceMapping(WBCommand, OpenMPCommandMixin):
     """Map a volume to a surface using one of several methods.
 
     From https://humanconnectome.org/software/workbench-command/-volume-to-surface-mapping::

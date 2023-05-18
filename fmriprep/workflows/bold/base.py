@@ -890,6 +890,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         bold_fsLR_resampling_wf = init_bold_fsLR_resampling_wf(
             estimate_goodvoxels=project_goodvoxels,
             grayord_density=config.workflow.cifti_output,
+            omp_nthreads=omp_nthreads,
             mem_gb=mem_gb["resampled"],
         )
 
