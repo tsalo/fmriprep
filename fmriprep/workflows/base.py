@@ -378,11 +378,24 @@ It is released under the [CC0]\
         filters = None
         if config.execution.bids_filters is not None:
             filters = config.execution.bids_filters.get("fmap")
+
+        # In the case where fieldmaps are ignored and `--use-syn-sdc` is requested,
+        # SDCFlows `find_estimators` still receives a full layout (which includes the fmap modality)
+        # and will not calculate fmapless schemes.
+        # Similarly, if fieldmaps are ignored and `--force-syn` is requested,
+        # `fmapless` should be set to True to ensure BOLD targets are found to be corrected.
+        fmapless = bool(config.workflow.use_syn_sdc) or (
+            "fieldmaps" in config.workflow.ignore and config.workflow.force_syn
+        )
+        force_fmapless = config.workflow.force_syn or (
+            "fieldmaps" in config.workflow.ignore and config.workflow.use_syn_sdc
+        )
+
         fmap_estimators = find_estimators(
             layout=config.execution.layout,
             subject=subject_id,
-            fmapless=bool(config.workflow.use_syn_sdc),
-            force_fmapless=config.workflow.force_syn,
+            fmapless=fmapless,
+            force_fmapless=force_fmapless,
             bids_filters=filters,
         )
 
