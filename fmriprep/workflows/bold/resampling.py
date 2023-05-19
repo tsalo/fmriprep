@@ -1327,6 +1327,8 @@ def _select_surfaces(
     template_spheres,
     template_rois,
 ):
+    # This function relies on the basenames of the files to differ by L/R or l/r
+    # so that the sorting correctly identifies left or right.
     import os
     import re
 
@@ -1345,4 +1347,4 @@ def _select_surfaces(
         match = find_name.search(os.path.basename(surface))
         if match:
             container[match.group('name')].append(surface)
-    return tuple(sorted(surflist)[idx] for surflist in container.values())
+    return tuple(sorted(surflist, key=os.path.basename)[idx] for surflist in container.values())
