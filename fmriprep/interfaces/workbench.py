@@ -579,7 +579,7 @@ class VolumeToSurfaceMapping(WBCommand, OpenMPCommandMixin):
     >>> vol2surf.inputs.method = 'ribbon-constrained'
     >>> vol2surf.inputs.inner_surface = 'lh.white.surf.gii'
     >>> vol2surf.inputs.outer_surface = 'lh.pial.surf.gii'
-    >>> vol2surf.cmdline
+    >>> vol2surf.cmdline  # doctest: +NORMALIZE_WHITESPACE
     'wb_command -volume-to-surface-mapping bold.nii.gz lh.midthickness.surf.gii \
     lh.midthickness.surf_mapped.func.gii -ribbon-constrained lh.white.surf.gii lh.pial.surf.gii'
     """
@@ -732,7 +732,7 @@ class MetricFillHoles(WBCommand):
     >>> fill_holes = MetricFillHoles()
     >>> fill_holes.inputs.surface_file = 'lh.midthickness.surf.gii'
     >>> fill_holes.inputs.metric_file = 'lh.roi.shape.gii'
-    >>> fill_holes.cmdline
+    >>> fill_holes.cmdline  # doctest: +NORMALIZE_WHITESPACE
     'wb_command -metric-fill-holes lh.midthickness.surf.gii lh.roi.shape.gii \
     lh.roi.shape_filled.shape.gii'
     """
@@ -799,7 +799,7 @@ class MetricRemoveIslands(WBCommand):
     >>> remove_islands = MetricRemoveIslands()
     >>> remove_islands.inputs.surface_file = 'lh.midthickness.surf.gii'
     >>> remove_islands.inputs.metric_file = 'lh.roi.shape.gii'
-    >>> remove_islands.cmdline
+    >>> remove_islands.cmdline  # doctest: +NORMALIZE_WHITESPACE
     'wb_command -metric-remove-islands lh.midthickness.surf.gii \
     lh.roi.shape.gii lh.roi.shape_noislands.shape.gii'
     """
