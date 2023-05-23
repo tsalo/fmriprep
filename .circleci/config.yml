@@ -186,6 +186,7 @@ jobs:
             fi
             # Build docker image
             docker buildx build --load --builder builder \
+                --cache-from localhost:5000/fmriprep \
                 --cache-from nipreps/fmriprep:latest \
                 -t nipreps/fmriprep:latest \
                 --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
