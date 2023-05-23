@@ -122,8 +122,10 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8"
 
+# Some baseline tools; bc is needed for FreeSurfer, so don't drop it
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+                    bc \
                     ca-certificates \
                     curl \
                     gnupg \
