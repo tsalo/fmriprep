@@ -77,12 +77,12 @@ RUN mkdir -p /opt/afni-latest \
         -name "3dAutomask" -or \
         -name "3dvolreg" \) -delete
 
-# ANTs 2.3.3
+# ANTs 2.4.4
 FROM downloader as ants
-# Note: the URL says 2.3.4 but it is actually 2.3.3
-RUN mkdir /opt/ants && \
-    curl -sSL "https://dl.dropbox.com/s/gwf51ykkk5bifyj/ants-Linux-centos6_x86_64-v2.3.4.tar.gz" \
-    | tar -xzC /opt/ants --strip-components 1
+RUN mkdir -p /opt && \
+    curl -sSLO "https://github.com/ANTsX/ANTs/releases/download/v2.4.4/ants-2.4.4-ubuntu-22.04-X64-gcc.zip" && \
+    unzip ants-2.4.4-ubuntu-22.04-X64-gcc.zip -d /opt && \
+    rm ants-2.4.4-ubuntu-22.04-X64-gcc.zip
 
 # Connectome Workbench 1.5.0
 FROM downloader as workbench
@@ -122,8 +122,10 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8"
 
+# Some baseline tools; bc is needed for FreeSurfer, so don't drop it
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+                    bc \
                     ca-certificates \
                     curl \
                     gnupg \
@@ -169,7 +171,7 @@ RUN apt-get update -qq \
 # Install files from stages
 COPY --from=freesurfer /opt/freesurfer /opt/freesurfer
 COPY --from=afni /opt/afni-latest /opt/afni-latest
-COPY --from=ants /opt/ants /opt/ants
+COPY --from=ants /opt/ants-2.4.4 /opt/ants
 COPY --from=workbench /opt/workbench /opt/workbench
 
 # Simulate SetUpFreeSurfer.sh
@@ -196,7 +198,8 @@ ENV PATH="/opt/afni-latest:$PATH" \
 
 # ANTs config
 ENV ANTSPATH="/opt/ants" \
-    PATH="/opt/ants:$PATH"
+    PATH="/opt/ants/bin:$PATH" \
+    LD_LIBRARY_PATH="/opt/ants/lib:$LD_LIBRARY_PATH"
 
 # Workbench config
 ENV PATH="/opt/workbench/bin_linux64:$PATH" \

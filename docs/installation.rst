@@ -75,9 +75,9 @@ nipype_.
 not handled by the Python's packaging system (Pypi) used to deploy
 the ``fmriprep`` package:
 
-- FSL_ (version 6.0.5.1)
-- ANTs_ (version 2.3.3 - NeuroDocker build)
-- AFNI_ (version 22.3.06)
+- FSL_ (version 6.0.6.2)
+- ANTs_ (version 2.4.4)
+- AFNI_ (version 23.1.05)
 - `C3D <https://sourceforge.net/projects/c3d/>`_ (version 1.3.0)
 - FreeSurfer_ (version 7.3.2)
 - `bids-validator <https://github.com/bids-standard/bids-validator>`_ (version 1.8.0)
