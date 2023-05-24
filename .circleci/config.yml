@@ -166,51 +166,8 @@ jobs:
       - run: *docker_auth
       - run: *setup_docker_registry
       - run:
-          name: Save docker registry
-          command: |
-            if [[ ! -f /tmp/images/registry.tar.gz ]]; then
-              mkdir -p /tmp/images
-              docker save registry:2 | gzip > /tmp/images/registry.tar.gz
-            fi
-      - run:
-          name: Pull Ubuntu/jammy image
-          command: |
-            set +e
-            # Source layers if available
-            docker pull localhost:5000/downloader
-            docker pull localhost:5000/freesurfer
-            docker pull localhost:5000/afni
-            docker pull localhost:5000/ants
-            docker pull localhost:5000/workbench
-            docker pull localhost:5000/micromamba
-
-            docker pull localhost:5000/ubuntu
-            success=$?
-            set -e
-            if [[ "$success" = "0" ]]; then
-                echo "Pulling from local registry"
-                docker tag localhost:5000/ubuntu ubuntu:jammy
-            else
-                echo "Pulling from Docker Hub"
-                docker pull ubuntu:jammy
-                docker tag ubuntu:jammy localhost:5000/ubuntu
-                docker push localhost:5000/ubuntu
-            fi
-      - run:
-          name: Pull fMRIPrep Docker image
-          command: |
-            set +e
-            docker pull localhost:5000/fmriprep
-            success=$?
-            set -e
-            if [[ "$success" = "0" ]]; then
-                echo "Pulled from local registry"
-                docker tag localhost:5000/fmriprep nipreps/fmriprep:latest
-                docker tag localhost:5000/fmriprep nipreps/fmriprep
-            else
-                echo "Pulling from Docker Hub"
-                docker pull nipreps/fmriprep:latest
-            fi
+          name: Create named builder
+          command: docker buildx create --use --name=builder --driver=docker-container
       - run:
           name: Build Docker image
           no_output_timeout: 60m
@@ -228,22 +185,13 @@ jobs:
               echo "them to your fork with ``git push origin --tags``"
             fi
             # Build docker image
-            e=1 && for i in {1..5}; do
-              docker build --rm \
-                --cache-from=nipreps/fmriprep \
-                --cache-from=localhost:5000/downloader \
-                --cache-from=localhost:5000/freesurfer \
-                --cache-from=localhost:5000/afni \
-                --cache-from=localhost:5000/ants \
-                --cache-from=localhost:5000/workbench \
-                --cache-from=localhost:5000/micromamba \
+            docker buildx build --load --builder builder \
+                --cache-from localhost:5000/fmriprep \
+                --cache-from nipreps/fmriprep:latest \
                 -t nipreps/fmriprep:latest \
-                --target fmriprep \
                 --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
                 --build-arg VCS_REF=`git rev-parse --short HEAD` \
-                --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" . \
-              && e=0 && break || sleep 15
-            done && [ "$e" -eq "0" ]
+                --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
       - run:
           name: Check Docker image
           command: |
@@ -260,27 +208,11 @@ jobs:
             set -e
             test "$BUILT_VERSION" = "$THISVERSION"
       - run:
-          name: Build and tag stages
-          no_output_timeout: 40m
-          command: |
-            docker build -t localhost:5000/downloader --target downloader .
-            docker build -t localhost:5000/freesurfer --target freesurfer .
-            docker build -t localhost:5000/afni --target afni .
-            docker build -t localhost:5000/ants --target ants .
-            docker build -t localhost:5000/workbench --target workbench .
-            docker build -t localhost:5000/micromamba --target micromamba .
-      - run:
           name: Docker push to local registry
           no_output_timeout: 40m
           command: |
             docker tag nipreps/fmriprep:latest localhost:5000/fmriprep
             docker push localhost:5000/fmriprep
-            docker push localhost:5000/downloader
-            docker push localhost:5000/freesurfer
-            docker push localhost:5000/afni
-            docker push localhost:5000/ants
-            docker push localhost:5000/workbench
-            docker push localhost:5000/micromamba
       - run:
           name: Docker registry garbage collection
           command: |
