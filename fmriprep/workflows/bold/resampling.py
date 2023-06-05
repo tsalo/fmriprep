@@ -526,6 +526,11 @@ def init_bold_fsLR_resampling_wf(
 
     workflow = Workflow(name=name)
 
+    workflow.__desc__ = """\
+The BOLD time-series were resampled onto the left/right-symmetric template
+"fsLR" [@hcppipelines].
+"""
+
     inputnode = pe.Node(
         niu.IdentityInterface(
             fields=[
@@ -670,6 +675,11 @@ def init_bold_fsLR_resampling_wf(
     # fmt: on
 
     if estimate_goodvoxels:
+        workflow.__desc__ += """\
+A "goodvoxels" mask was applied during volume-to-surface sampling in fsLR space,
+excluding voxels whose time-series have a locally high coefficient of variation.
+"""
+
         goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb)
 
         # fmt: off
