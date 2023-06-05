@@ -509,6 +509,54 @@ def init_bold_fsLR_resampling_wf(
 
     Line numbers correspond to the locations of the code in the original scripts, found at:
     https://github.com/DCAN-Labs/DCAN-HCP/tree/9291324/
+
+    Workflow Graph
+        .. workflow::
+            :graph2use: colored
+            :simple_form: yes
+
+            from fmriprep.workflows.bold.resampling import init_bold_fsLR_resampling_wf
+            wf = init_bold_fsLR_resampling_wf(
+                estimate_goodvoxels=True,
+                grayord_density='92k',
+                omp_nthreads=1,
+                mem_gb=1,
+            )
+
+    Parameters
+    ----------
+    grayord_density : :class:`str`
+        Either `91k` or `170k`, representing the total of vertices or *grayordinates*.
+    estimate_goodvoxels : :class:`bool`
+        Calculate mask excluding voxels with a locally high coefficient of variation to
+        exclude from surface resampling
+    omp_nthreads : :class:`int`
+        Maximum number of threads an individual process may use
+    mem_gb : :class:`float`
+        Size of BOLD file in GB
+    name : :class:`str`
+        Name of workflow (default: ``bold_fsLR_resampling_wf``)
+
+    Inputs
+    ------
+    bold_file : :class:`str`
+        Path to BOLD file resampled into T1 space
+    surfaces : :class:`list` of :class:`str
+        Path to left and right hemisphere white, pial and midthickness GIFTI surfaces
+    morphometrics : :class:`list` of :class:`str
+        Path to left and right hemisphere morphometric GIFTI surfaces, which must include thickness
+    sphere_reg_fsLR : :class:`list` of :class:`str
+        Path to left and right hemisphere sphere.reg GIFTI surfaces, mapping from subject to fsLR
+    anat_ribbon : :class:`str`
+        Path to mask of cortical ribbon in T1w space, for calculating goodvoxels
+
+    Outputs
+    -------
+    bold_fsLR : :class:`list` of :class:`str
+        Path to BOLD series resampled as functional GIFTI files in fsLR space
+    goodvoxels_mask : :class:`str`
+        Path to mask of voxels, excluding those with locally high coefficients of variation
+
     """
     import templateflow.api as tf
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow

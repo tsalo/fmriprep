@@ -534,12 +534,28 @@ All surface outputs are in GIFTI format.
 
 HCP Grayordinates
 ~~~~~~~~~~~~~~~~~
-If CIFTI output is enabled, the motion-corrected functional timeseries (in T1w space) is first
-sampled to the high resolution 164k vertex (per hemisphere) ``fsaverage``. Following that,
-the resampled timeseries is sampled to `HCP Pipelines_`'s ``fsLR`` mesh (with the left and
-right hemisphere aligned) using `Connectome Workbench`_'s ``-metric-resample`` to generate a
-surface timeseries for each hemisphere. These surfaces are then combined with corresponding
-volumetric timeseries to create a CIFTI2 file.
+:py:func:`~fmriprep.workflows.bold.resampling.init_bold_fsLR_resampling_wf`
+
+.. workflow::
+    :graph2use: colored
+    :simple_form: yes
+
+    from fmriprep.workflows.bold.resampling import init_bold_fsLR_resampling_wf
+    wf = init_bold_fsLR_resampling_wf(
+        estimate_goodvoxels=True,
+        grayord_density='92k',
+        omp_nthreads=1,
+        mem_gb=1,
+    )
+
+If CIFTI output is enabled, the motion-corrected functional timeseries (in T1w space) is
+resampled onto the subject-native surface, optionally using the `HCP Pipelines_`'s
+"goodvoxels" masking method to exclude voxels with local peaks of temporal variation.
+After dilating the surface-sampled time series to fill sampling holes, the result is
+resampled to the ``fsLR`` mesh (with the left and right hemisphere aligned).
+These workflows make use of various `Connectome Workbench`_ functions.
+These surfaces are then combined with corresponding volumetric timeseries to create a
+CIFTI-2 file.
 
 .. _bold_confounds:
 
