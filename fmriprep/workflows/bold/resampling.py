@@ -199,6 +199,7 @@ The BOLD time-series were resampled onto the following surfaces
             ("subject_id", "subject_id"),
         ]),
         (itersource, targets, [("target", "space")]),
+        (inputnode, rename_src, [("source_file", "in_file")]),
         (itersource, rename_src, [("target", "subject")]),
         (rename_src, sampler, [("out_file", "source_file")]),
         (itk2lta, sampler, [("out", "reg_file")]),
@@ -212,20 +213,10 @@ The BOLD time-series were resampled onto the following surfaces
     ])
     # fmt: on
 
-    # At this point, rename_src.in_file and update_metadata.in_file need connecting
-    #
-    # These depend on two optional steps: goodvoxel projection and medial wall nan replacement
-    #
-    # inputnode -> rename_src
-    # sampler -> optional(medial_nans) -> update_metadata
-    #
-
     # Refine if medial vertices should be NaNs
     medial_nans = pe.MapNode(
         MedialNaNs(), iterfield=["in_file"], name="medial_nans", mem_gb=DEFAULT_MEMORY_MIN_GB
     )
-
-    workflow.connect([(inputnode, rename_src, [("source_file", "in_file")])])
 
     if medial_surface_nan:
         # fmt: off
