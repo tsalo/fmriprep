@@ -27,6 +27,9 @@ Resampling workflows
 .. autofunction:: init_bold_surf_wf
 .. autofunction:: init_bold_std_trans_wf
 .. autofunction:: init_bold_preproc_trans_wf
+.. autofunction:: init_bold_fsLR_resampling_wf
+.. autofunction:: init_bold_grayords_wf
+.. autofunction:: init_goodvoxels_bold_mask_wf
 
 """
 from __future__ import annotations
@@ -233,14 +236,15 @@ The BOLD time-series were resampled onto the following surfaces
 
 
 def init_goodvoxels_bold_mask_wf(mem_gb: float, name: str = "goodvoxels_bold_mask_wf"):
-    """
+    """Calculate a mask of a BOLD series excluding high variance voxels.
+
     Workflow Graph
         .. workflow::
             :graph2use: colored
             :simple_form: yes
 
-            from fmriprep.workflows.bold import init_goodvoxels_mask_wf
-            wf = init_goodvoxels_mask_wf(mem_gb=0.1)
+            from fmriprep.workflows.bold.resampling import init_goodvoxels_bold_mask_wf
+            wf = init_goodvoxels_bold_mask_wf(mem_gb=0.1)
 
     Parameters
     ----------
@@ -526,7 +530,7 @@ def init_bold_fsLR_resampling_wf(
     Parameters
     ----------
     grayord_density : :class:`str`
-        Either `91k` or `170k`, representing the total of vertices or *grayordinates*.
+        Either ``"91k"`` or ``"170k"``, representing the total *grayordinates*.
     estimate_goodvoxels : :class:`bool`
         Calculate mask excluding voxels with a locally high coefficient of variation to
         exclude from surface resampling
@@ -541,18 +545,18 @@ def init_bold_fsLR_resampling_wf(
     ------
     bold_file : :class:`str`
         Path to BOLD file resampled into T1 space
-    surfaces : :class:`list` of :class:`str
+    surfaces : :class:`list` of :class:`str`
         Path to left and right hemisphere white, pial and midthickness GIFTI surfaces
-    morphometrics : :class:`list` of :class:`str
+    morphometrics : :class:`list` of :class:`str`
         Path to left and right hemisphere morphometric GIFTI surfaces, which must include thickness
-    sphere_reg_fsLR : :class:`list` of :class:`str
+    sphere_reg_fsLR : :class:`list` of :class:`str`
         Path to left and right hemisphere sphere.reg GIFTI surfaces, mapping from subject to fsLR
     anat_ribbon : :class:`str`
         Path to mask of cortical ribbon in T1w space, for calculating goodvoxels
 
     Outputs
     -------
-    bold_fsLR : :class:`list` of :class:`str
+    bold_fsLR : :class:`list` of :class:`str`
         Path to BOLD series resampled as functional GIFTI files in fsLR space
     goodvoxels_mask : :class:`str`
         Path to mask of voxels, excluding those with locally high coefficients of variation
@@ -1222,13 +1226,13 @@ def init_bold_grayords_wf(
             :graph2use: colored
             :simple_form: yes
 
-            from fmriprep.workflows.bold import init_bold_grayords_wf
-            wf = init_bold_grayords_wf(mem_gb=0.1, grayord_density="91k")
+            from fmriprep.workflows.bold.resampling import init_bold_grayords_wf
+            wf = init_bold_grayords_wf(mem_gb=0.1, grayord_density="91k", repetition_time=2)
 
     Parameters
     ----------
-    grayord_density : :obj:`str`
-        Either `91k` or `170k`, representing the total of vertices or *grayordinates*.
+    grayord_density : :class:`str`
+        Either ``"91k"`` or ``"170k"``, representing the total *grayordinates*.
     mem_gb : :obj:`float`
         Size of BOLD file in GB
     name : :obj:`str`
@@ -1238,7 +1242,7 @@ def init_bold_grayords_wf(
     ------
     bold_std : :obj:`str`
         List of BOLD conversions to standard spaces.
-    spatial_reference :obj:`str`
+    spatial_reference : :obj:`str`
         List of unique identifiers corresponding to the BOLD standard-conversions.
     surf_files : :obj:`str`
         List of BOLD files resampled on the fsaverage (ico7) surfaces.
