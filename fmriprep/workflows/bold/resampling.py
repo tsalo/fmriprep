@@ -551,7 +551,7 @@ The BOLD time-series were resampled onto the left/right-symmetric template
     )
 
     outputnode = pe.JoinNode(
-        niu.IdentityInterface(fields=['bold_fsLR']),
+        niu.IdentityInterface(fields=['bold_fsLR', 'goodvoxels_mask']),
         name='outputnode',
         joinsource='itersource',
     )
@@ -689,7 +689,10 @@ excluding voxels whose time-series have a locally high coefficient of variation.
                 ("anat_ribbon", "inputnode.anat_ribbon"),
             ]),
             (goodvoxels_bold_mask_wf, volume_to_surface, [
-                ("outputnode.goodvoxels_ribbon", "volume_roi"),
+                ("outputnode.goodvoxels_mask", "volume_roi"),
+            ]),
+            (goodvoxels_bold_mask_wf, outputnode, [
+                ("outputnode.goodvoxels_mask", "goodvoxels_mask"),
             ]),
         ])
         # fmt: on

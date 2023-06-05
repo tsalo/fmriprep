@@ -211,7 +211,7 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     spaces = config.workflow.spaces
     fmriprep_dir = str(config.execution.fmriprep_dir)
     freesurfer_spaces = spaces.get_fs_spaces()
-    project_goodvoxels = config.workflow.project_goodvoxels
+    project_goodvoxels = config.workflow.project_goodvoxels and config.workflow.cifti_output
 
     # Extract BIDS entities and metadata from BOLD file(s)
     entities = extract_entities(bold_file)
@@ -433,7 +433,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         bids_root=layout.root,
         cifti_output=config.workflow.cifti_output,
         freesurfer=freesurfer,
-        project_goodvoxels=False,
+        project_goodvoxels=project_goodvoxels,
         all_metadata=all_metadata,
         multiecho=multiecho,
         output_dir=fmriprep_dir,
@@ -917,6 +917,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
             (bold_fsLR_resampling_wf, bold_grayords_wf, [
                 ("outputnode.bold_fsLR", "inputnode.bold_fsLR"),
+            ]),
+            (bold_fsLR_resampling_wf, func_derivatives_wf, [
+                ("outputnode.goodvoxels_mask", "inputnode.goodvoxels_mask"),
             ]),
             (bold_grayords_wf, outputnode, [
                 ("outputnode.cifti_bold", "bold_cifti"),
