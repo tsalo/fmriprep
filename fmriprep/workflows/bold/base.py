@@ -1345,6 +1345,8 @@ def get_img_orientation(imgf):
 
 def get_estimator(layout, fname):
     field_source = layout.get_metadata(fname).get("B0FieldSource")
+    if isinstance(field_source, str):
+        field_source = (field_source,)
 
     if field_source is None:
         import re
