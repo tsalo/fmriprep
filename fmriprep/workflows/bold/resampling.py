@@ -602,10 +602,15 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         iterables=[('hemi', ['L', 'R'])],
     )
 
-    outputnode = pe.JoinNode(
+    joinnode = pe.JoinNode(
+        niu.IdentityInterface(fields=['bold_fsLR']),
+        name='joinnode',
+        joinsource='itersource',
+    )
+
+    outputnode = pe.Node(
         niu.IdentityInterface(fields=['bold_fsLR', 'goodvoxels_mask']),
         name='outputnode',
-        joinsource='itersource',
     )
 
     # select white, midthickness and pial surfaces based on hemi
@@ -722,7 +727,8 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         (select_surfaces, mask_fsLR, [('template_roi', 'mask')]),
         (resample_to_fsLR, mask_fsLR, [('out_file', 'in_file')]),
         # Output
-        (mask_fsLR, outputnode, [('out_file', 'bold_fsLR')]),
+        (mask_fsLR, joinnode, [('out_file', 'bold_fsLR')]),
+        (joinnode, outputnode, [('bold_fsLR', 'bold_fsLR')]),
     ])
     # fmt: on
 
