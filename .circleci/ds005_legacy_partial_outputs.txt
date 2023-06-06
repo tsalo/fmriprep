@@ -110,6 +110,8 @@ fmriprep/sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-aparcase
 fmriprep/sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-aseg_dseg.nii.gz
 fmriprep/sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-brain_mask.json
 fmriprep/sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-brain_mask.nii.gz
+fmriprep/sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-goodvoxels_mask.json
+fmriprep/sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-goodvoxels_mask.nii.gz
 fmriprep/sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-preproc_bold.json
 fmriprep/sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-preproc_bold.nii.gz
 fmriprep/sub-01.html
