@@ -36,12 +36,13 @@ from copy import deepcopy
 
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
+from niworkflows.utils.connections import listify
 from packaging.version import Version
 
 from .. import config
 from ..interfaces import DerivativesDataSink
 from ..interfaces.reports import AboutSummary, SubjectSummary
-from .bold import init_func_preproc_wf
+from .bold.base import get_estimator, init_func_preproc_wf
 
 
 def init_fmriprep_wf():
@@ -417,6 +418,16 @@ It is released under the [CC0]\
                 'or "--force-syn" were given, so fieldmap-less estimation will be executed.'
             )
             fmap_estimators = [f for f in fmap_estimators if f.method == fm.EstimatorType.ANAT]
+
+        # Do not calculate fieldmaps that we will not use
+        if fmap_estimators:
+            used_estimators = {
+                key
+                for bold_file in subject_data['bold']
+                for key in get_estimator(config.execution.layout, listify(bold_file)[0])
+            }
+
+            fmap_estimators = [fmap for fmap in fmap_estimators if fmap.bids_id in used_estimators]
 
         if fmap_estimators:
             config.loggers.workflow.info(
