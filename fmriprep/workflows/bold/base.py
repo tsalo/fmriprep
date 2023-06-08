@@ -247,6 +247,12 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
             *sorted([(layout.get_metadata(bf)["EchoTime"], bf) for bf in bold_file])
         )
         ref_file = bold_file[0]  # Reset reference to be the shortest TE
+        shapes = [nb.load(echo).shape for echo in bold_file]
+        if len(set(shapes)) != 1:
+            diagnostic = "\n".join(
+                f"{os.path.basename(echo)}: {shape}" for echo, shape in zip(bold_file, shapes)
+            )
+            raise RuntimeError(f"Multi-echo images found with mismatching shapes\n{diagnostic}")
 
     if os.path.isfile(ref_file):
         bold_tlen, mem_gb = _create_mem_gb(ref_file)
