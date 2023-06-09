@@ -598,6 +598,12 @@ and optimally weighted combination of all supplied single echo time series.
 This optimally combined time series is then carried forward for all subsequent
 preprocessing steps.
 
+The method by which T2* and S0 are estimated is determined by the ``--me-t2s-fit-method`` parameter.
+The default method is "curvefit", which uses nonlinear regression to estimate T2* and S0.
+The other option is "loglin", which uses log-linear regression.
+The "loglin" option is faster and less memory intensive,
+but it may be less accurate than "curvefit".
+
 References
 ----------
 

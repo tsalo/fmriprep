@@ -359,6 +359,19 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         default=None,
         help="Initialize the random seed for the workflow",
     )
+    g_conf.add_argument(
+        "--me-t2s-fit-method",
+        action="store",
+        default="curvefit",
+        choices=["curvefit", "loglin"],
+        help=(
+            "The method by which to estimate T2* and S0 for multi-echo data. "
+            "'curvefit' uses nonlinear regression. "
+            "It is more memory intensive, but also may be more accurate, than 'loglin'. "
+            "'loglin' uses log-linear regression. "
+            "It is faster and less memory intensive, but may be less accurate."
+        ),
+    )
 
     g_outputs = parser.add_argument_group("Options for modulating outputs")
     g_outputs.add_argument(
