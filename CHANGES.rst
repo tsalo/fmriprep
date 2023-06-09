@@ -1,5 +1,49 @@
+23.1.0 (To be determined)
+=========================
+New feature release in the 23.1.x series.
+
+This release substantially reworks the resampling to fsLR grayordinate space,
+better accounting for partial volumes and high variance voxels. If you are
+resampling using ``--project-goodvoxels``, we strongly recommend upgrading.
+
+Fieldmap handling is improved, with better preference given to single-band
+references in both PEPolar and SyN-SDC schemes. Additionally, fMRIPrep will
+no longer estimate fieldmaps that are not intended to be used to correct BOLD
+series, reducing unneeded processing.
+
+This release removes ICA-AROMA from the fMRIPrep workflow. To use ICA-AROMA,
+set ``MNI152NLin6Asym:res-2`` as a target output space. MELODIC and ICA-AROMA
+can be run on the resulting images in a separate pipeline. For further
+information on the reasoning behind this change, see
+`GitHub issue #2936<https://github.com/nipreps/fmriprep/issues/2936>`__.
+
+This release increments the versions of ANTs and FSL bundled in the Docker
+image.
+
+With thanks to Eilidh MacNicol, Basille Pinsard and Taylor Salo for contributions
+in fMRIPrep and SDCflows.
+
+* FIX: Raise RuntimeError at build if echos have mismatched shapes (#3028)
+* FIX: Inconsistent fmapless estimation when ignoring fieldmaps (#2994)
+* FIX: Dilate BOLD mask by 2 voxels to prevent over-aggressive masking degrading T2* map estimation (#2986)
+* FIX: Estimate free memory with "available", not "free" (#2985)
+* ENH: Add ``--me-t2s-fit-method`` parameter (#3030)
+* ENH: Resample BOLD to fsLR directly, dropping fsaverage intermediate (#3011)
+* ENH: Allow SBref+EPI PEPolar fieldmaps to correct BOLD series (#3008)
+* ENH: Remove ICA-AROMA from workflow and docs (#2966)
+* RF: Filter fieldmaps based on whether they will be used to correct a BOLD series (#3025)
+* MNT: Update ANTs pin in Docker image (#3016)
+* MNT: Update governance docs (#2992)
+* MNT: Refactor Docker build process (#2982)
+* MNT: Pin conda environment more strictly (#2853)
+* MNT: Require niworkflows ~1.3.6 (#2740)
+* CI: Use registry for layer caching (#3012)
+* CI: Upgrade docker orb (#2865)
+
+
 23.0.2 (April 24, 2023)
 =======================
+Bug fix release in the 23.0.x series.
 
 This release fixes issues with `_phase1+2`, `_phasediff` and `_fieldmap`
 fieldmap files that are found with an orientation other than RAS.
