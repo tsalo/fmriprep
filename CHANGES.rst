@@ -15,7 +15,7 @@ This release removes ICA-AROMA from the fMRIPrep workflow. To use ICA-AROMA,
 set ``MNI152NLin6Asym:res-2`` as a target output space. MELODIC and ICA-AROMA
 can be run on the resulting images in a separate pipeline. For further
 information on the reasoning behind this change, see
-`GitHub issue #2936<https://github.com/nipreps/fmriprep/issues/2936>`__.
+`GitHub issue #2936 <https://github.com/nipreps/fmriprep/issues/2936>`__.
 
 This release increments the versions of ANTs and FSL bundled in the Docker
 image.
