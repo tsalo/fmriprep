@@ -1,5 +1,5 @@
-23.1.0 (To be determined)
-=========================
+23.1.0 (June 12, 2023)
+======================
 New feature release in the 23.1.x series.
 
 This release substantially reworks the resampling to fsLR grayordinate space,
