@@ -764,7 +764,7 @@ def init_func_derivatives_wf(
             (inputnode, ds_goodvoxels_mask, [
                 ('source_file', 'source_file'),
                 ('goodvoxels_mask', 'in_file'),
-                ('surf_refs', 'keys')]),
+            ]),
         ])
         # fmt:on
 
