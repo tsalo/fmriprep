@@ -752,6 +752,7 @@ def init_func_derivatives_wf(
                 space='T1w',
                 desc='goodvoxels',
                 suffix='mask',
+                Type='ROI',  # Metadata
                 compress=True,
                 dismiss_entities=("echo",),
             ),
