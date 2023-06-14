@@ -35,6 +35,7 @@ Before every release, unlisted contributors will be invited again to add their n
 | Moodie            | Craig A.     |  | 0000-0003-0867-1469 | Department of Psychology, Stanford University                                                                                                |
 | Naveau            | Mikaël       |  | 0000-0001-6948-9068 | Cyceron, UMS 3408 (CNRS - UCBN), France                                                                                                      |
 | Nitsch            | Alexander    |  | 0000-0002-5740-9451 | Max Planck Institute for Human Cognitive and Brain Sciences, Leipzig, Germany                                                                |
+| Papadopoulos      | Dimitri      |  | 0000-0002-1242-8990 | Neurospin, CEA                                                                                                                               |
 | Plunkett          | Dillon       |  | 0000-0001-7822-6024 | Department of Psychology, Harvard University                                                                                                 |
 | Provins           | Céline       |  | 0000-0002-1668-9629 | Department of Radiology, Lausanne University Hospital and University of Lausanne                                                             |
 | Rivera-Dompenciel | Adriana      |  | 0000-0002-3339-4857 | Neuroscience Program, University of Iowa                                                                                                     |
