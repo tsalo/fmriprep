@@ -752,6 +752,7 @@ def init_func_derivatives_wf(
                 space='T1w',
                 desc='goodvoxels',
                 suffix='mask',
+                Type='ROI',  # Metadata
                 compress=True,
                 dismiss_entities=("echo",),
             ),
@@ -764,7 +765,7 @@ def init_func_derivatives_wf(
             (inputnode, ds_goodvoxels_mask, [
                 ('source_file', 'source_file'),
                 ('goodvoxels_mask', 'in_file'),
-                ('surf_refs', 'keys')]),
+            ]),
         ])
         # fmt:on
 

@@ -1,3 +1,14 @@
+23.1.1 (June 14, 2023)
+======================
+
+Bug fix release in the 23.1.x series.
+
+This release corrects a small error that prevented the "goodvoxels" mask from
+being placed in the output directory if no FreeSurfer output spaces were specified.
+
+* FIX: Remove bad metadata input from ds_goodvoxels_mask (#3037)
+
+
 23.1.0 (June 12, 2023)
 ======================
 New feature release in the 23.1.x series.
