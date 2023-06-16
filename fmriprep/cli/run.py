@@ -50,7 +50,7 @@ def main():
             config.workflow.aroma_melodic_dim,
         )
     ):
-        warnings.warn(
+        config.loggers.cli.warning(
             "ICA-AROMA was removed in fMRIPrep 23.1.0. The --use-aroma, --aroma-err-on-warn, "
             "and --aroma-melodic-dim flags will error in fMRIPrep 24.0.0."
         )

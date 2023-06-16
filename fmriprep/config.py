@@ -604,9 +604,10 @@ class loggers:
         """
         from nipype import config as ncfg
 
-        _handler = logging.StreamHandler(stream=sys.stdout)
-        _handler.setFormatter(logging.Formatter(fmt=cls._fmt, datefmt=cls._datefmt))
-        cls.cli.addHandler(_handler)
+        if not cls.cli.hasHandlers():
+            _handler = logging.StreamHandler(stream=sys.stdout)
+            _handler.setFormatter(logging.Formatter(fmt=cls._fmt, datefmt=cls._datefmt))
+            cls.cli.addHandler(_handler)
         cls.default.setLevel(execution.log_level)
         cls.cli.setLevel(execution.log_level)
         cls.interface.setLevel(execution.log_level)

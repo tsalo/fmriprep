@@ -1,3 +1,16 @@
+23.1.2 (June 16, 2023)
+======================
+
+Bug fix release in the 23.1.x series.
+
+This release correctly generates ``*_space-fsLR_desc-reg_sphere.surf.gii``,
+which was previously a copy of the standard ``*_desc-reg_sphere.surf.gii``.
+Additionally, warnings are now correctly emitted when AROMA-related CLI
+options are used.
+
+* CI: Clean up pre-release builds (#3040)
+
+
 23.1.1 (June 14, 2023)
 ======================
 
