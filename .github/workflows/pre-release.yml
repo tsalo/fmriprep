@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - master
-      - maint/*
   pull_request:
     branches:
       - master
-      - maint/*
 
 defaults:
   run:
@@ -29,7 +27,7 @@ jobs:
     strategy:
       matrix:
         os: ['ubuntu-latest']
-        python-version: [3.9, '3.10']
+        python-version: [3.9, '3.10', '3.11']
         install: ['pip']
         check: ['tests']
         pip-flags: ['PRE_PIP_FLAGS']
@@ -64,7 +62,7 @@ jobs:
         run: .maint/ci/install_extras.sh
       - name: Run tests
         run: .maint/ci/check.sh
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         with:
           file: coverage.xml
         if: ${{ always() }}

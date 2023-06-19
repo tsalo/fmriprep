@@ -31,6 +31,7 @@ def main():
     """Entry point."""
     import gc
     import sys
+    import warnings
     from multiprocessing import Manager, Process
     from os import EX_SOFTWARE
     from pathlib import Path
@@ -40,6 +41,19 @@ def main():
     from .workflow import build_workflow
 
     parse_args()
+
+    # Deprecated flags
+    if any(
+        (
+            config.workflow.use_aroma,
+            config.workflow.aroma_err_on_warn,
+            config.workflow.aroma_melodic_dim,
+        )
+    ):
+        config.loggers.cli.warning(
+            "ICA-AROMA was removed in fMRIPrep 23.1.0. The --use-aroma, --aroma-err-on-warn, "
+            "and --aroma-melodic-dim flags will error in fMRIPrep 24.0.0."
+        )
 
     # Code Carbon
     if config.execution.track_carbon:

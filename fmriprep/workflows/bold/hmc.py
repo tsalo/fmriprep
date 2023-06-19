@@ -35,7 +35,7 @@ from nipype.pipeline import engine as pe
 from ...config import DEFAULT_MEMORY_MIN_GB
 
 
-def init_bold_hmc_wf(mem_gb, omp_nthreads, name='bold_hmc_wf'):
+def init_bold_hmc_wf(mem_gb: float, omp_nthreads: int, name: str = 'bold_hmc_wf'):
     """
     Build a workflow to estimate head-motion parameters.
 

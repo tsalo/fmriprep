@@ -21,6 +21,10 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Writing out derivative files."""
+from __future__ import annotations
+
+import typing as ty
+
 import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
@@ -29,8 +33,11 @@ from fmriprep import config
 from fmriprep.config import DEFAULT_MEMORY_MIN_GB
 from fmriprep.interfaces import DerivativesDataSink
 
+if ty.TYPE_CHECKING:
+    from niworkflows.utils.spaces import SpatialReferences
 
-def prepare_timing_parameters(metadata):
+
+def prepare_timing_parameters(metadata: dict):
     """Convert initial timing metadata to post-realignment timing metadata
 
     In particular, SliceTiming metadata is invalid once STC or any realignment is applied,
@@ -133,14 +140,14 @@ def prepare_timing_parameters(metadata):
 
 
 def init_func_derivatives_wf(
-    bids_root,
-    cifti_output,
-    freesurfer,
-    all_metadata,
-    multiecho,
-    output_dir,
-    spaces,
-    use_aroma,
+    bids_root: str,
+    cifti_output: bool,
+    freesurfer: bool,
+    project_goodvoxels: bool,
+    all_metadata: ty.List[dict],
+    multiecho: bool,
+    output_dir: str,
+    spaces: SpatialReferences,
     name='func_derivatives_wf',
 ):
     """
@@ -154,6 +161,10 @@ def init_func_derivatives_wf(
         Whether the ``--cifti-output`` flag was set.
     freesurfer : :obj:`bool`
         Whether FreeSurfer anatomical processing was run.
+    project_goodvoxels : :obj:`bool`
+        Whether the option was used to exclude voxels with
+        locally high coefficient of variation, or that lie outside the
+        cortical surfaces, from the surface projection.
     metadata : :obj:`dict`
         Metadata dictionary associated to the BOLD run.
     multiecho : :obj:`bool`
@@ -169,8 +180,6 @@ def init_func_derivatives_wf(
         the TemplateFlow root directory. Each ``Reference`` may also contain a spec, which is a
         dictionary with template specifications (e.g., a specification of ``{'resolution': 2}``
         would lead to resampling on a 2mm resolution of the space).
-    use_aroma : :obj:`bool`
-        Whether ``--use-aroma`` flag was set.
     name : :obj:`str`
         This workflow's identifier (default: ``func_derivatives_wf``).
 
@@ -198,7 +207,6 @@ def init_func_derivatives_wf(
     inputnode = pe.Node(
         niu.IdentityInterface(
             fields=[
-                'aroma_noise_ics',
                 'bold_aparc_std',
                 'bold_aparc_t1',
                 'bold_aseg_std',
@@ -218,8 +226,7 @@ def init_func_derivatives_wf(
                 'cifti_density',
                 'confounds',
                 'confounds_metadata',
-                'melodic_mix',
-                'nonaggr_denoised_file',
+                'goodvoxels_mask',
                 'source_file',
                 'all_source_files',
                 'surf_files',
@@ -527,50 +534,6 @@ def init_func_derivatives_wf(
             ])
             # fmt:on
 
-    if use_aroma:
-        ds_aroma_noise_ics = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir, suffix='AROMAnoiseICs', dismiss_entities=("echo",)
-            ),
-            name="ds_aroma_noise_ics",
-            run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB,
-        )
-        ds_melodic_mix = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                desc='MELODIC',
-                suffix='mixing',
-                dismiss_entities=("echo",),
-            ),
-            name="ds_melodic_mix",
-            run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB,
-        )
-        ds_aroma_std = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                space='MNI152NLin6Asym',
-                desc='smoothAROMAnonaggr',
-                compress=True,
-                TaskName=metadata.get('TaskName'),
-                **timing_parameters,
-            ),
-            name='ds_aroma_std',
-            run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB,
-        )
-        # fmt:off
-        workflow.connect([
-            (inputnode, ds_aroma_noise_ics, [('source_file', 'source_file'),
-                                             ('aroma_noise_ics', 'in_file')]),
-            (inputnode, ds_melodic_mix, [('source_file', 'source_file'),
-                                         ('melodic_mix', 'in_file')]),
-            (inputnode, ds_aroma_std, [('source_file', 'source_file'),
-                                       ('nonaggr_denoised_file', 'in_file')]),
-        ])
-        # fmt:on
-
     if getattr(spaces, '_cached') is None:
         return workflow
 
@@ -782,6 +745,30 @@ def init_func_derivatives_wf(
         ])
         # fmt:on
 
+    if freesurfer and project_goodvoxels:
+        ds_goodvoxels_mask = pe.Node(
+            DerivativesDataSink(
+                base_directory=output_dir,
+                space='T1w',
+                desc='goodvoxels',
+                suffix='mask',
+                Type='ROI',  # Metadata
+                compress=True,
+                dismiss_entities=("echo",),
+            ),
+            name='ds_goodvoxels_mask',
+            run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB,
+        )
+        # fmt:off
+        workflow.connect([
+            (inputnode, ds_goodvoxels_mask, [
+                ('source_file', 'source_file'),
+                ('goodvoxels_mask', 'in_file'),
+            ]),
+        ])
+        # fmt:on
+
     # CIFTI output
     if cifti_output:
         ds_bold_cifti = pe.Node(
@@ -836,7 +823,11 @@ def init_func_derivatives_wf(
     return workflow
 
 
-def init_bold_preproc_report_wf(mem_gb, reportlets_dir, name='bold_preproc_report_wf'):
+def init_bold_preproc_report_wf(
+    mem_gb: float,
+    reportlets_dir: str,
+    name: str = 'bold_preproc_report_wf',
+):
     """
     Generate a visual report.
 

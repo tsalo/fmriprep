@@ -160,12 +160,6 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
         Estimated T2\\* map in template space
     confounds
         TSV of confounds
-    aroma_noise_ics
-        Noise components identified by ICA-AROMA
-    melodic_mix
-        FSL MELODIC mixing matrix
-    nonaggr_denoised_file
-        BOLD series, in native space, with non-agressive AROMA denoising applied
     confounds_metadata
         Confounds metadata dictionary
 
@@ -180,7 +174,6 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     * :py:func:`~fmriprep.workflows.bold.registration.init_bold_t1_trans_wf`
     * :py:func:`~fmriprep.workflows.bold.registration.init_bold_reg_wf`
     * :py:func:`~fmriprep.workflows.bold.confounds.init_bold_confs_wf`
-    * :py:func:`~fmriprep.workflows.bold.confounds.init_ica_aroma_wf`
     * :py:func:`~fmriprep.workflows.bold.resampling.init_bold_std_trans_wf`
     * :py:func:`~fmriprep.workflows.bold.resampling.init_bold_preproc_trans_wf`
     * :py:func:`~fmriprep.workflows.bold.resampling.init_bold_surf_wf`
@@ -199,7 +192,8 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     )
     from niworkflows.interfaces.utility import DictMerge, KeySelect
 
-    nvols = nb.load(bold_file[0] if isinstance(bold_file, (list, tuple)) else bold_file).shape[3]
+    img = nb.load(bold_file[0] if isinstance(bold_file, (list, tuple)) else bold_file)
+    nvols = 1 if img.ndim < 4 else img.shape[3]
     if nvols <= 5 - config.execution.sloppy:
         config.loggers.workflow.warning(
             f"Too short BOLD series (<= 5 timepoints). Skipping processing of <{bold_file}>."
@@ -214,6 +208,8 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     freesurfer = config.workflow.run_reconall
     spaces = config.workflow.spaces
     fmriprep_dir = str(config.execution.fmriprep_dir)
+    freesurfer_spaces = spaces.get_fs_spaces()
+    project_goodvoxels = config.workflow.project_goodvoxels and config.workflow.cifti_output
 
     # Extract BIDS entities and metadata from BOLD file(s)
     entities = extract_entities(bold_file)
@@ -249,6 +245,12 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
             *sorted([(layout.get_metadata(bf)["EchoTime"], bf) for bf in bold_file])
         )
         ref_file = bold_file[0]  # Reset reference to be the shortest TE
+        shapes = [nb.load(echo).shape for echo in bold_file]
+        if len(set(shapes)) != 1:
+            diagnostic = "\n".join(
+                f"{os.path.basename(echo)}: {shape}" for echo, shape in zip(bold_file, shapes)
+            )
+            raise RuntimeError(f"Multi-echo images found with mismatching shapes\n{diagnostic}")
 
     if os.path.isfile(ref_file):
         bold_tlen, mem_gb = _create_mem_gb(ref_file)
@@ -285,22 +287,7 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     config.loggers.workflow.info(sbref_msg)
 
     if has_fieldmap:
-        # First check if specified via B0FieldSource
-        estimator_key = listify(metadata.get("B0FieldSource"))
-
-        if not estimator_key:
-            import re
-            from pathlib import Path
-
-            from sdcflows.fieldmaps import get_identifier
-
-            # Fallback to IntendedFor
-            intended_rel = re.sub(
-                r"^sub-[a-zA-Z0-9]*/",
-                "",
-                str(Path(bold_file if not multiecho else bold_file[0]).relative_to(layout.root)),
-            )
-            estimator_key = get_identifier(intended_rel)
+        estimator_key = get_estimator(layout, bold_file if not multiecho else bold_file[0])
 
         if not estimator_key:
             has_fieldmap = False
@@ -345,7 +332,11 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "anat2std_xfm",
                 "std2anat_xfm",
                 "template",
+                "anat_ribbon",
                 "fsnative2t1w_xfm",
+                "surfaces",
+                "morphometrics",
+                "sphere_reg_fsLR",
                 "fmap",
                 "fmap_ref",
                 "fmap_coeff",
@@ -385,9 +376,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "t2star_t1",
                 "t2star_std",
                 "confounds",
-                "aroma_noise_ics",
-                "melodic_mix",
-                "nonaggr_denoised_file",
                 "confounds_metadata",
             ]
         ),
@@ -433,11 +421,11 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         bids_root=layout.root,
         cifti_output=config.workflow.cifti_output,
         freesurfer=freesurfer,
+        project_goodvoxels=project_goodvoxels,
         all_metadata=all_metadata,
         multiecho=multiecho,
         output_dir=fmriprep_dir,
         spaces=spaces,
-        use_aroma=config.workflow.use_aroma,
     )
     func_derivatives_wf.inputs.inputnode.all_source_files = bold_file
     func_derivatives_wf.inputs.inputnode.cifti_density = config.workflow.cifti_output
@@ -459,9 +447,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ("bold_echos_native", "inputnode.bold_echos_native"),
             ("confounds", "inputnode.confounds"),
             ("surfaces", "inputnode.surf_files"),
-            ("aroma_noise_ics", "inputnode.aroma_noise_ics"),
-            ("melodic_mix", "inputnode.melodic_mix"),
-            ("nonaggr_denoised_file", "inputnode.nonaggr_denoised_file"),
             ("bold_cifti", "inputnode.bold_cifti"),
             ("cifti_metadata", "inputnode.cifti_metadata"),
             ("t2star_bold", "inputnode.t2star_bold"),
@@ -781,7 +766,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
     if spaces.get_spaces(nonstandard=False, dim=(3,)):
         # Apply transforms in 1 shot
-        # Only use uncompressed output if AROMA is to be run
         bold_std_trans_wf = init_bold_std_trans_wf(
             freesurfer=freesurfer,
             mem_gb=mem_gb["resampled"],
@@ -864,75 +848,8 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])
         # fmt:on
 
-        if config.workflow.use_aroma:  # ICA-AROMA workflow
-            from .confounds import init_ica_aroma_wf
-
-            ica_aroma_wf = init_ica_aroma_wf(
-                mem_gb=mem_gb["resampled"],
-                metadata=metadata,
-                omp_nthreads=omp_nthreads,
-                err_on_aroma_warn=config.workflow.aroma_err_on_warn,
-                aroma_melodic_dim=config.workflow.aroma_melodic_dim,
-                name="ica_aroma_wf",
-            )
-
-            join = pe.Node(
-                niu.Function(output_names=["out_file"], function=_to_join),
-                name="aroma_confounds",
-            )
-
-            mrg_conf_metadata = pe.Node(
-                niu.Merge(2),
-                name="merge_confound_metadata",
-                run_without_submitting=True,
-            )
-            mrg_conf_metadata2 = pe.Node(
-                DictMerge(),
-                name="merge_confound_metadata2",
-                run_without_submitting=True,
-            )
-            # fmt:off
-            workflow.disconnect([
-                (bold_confounds_wf, outputnode, [
-                    ("outputnode.confounds_file", "confounds"),
-                ]),
-                (bold_confounds_wf, outputnode, [
-                    ("outputnode.confounds_metadata", "confounds_metadata"),
-                ]),
-            ])
-            workflow.connect([
-                (inputnode, ica_aroma_wf, [("bold_file", "inputnode.name_source")]),
-                (bold_hmc_wf, ica_aroma_wf, [
-                    ("outputnode.movpar_file", "inputnode.movpar_file"),
-                ]),
-                (initial_boldref_wf, ica_aroma_wf, [
-                    ("outputnode.skip_vols", "inputnode.skip_vols"),
-                ]),
-                (bold_confounds_wf, join, [("outputnode.confounds_file", "in_file")]),
-                (bold_confounds_wf, mrg_conf_metadata, [
-                    ("outputnode.confounds_metadata", "in1"),
-                ]),
-                (ica_aroma_wf, join, [("outputnode.aroma_confounds", "join_file")]),
-                (ica_aroma_wf, mrg_conf_metadata, [("outputnode.aroma_metadata", "in2")]),
-                (mrg_conf_metadata, mrg_conf_metadata2, [("out", "in_dicts")]),
-                (ica_aroma_wf, outputnode, [
-                    ("outputnode.aroma_noise_ics", "aroma_noise_ics"),
-                    ("outputnode.melodic_mix", "melodic_mix"),
-                    ("outputnode.nonaggr_denoised_file", "nonaggr_denoised_file"),
-                ]),
-                (join, outputnode, [("out_file", "confounds")]),
-                (mrg_conf_metadata2, outputnode, [("out_dict", "confounds_metadata")]),
-                (bold_std_trans_wf, ica_aroma_wf, [
-                    ("outputnode.bold_std", "inputnode.bold_std"),
-                    ("outputnode.bold_mask_std", "inputnode.bold_mask_std"),
-                    ("outputnode.spatial_reference", "inputnode.spatial_reference"),
-                ]),
-            ])
-            # fmt:on
-
     # SURFACES ##################################################################################
     # Freesurfer
-    freesurfer_spaces = spaces.get_fs_spaces()
     if freesurfer and freesurfer_spaces:
         config.loggers.workflow.debug("Creating BOLD surface-sampling workflow.")
         bold_surf_wf = init_bold_surf_wf(
@@ -954,32 +871,50 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])
         # fmt:on
 
-        # CIFTI output
-        if config.workflow.cifti_output:
-            from .resampling import init_bold_grayords_wf
+    # CIFTI output
+    if config.workflow.cifti_output:
+        from .resampling import init_bold_fsLR_resampling_wf, init_bold_grayords_wf
 
-            bold_grayords_wf = init_bold_grayords_wf(
-                grayord_density=config.workflow.cifti_output,
-                mem_gb=mem_gb["resampled"],
-                repetition_time=metadata["RepetitionTime"],
-            )
+        bold_fsLR_resampling_wf = init_bold_fsLR_resampling_wf(
+            estimate_goodvoxels=project_goodvoxels,
+            grayord_density=config.workflow.cifti_output,
+            omp_nthreads=omp_nthreads,
+            mem_gb=mem_gb["resampled"],
+        )
 
-            # fmt:off
-            workflow.connect([
-                (bold_std_trans_wf, bold_grayords_wf, [
-                    ("outputnode.bold_std", "inputnode.bold_std"),
-                    ("outputnode.spatial_reference", "inputnode.spatial_reference"),
-                ]),
-                (bold_surf_wf, bold_grayords_wf, [
-                    ("outputnode.surfaces", "inputnode.surf_files"),
-                    ("outputnode.target", "inputnode.surf_refs"),
-                ]),
-                (bold_grayords_wf, outputnode, [
-                    ("outputnode.cifti_bold", "bold_cifti"),
-                    ("outputnode.cifti_metadata", "cifti_metadata"),
-                ]),
-            ])
-            # fmt:on
+        bold_grayords_wf = init_bold_grayords_wf(
+            grayord_density=config.workflow.cifti_output,
+            mem_gb=mem_gb["resampled"],
+            repetition_time=metadata["RepetitionTime"],
+        )
+
+        # fmt:off
+        workflow.connect([
+            (inputnode, bold_fsLR_resampling_wf, [
+                ("surfaces", "inputnode.surfaces"),
+                ("morphometrics", "inputnode.morphometrics"),
+                ("sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
+                ("anat_ribbon", "inputnode.anat_ribbon"),
+            ]),
+            (bold_t1_trans_wf, bold_fsLR_resampling_wf, [
+                ("outputnode.bold_t1", "inputnode.bold_file"),
+            ]),
+            (bold_std_trans_wf, bold_grayords_wf, [
+                ("outputnode.bold_std", "inputnode.bold_std"),
+                ("outputnode.spatial_reference", "inputnode.spatial_reference"),
+            ]),
+            (bold_fsLR_resampling_wf, bold_grayords_wf, [
+                ("outputnode.bold_fsLR", "inputnode.bold_fsLR"),
+            ]),
+            (bold_fsLR_resampling_wf, func_derivatives_wf, [
+                ("outputnode.goodvoxels_mask", "inputnode.goodvoxels_mask"),
+            ]),
+            (bold_grayords_wf, outputnode, [
+                ("outputnode.cifti_bold", "bold_cifti"),
+                ("outputnode.cifti_metadata", "cifti_metadata"),
+            ]),
+        ])
+        # fmt:on
 
     if spaces.get_spaces(nonstandard=False, dim=(3,)):
         carpetplot_wf = init_carpetplot_wf(
@@ -1003,6 +938,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             )
             # fmt:on
 
+        def _last(inlist):
+            return inlist[-1]
+
         # fmt:off
         workflow.connect([
             (initial_boldref_wf, carpetplot_wf, [
@@ -1022,7 +960,8 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
             (bold_confounds_wf, carpetplot_wf, [
                 ("outputnode.confounds_file", "inputnode.confounds_file"),
-                ("outputnode.crown_mask", "inputnode.crown_mask")
+                ("outputnode.crown_mask", "inputnode.crown_mask"),
+                (("outputnode.acompcor_masks", _last), "inputnode.acompcor_mask"),
             ]),
         ])
         # fmt:on
@@ -1165,6 +1104,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         (initial_boldref_wf, coeff2epi_wf, [
             ("outputnode.ref_image", "inputnode.target_ref"),
             ("outputnode.bold_mask", "inputnode.target_mask")]),
+        (initial_boldref_wf, unwarp_wf, [
+            ("outputnode.ref_image", "inputnode.distorted_ref"),
+        ]),
         (coeff2epi_wf, unwarp_wf, [
             ("outputnode.fmap_coeff", "inputnode.fmap_coeff")]),
         (bold_hmc_wf, unwarp_wf, [
@@ -1258,11 +1200,11 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
             (unwarp_wf, bold_t1_trans_wf, [
                 # TEMPORARY: For the moment we can't use frame-wise fieldmaps
-                (("outputnode.fieldwarp", pop_file), "inputnode.fieldwarp"),
+                (("outputnode.fieldwarp_ref", pop_file), "inputnode.fieldwarp"),
             ]),
             (unwarp_wf, bold_std_trans_wf, [
                 # TEMPORARY: For the moment we can't use frame-wise fieldmaps
-                (("outputnode.fieldwarp", pop_file), "inputnode.fieldwarp"),
+                (("outputnode.fieldwarp_ref", pop_file), "inputnode.fieldwarp"),
             ]),
         ])
         # fmt:on
@@ -1402,3 +1344,21 @@ def get_img_orientation(imgf):
     """Return the image orientation as a string"""
     img = nb.load(imgf)
     return "".join(nb.aff2axcodes(img.affine))
+
+
+def get_estimator(layout, fname):
+    field_source = layout.get_metadata(fname).get("B0FieldSource")
+    if isinstance(field_source, str):
+        field_source = (field_source,)
+
+    if field_source is None:
+        import re
+        from pathlib import Path
+
+        from sdcflows.fieldmaps import get_identifier
+
+        # Fallback to IntendedFor
+        intended_rel = re.sub(r"^sub-[a-zA-Z0-9]*/", "", str(Path(fname).relative_to(layout.root)))
+        field_source = get_identifier(intended_rel)
+
+    return field_source

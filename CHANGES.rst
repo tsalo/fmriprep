@@ -1,3 +1,135 @@
+23.1.2 (June 16, 2023)
+======================
+
+Bug fix release in the 23.1.x series.
+
+This release correctly generates ``*_space-fsLR_desc-reg_sphere.surf.gii``,
+which was previously a copy of the standard ``*_desc-reg_sphere.surf.gii``.
+Additionally, warnings are now correctly emitted when AROMA-related CLI
+options are used.
+
+* CI: Clean up pre-release builds (#3040)
+
+
+23.1.1 (June 14, 2023)
+======================
+
+Bug fix release in the 23.1.x series.
+
+This release corrects a small error that prevented the "goodvoxels" mask from
+being placed in the output directory if no FreeSurfer output spaces were specified.
+
+* FIX: Remove bad metadata input from ds_goodvoxels_mask (#3037)
+
+
+23.1.0 (June 12, 2023)
+======================
+New feature release in the 23.1.x series.
+
+This release substantially reworks the resampling to fsLR grayordinate space,
+better accounting for partial volumes and high variance voxels. If you are
+resampling using ``--project-goodvoxels``, we strongly recommend upgrading.
+
+Fieldmap handling is improved, with better preference given to single-band
+references in both PEPolar and SyN-SDC schemes. Additionally, fMRIPrep will
+no longer estimate fieldmaps that are not intended to be used to correct BOLD
+series, reducing unneeded processing.
+
+This release removes ICA-AROMA from the fMRIPrep workflow. To use ICA-AROMA,
+set ``MNI152NLin6Asym:res-2`` as a target output space. MELODIC and ICA-AROMA
+can be run on the resulting images in a separate pipeline. For further
+information on the reasoning behind this change, see
+`GitHub issue #2936 <https://github.com/nipreps/fmriprep/issues/2936>`__.
+
+This release increments the versions of ANTs and FSL bundled in the Docker
+image.
+
+With thanks to Eilidh MacNicol, Basille Pinsard and Taylor Salo for contributions
+in fMRIPrep and SDCflows.
+
+* FIX: Raise RuntimeError at build if echos have mismatched shapes (#3028)
+* FIX: Inconsistent fmapless estimation when ignoring fieldmaps (#2994)
+* FIX: Dilate BOLD mask by 2 voxels to prevent over-aggressive masking degrading T2* map estimation (#2986)
+* FIX: Estimate free memory with "available", not "free" (#2985)
+* ENH: Add ``--me-t2s-fit-method`` parameter (#3030)
+* ENH: Resample BOLD to fsLR directly, dropping fsaverage intermediate (#3011)
+* ENH: Allow SBref+EPI PEPolar fieldmaps to correct BOLD series (#3008)
+* ENH: Remove ICA-AROMA from workflow and docs (#2966)
+* RF: Filter fieldmaps based on whether they will be used to correct a BOLD series (#3025)
+* MNT: Update ANTs pin in Docker image (#3016)
+* MNT: Update governance docs (#2992)
+* MNT: Refactor Docker build process (#2982)
+* MNT: Pin conda environment more strictly (#2853)
+* MNT: Require niworkflows ~1.3.6 (#2740)
+* CI: Use registry for layer caching (#3012)
+* CI: Upgrade docker orb (#2865)
+
+
+23.0.2 (April 24, 2023)
+=======================
+Bug fix release in the 23.0.x series.
+
+This release fixes issues with `_phase1+2`, `_phasediff` and `_fieldmap`
+fieldmap files that are found with an orientation other than RAS.
+
+
+23.0.1 (March 24, 2023)
+=======================
+Bug fix release in the 23.0.x series.
+
+This release fixes issues with detecting partial fieldmaps, emitting a warning instead
+of an error. A small change in sMRIPrep fixes the name of a workflow, which may cause a
+duplication in a reused work directory from 23.0.0, but should not break any workflows
+or produce a change in derivatives.
+
+
+23.0.0 (March 13, 2023)
+=======================
+New feature release in the 23.0.x series.
+
+This release adds improvements for workflows targeting the fsLR grayordinate space.
+Namely, morphometric (curvature, sulcal depth and cortical thickness) measures are
+output as ``.dscalar.nii`` files and high-variance voxels can be excluded from the
+resampling step using ``--project-goodvoxels``.
+
+Additionally, T2w images are now resampled to the T1w-defined subject space if FreeSurfer
+reconstruction is used. If multiple T2w images are provided, they are merged into a single
+image first.
+
+PEPolar fieldmaps with R/L phase-encoding directions or in non-standard orientations
+are now better supported. We continue to work toward better support for more SDC
+configurations.
+
+23.0.0 supports FreeSurfer 7.3.2, which is now bundled in the Docker image.
+
+ICA-AROMA support will be removed in 23.1.0.
+
+With thanks to Thomas Madison, Greg Conan, Celine Provins, Robert Smith and Yaroslav
+Halchenko for contributions.
+Thanks also to Steve Giavasis and colleagues at the Child Mind Institute
+for feedback on SDC processing.
+
+* FIX: Pass reference image to unwarp_wf, use reference fieldwarp for single shot (#2945)
+* FIX: Pass fmap filters to sdcflows (#2932)
+* ENH: Resample morphometrics to fsLR dscalar CIFTI-2 files if ``--cifti-output`` is used (#2959)
+* ENH: Add option to exclude projecting high variance voxels to surface (update of #2855) (#2956)
+* ENH: Separate deep from shallow WM+CSF in the carpetplot (#2744)
+* ENH: Merge T2w images and coregister to T1w template (#2941)
+* RF: Use DataFrame.rename instead of ad hoc process (#2937)
+* DOC: Update the description of the carpetplot in the sample report (#2950)
+* DOC: Altered CLI option grouping (#2944)
+* DOC: Update lesion ROI documentation, warn in docs and app about upcoming changes (#2943)
+* DOC: Update docs following read-through (#2930)
+* DOC: Update carpetplot in "Outputs of fMRIPrep" (#2923)
+* MNT: Codespell config, action + some typo fixups (#2958)
+* MNT: Warn that AROMA support will be removed in a future version (#2940)
+* MNT: Update Ubuntu, FreeSurfer, AFNI and Convert3D (#2931)
+* MNT: Switch to hatch build backend and update package metadata (#2914 + #2939)
+* MNT: Rotate CircleCI secrets and setup up org-level context (#2928)
+* CI: Minor updates to CircleCI config to improve resilience (#2957)
+* CI: Weekly docker build from scratch (#2938)
+
+
 22.1.1 (January 04, 2023)
 =========================
 Bug fix release in the 22.1.x series.
@@ -506,7 +638,7 @@ This release also includes some maintenance changes handling old versions of sof
 Bug-fix release in the 20.1.x series.
 
 * FIX: Dependency conflict between *NiWorkflows* and *TemplateFlow* (#2269)
-* FIX: More targetted *TemplateFlow* queries to work with all later releases (#2268)
+* FIX: More targeted *TemplateFlow* queries to work with all later releases (#2268)
 * MAINT: Update dependency pinnings including ``niworkflows~=1.2.9`` and three minimal bug-fixes.
 
 20.1.2 (September 04, 2020)
@@ -1498,7 +1630,7 @@ With thanks to @mgxd and @naveau for contributions.
 ---------------------------
 * FIX: Pin niworkflows-0.2.4 to fix (#868).
 * FIX: Roll back run/task groupings after BIDS query (#918).
-  Groupings for the multi-echo extension will be reenabled soon.
+  Groupings for the multi-echo extension will be re-enabled soon.
 
 1.0.2 (2nd of January 2018)
 ---------------------------

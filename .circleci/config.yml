@@ -87,6 +87,28 @@ _setup_fmriprep_docker: &setup_fmriprep_docker
     pip install --upgrade pip
     pip install --upgrade /tmp/src/fmriprep/wrapper/
 
+_check_outputs: &check_outputs
+  name: Checking outputs of fMRIPrep run
+  command: |
+    set +e -x
+    mkdir -p /tmp/${DATASET}/test
+    find /tmp/${DATASET}/${SUBDIR:-derivatives} \( -path '*/figures' -o -path '*/log' -o -path '*/sourcedata' \) -prune -o -name "*" -print | cut -d/ -f 5- | sort > /tmp/${DATASET}/test/outputs.out
+
+    FASTTRACK_OUTPUTS="${DATASET}${VARIANT}_fasttrack_outputs.txt"
+    FULL_OUTPUTS="${DATASET}${VARIANT}_outputs.txt"
+    RET=1
+    if [ ! -f /tmp/.nofasttrack ]; then
+        echo "Checking fasttrack..."
+        diff /tmp/src/fmriprep/.circleci/${FASTTRACK_OUTPUTS} /tmp/${DATASET}/test/outputs.out
+        RET=$?
+    fi
+    if [ $RET -ne 0 ]; then
+        echo "Checking full..."
+        diff /tmp/src/fmriprep/.circleci/${FULL_OUTPUTS} /tmp/${DATASET}/test/outputs.out
+        RET=$?
+    fi
+    exit $RET
+
 
 version: 2.1
 aliases:
@@ -97,6 +119,8 @@ orbs:
 jobs:
   build_clean:
     <<: *machine_defaults
+    environment:
+      DOCKER_BUILDKIT: 1
     steps:
       - checkout:
           path: *src
@@ -122,17 +146,19 @@ jobs:
 
   build:
     <<: *machine_defaults
+    environment:
+      DOCKER_BUILDKIT: 1
     steps:
       - checkout:
           path: *src
       - run: *check_skip_job
       - restore_cache:
           keys:
-            - build-v6-{{ .Branch }}-{{ .Revision }}
-            - build-v6--{{ .Revision }}
-            - build-v6-{{ .Branch }}-
-            - build-v6-master-
-            - build-v6-
+            - build-v2-{{ .Branch }}-{{ .Revision }}
+            - build-v2--{{ .Revision }}
+            - build-v2-{{ .Branch }}-
+            - build-v2-master-
+            - build-v2-
           paths:
             - /tmp/docker
             - /tmp/images
@@ -140,43 +166,8 @@ jobs:
       - run: *docker_auth
       - run: *setup_docker_registry
       - run:
-          name: Save docker registry
-          command: |
-            if [[ ! -f /tmp/images/registry.tar.gz ]]; then
-              mkdir -p /tmp/images
-              docker save registry:2 | gzip > /tmp/images/registry.tar.gz
-            fi
-      - run:
-          name: Pull Ubuntu/jammy image
-          command: |
-            set +e
-            docker pull localhost:5000/ubuntu
-            success=$?
-            set -e
-            if [[ "$success" = "0" ]]; then
-                echo "Pulling from local registry"
-                docker tag localhost:5000/ubuntu ubuntu:jammy
-            else
-                echo "Pulling from Docker Hub"
-                docker pull ubuntu:jammy
-                docker tag ubuntu:jammy localhost:5000/ubuntu
-                docker push localhost:5000/ubuntu
-            fi
-      - run:
-          name: Pull fMRIPrep Docker image
-          command: |
-            set +e
-            docker pull localhost:5000/fmriprep
-            success=$?
-            set -e
-            if [[ "$success" = "0" ]]; then
-                echo "Pulled from local registry"
-                docker tag localhost:5000/fmriprep nipreps/fmriprep:latest
-                docker tag localhost:5000/fmriprep nipreps/fmriprep
-            else
-                echo "Pulling from Docker Hub"
-                docker pull nipreps/fmriprep:latest
-            fi
+          name: Create named builder
+          command: docker buildx create --use --name=builder --driver=docker-container
       - run:
           name: Build Docker image
           no_output_timeout: 60m
@@ -194,15 +185,13 @@ jobs:
               echo "them to your fork with ``git push origin --tags``"
             fi
             # Build docker image
-            e=1 && for i in {1..5}; do
-              docker build --rm \
-                --cache-from=nipreps/fmriprep \
+            docker buildx build --load --builder builder \
+                --cache-from localhost:5000/fmriprep \
+                --cache-from nipreps/fmriprep:latest \
                 -t nipreps/fmriprep:latest \
                 --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
                 --build-arg VCS_REF=`git rev-parse --short HEAD` \
-                --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" . \
-              && e=0 && break || sleep 15
-            done && [ "$e" -eq "0" ]
+                --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
       - run:
           name: Check Docker image
           command: |
@@ -235,7 +224,7 @@ jobs:
           paths:
             - src/fmriprep
       - save_cache:
-         key: build-v6-{{ .Branch }}-{{ .Revision }}
+         key: build-v2-{{ .Branch }}-{{ .Revision }}
          paths:
             - /tmp/docker
             - /tmp/images
@@ -368,7 +357,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v6-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -441,7 +430,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v6-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -481,7 +470,7 @@ jobs:
       - run:
           name: Clean-up after anatomical run
           command: |
-            rm -rf /tmp/${DATASET}/work/fmriprep_wf/fsdir*
+            rm -rf /tmp/${DATASET}/work/fmriprep_*_wf/fsdir*
             rm -rf /tmp/${DATASET}/work/reportlets
             rm -rf /tmp/${DATASET}/derivatives/fmriprep
       - save_cache:
@@ -529,18 +518,13 @@ jobs:
             mkdir -p /tmp/${DATASET}/derivatives_partial
             sudo cp -a /tmp/${DATASET}/work /tmp/${DATASET}/work_partial
             sudo cp -a /tmp/${DATASET}/work /tmp/${DATASET}/work_bids
-            sudo rm -rf /tmp/${DATASET}/work_partial/fmriprep_wf/single_subject_01_wf/func_preproc_task_mixedgamblestask_run_02_wf/ica_aroma_wf
             # Nipype sometimes fails to pick up when the base directory changes
             # This is a cheap workflow, so let's not fuss
-            sudo rm -rf /tmp/${DATASET}/work /tmp/${DATASET}/work_bids/fmriprep_wf/single_subject_01_wf/anat_preproc_wf/surface_recon_wf/gifti_surface_wf || true
+            sudo rm -rf /tmp/${DATASET}/work /tmp/${DATASET}/work_bids/fmriprep_*_wf/single_subject_01_wf/anat_preproc_wf/surface_recon_wf/gifti_surface_wf || true
       - run:
-          name: Checking outputs of full fMRIPrep run
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_legacy_outputs.txt"
-            find /tmp/${DATASET}/derivatives \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives/++ | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+          <<: *check_outputs
+          environment:
+            VARIANT: '_legacy'
       - run:
           name: Prepare BIDS Derivatives dataset
           command: |
@@ -567,13 +551,10 @@ jobs:
           path: /tmp/ds005/bids
           destination: bids-run
       - run:
-          name: Checking outputs of partial fMRIPrep run
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_bids_outputs.txt"
-            find /tmp/${DATASET}/bids \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/++ | grep -v sourcedata | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+          <<: *check_outputs
+          environment:
+            VARIANT: '_bids'
+            SUBDIR: 'bids'
       - run:
           name: Re-run fMRIPrep on single run of task data
           no_output_timeout: 2h
@@ -593,20 +574,15 @@ jobs:
                 --output-layout legacy \
                 --sloppy --write-graph --use-syn-sdc --mem-mb 14336 \
                 --output-spaces MNI152NLin2009cAsym fsaverage5 fsnative MNI152NLin6Asym anat \
-                --aroma-melodic-dimensionality 2 --use-aroma \
-                --nthreads 4 --cifti-output -vv
+                --nthreads 4 --cifti-output --project-goodvoxels -vv
       - store_artifacts:
           path: /tmp/ds005/derivatives_partial
           destination: partial-run
       - run:
-          name: Checking outputs of partial fMRIPrep run
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_legacy_partial_outputs.txt"
-            sudo rm -rf /tmp/${DATASET}/derivatives_partial/freesurfer
-            find /tmp/${DATASET}/derivatives_partial \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives_partial/++ | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+          <<: *check_outputs
+          environment:
+            VARIANT: '_legacy_partial'
+            SUBDIR: 'derivatives_partial'
       - run:
           name: Clean working directory
           when: on_success
@@ -642,7 +618,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v6-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -679,7 +655,7 @@ jobs:
       - run:
           name: Clean-up after anatomical run
           command: |
-            rm -rf /tmp/${DATASET}/work/fmriprep_wf/fsdir*
+            rm -rf /tmp/${DATASET}/work/fmriprep_*_wf/fsdir*
             rm -rf /tmp/${DATASET}/work/reportlets
             rm -rf /tmp/${DATASET}/derivatives/fmriprep
       - save_cache:
@@ -704,14 +680,7 @@ jobs:
                 --fs-no-reconall --sloppy \
                 --output-spaces MNI152NLin2009cAsym:res-2 anat func \
                 --mem-mb 14336 --nthreads 4 -vv --debug compcor
-      - run:
-          name: Checking outputs of fMRIPrep
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_outputs.txt"
-            find /tmp/${DATASET}/derivatives \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives/++ | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+      - run: *check_outputs
       - run:
           name: Generate report with one artificial error
           command: |
@@ -765,7 +734,7 @@ jobs:
           at: /tmp
       - restore_cache:
           keys:
-            - build-v6-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -774,11 +743,11 @@ jobs:
             - data-v0-{{ .Branch }}-{{ .Revision }}
       - restore_cache:
           keys:
-            - ds210-anat-v0-{{ .Branch }}-{{ .Revision }}
-            - ds210-anat-v0--{{ .Revision }}
-            - ds210-anat-v0-{{ .Branch }}-
-            - ds210-anat-v0-master-
-            - ds210-anat-v0-
+            - ds210-anat-v1-{{ .Branch }}-{{ .Revision }}
+            - ds210-anat-v1--{{ .Revision }}
+            - ds210-anat-v1-{{ .Branch }}-
+            - ds210-anat-v1-master-
+            - ds210-anat-v1-
       - docker/install-docker-credential-helper
       - run: *docker_auth
       - run: *setup_docker_registry
@@ -802,11 +771,11 @@ jobs:
       - run:
           name: Clean-up after anatomical run
           command: |
-            rm -rf /tmp/${DATASET}/work/fmriprep_wf/fsdir*
+            rm -rf /tmp/${DATASET}/work/fmriprep_*_wf/fsdir*
             rm -rf /tmp/${DATASET}/work/reportlets
             rm -rf /tmp/${DATASET}/derivatives/fmriprep
       - save_cache:
-         key: ds210-anat-v0-{{ .Branch }}-{{ .Revision }}
+         key: ds210-anat-v1-{{ .Branch }}-{{ .Revision }}
          paths:
             - /tmp/ds210/work
 
@@ -841,14 +810,7 @@ jobs:
                 --dummy-scans 1 --sloppy --write-graph \
                 --output-spaces MNI152NLin2009cAsym \
                 --mem-mb 14336 --nthreads 4 -vv
-      - run:
-          name: Checking outputs of fMRIPrep
-          command: |
-            mkdir -p /tmp/${DATASET}/test
-            CHECK_OUTPUTS_FILE="${DATASET}_outputs.txt"
-            find /tmp/${DATASET}/derivatives \( -path */figures -o -path */log \) -prune -o -name "*" -print | sed s+/tmp/${DATASET}/derivatives/++ | sort > /tmp/${DATASET}/test/outputs.out
-            diff /tmp/src/fmriprep/.circleci/${CHECK_OUTPUTS_FILE} /tmp/${DATASET}/test/outputs.out
-            exit $?
+      - run: *check_outputs
       - run:
           name: Clean working directory
           when: on_success
@@ -878,7 +840,7 @@ jobs:
             fi
       - restore_cache:
           keys:
-            - build-v6-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -901,7 +863,7 @@ jobs:
       - run: *check_skip_job
       - restore_cache:
           keys:
-            - build-v6-{{ .Branch }}-{{ .Revision }}
+            - build-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /tmp/docker
             - /tmp/images
@@ -934,18 +896,22 @@ jobs:
       - run:
           name: Build fMRIPrep
           command: python -m build
+      - run:
+          name: Twine check fmriprep
+          command: twine check dist/*
+      - run:
+          name: Pre-run hatch version
+          command: hatch version
       - store_artifacts:
           path: /tmp/src/fmriprep/dist
       - run:
           name: Check sdist distribution
           command: |
             THISVERSION=$( hatch version )
-            THISVERSION=${THISVERSION%.d*}
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
-            python -m twine check dist/fmriprep*.tar.gz
             virtualenv --python=python sdist
             source sdist/bin/activate
-            python -m pip install --upgrade "pip>=19.1" numpy
+            python -m pip install --upgrade pip
             python -m pip install dist/fmriprep*.tar.gz
             which fmriprep | grep sdist\\/bin
             INSTALLED_VERSION=$(fmriprep --version)
@@ -958,9 +924,7 @@ jobs:
           name: Check wheel distribution
           command: |
             THISVERSION=$( hatch version )
-            THISVERSION=${THISVERSION%.d*}
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
-            python -m twine check dist/fmriprep*.whl
             virtualenv --python=python wheel
             source wheel/bin/activate
             python -m pip install dist/fmriprep*.whl
@@ -974,6 +938,9 @@ jobs:
       - run:
           name: Build fmriprep-docker
           command: python -m build wrapper
+      - run:
+          name: Twine check wrapper
+          command: twine check wrapper/dist/*
       - store_artifacts:
           path: /tmp/src/fmriprep/wrapper/dist
 

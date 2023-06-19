@@ -31,16 +31,18 @@ fMRIPrep base processing workflows
 
 import os
 import sys
+import warnings
 from copy import deepcopy
 
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
+from niworkflows.utils.connections import listify
 from packaging.version import Version
 
 from .. import config
 from ..interfaces import DerivativesDataSink
 from ..interfaces.reports import AboutSummary, SubjectSummary
-from .bold import init_func_preproc_wf
+from .bold.base import get_estimator, init_func_preproc_wf
 
 
 def init_fmriprep_wf():
@@ -110,7 +112,7 @@ def init_fmriprep_wf():
     return fmriprep_wf
 
 
-def init_single_subject_wf(subject_id):
+def init_single_subject_wf(subject_id: str):
     """
     Organize the preprocessing pipeline for a single subject.
 
@@ -196,6 +198,14 @@ def init_single_subject_wf(subject_id):
         raise Exception(
             "No T1w images found for participant {}. "
             "All workflows require T1w images.".format(subject_id)
+        )
+
+    if subject_data['roi']:
+        warnings.warn(
+            f"Lesion mask {subject_data['roi']} found. "
+            "Future versions of fMRIPrep will use alternative conventions. "
+            "Please refer to the documentation before upgrading.",
+            FutureWarning,
         )
 
     workflow = Workflow(name=name)
@@ -291,7 +301,8 @@ It is released under the [CC0]\
     # Preprocessing of T1w (includes registration to MNI)
     anat_preproc_wf = init_anat_preproc_wf(
         bids_root=str(config.execution.bids_dir),
-        debug=config.execution.sloppy,
+        sloppy=config.execution.sloppy,
+        debug=config.execution.debug,
         precomputed=deriv_cache,
         freesurfer=config.workflow.run_reconall,
         hires=config.workflow.hires,
@@ -303,6 +314,8 @@ It is released under the [CC0]\
         skull_strip_template=Reference.from_string(config.workflow.skull_strip_template)[0],
         spaces=spaces,
         t1w=subject_data['t1w'],
+        t2w=subject_data['t2w'],
+        cifti_output=config.workflow.cifti_output,
     )
     # fmt:off
     workflow.connect([
@@ -354,11 +367,24 @@ It is released under the [CC0]\
         filters = None
         if config.execution.bids_filters is not None:
             filters = config.execution.bids_filters.get("fmap")
+
+        # In the case where fieldmaps are ignored and `--use-syn-sdc` is requested,
+        # SDCFlows `find_estimators` still receives a full layout (which includes the fmap modality)
+        # and will not calculate fmapless schemes.
+        # Similarly, if fieldmaps are ignored and `--force-syn` is requested,
+        # `fmapless` should be set to True to ensure BOLD targets are found to be corrected.
+        fmapless = bool(config.workflow.use_syn_sdc) or (
+            "fieldmaps" in config.workflow.ignore and config.workflow.force_syn
+        )
+        force_fmapless = config.workflow.force_syn or (
+            "fieldmaps" in config.workflow.ignore and config.workflow.use_syn_sdc
+        )
+
         fmap_estimators = find_estimators(
             layout=config.execution.layout,
             subject=subject_id,
-            fmapless=bool(config.workflow.use_syn_sdc),
-            force_fmapless=config.workflow.force_syn,
+            fmapless=fmapless,
+            force_fmapless=force_fmapless,
             bids_filters=filters,
         )
 
@@ -380,6 +406,16 @@ It is released under the [CC0]\
             )
             fmap_estimators = [f for f in fmap_estimators if f.method == fm.EstimatorType.ANAT]
 
+        # Do not calculate fieldmaps that we will not use
+        if fmap_estimators:
+            used_estimators = {
+                key
+                for bold_file in subject_data['bold']
+                for key in get_estimator(config.execution.layout, listify(bold_file)[0])
+            }
+
+            fmap_estimators = [fmap for fmap in fmap_estimators if fmap.bids_id in used_estimators]
+
         if fmap_estimators:
             config.loggers.workflow.info(
                 "B0 field inhomogeneity map will be estimated with "
@@ -387,7 +423,7 @@ It is released under the [CC0]\
                 f"{[e.method for e in fmap_estimators]}."
             )
 
-    # Append the functional section to the existing anatomical exerpt
+    # Append the functional section to the existing anatomical excerpt
     # That way we do not need to stream down the number of bold datasets
     func_pre_desc = """
 Functional data preprocessing
@@ -421,7 +457,12 @@ tasks and sessions), the following preprocessing was performed.
                 # Undefined if --fs-no-reconall, but this is safe
                 ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
                 ('outputnode.subject_id', 'inputnode.subject_id'),
-                ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm')]),
+                ('outputnode.anat_ribbon', 'inputnode.anat_ribbon'),
+                ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm'),
+                ('outputnode.surfaces', 'inputnode.surfaces'),
+                ('outputnode.morphometrics', 'inputnode.morphometrics'),
+                ('outputnode.sphere_reg_fsLR', 'inputnode.sphere_reg_fsLR'),
+            ]),
         ])
         # fmt:on
         func_preproc_wfs.append(func_preproc_wf)
@@ -498,7 +539,7 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
         suffices = [s.suffix for s in estimator.sources]
 
         if estimator.method == fm.EstimatorType.PEPOLAR:
-            if set(suffices) == {"epi"} or sorted(suffices) == ["bold", "epi"]:
+            if len(suffices) == 2 and all(suf in ("epi", "bold", "sbref") for suf in suffices):
                 wf_inputs = getattr(fmap_wf.inputs, f"in_{estimator.bids_id}")
                 wf_inputs.in_data = [str(s.path) for s in estimator.sources]
                 wf_inputs.metadata = [s.metadata for s in estimator.sources]

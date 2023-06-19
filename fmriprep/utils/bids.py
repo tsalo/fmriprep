@@ -38,7 +38,6 @@ def write_bidsignore(deriv_dir):
         "*_boldref.nii.gz",
         "*_bold.func.gii",
         "*_mixing.tsv",
-        "*_AROMAnoiseICs.csv",
         "*_timeseries.tsv",
     )
     ignore_file = Path(deriv_dir) / ".bidsignore"
