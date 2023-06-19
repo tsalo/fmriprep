@@ -130,7 +130,7 @@ class SubjectSummary(SummaryInterface):
     def _run_interface(self, runtime):
         if isdefined(self.inputs.subject_id):
             self._results['subject_id'] = self.inputs.subject_id
-        return super(SubjectSummary, self)._run_interface(runtime)
+        return super()._run_interface(runtime)
 
     def _generate_segment(self):
         BIDS_NAME = re.compile(
@@ -159,7 +159,7 @@ class SubjectSummary(SummaryInterface):
 
         t2w_seg = ''
         if self.inputs.t2w:
-            t2w_seg = '(+ {:d} T2-weighted)'.format(len(self.inputs.t2w))
+            t2w_seg = f'(+ {len(self.inputs.t2w):d} T2-weighted)'
 
         # Add list of tasks with number of runs
         bold_series = self.inputs.bold if isdefined(self.inputs.bold) else []
