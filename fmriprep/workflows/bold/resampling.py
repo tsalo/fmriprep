@@ -1248,7 +1248,7 @@ def init_bold_grayords_wf(
 
     Inputs
     ------
-   bold_fsLR : :obj:`str`
+    bold_fsLR : :obj:`str`
         List of paths to BOLD series resampled as functional GIFTI files in fsLR space
     bold_std : :obj:`str`
         List of BOLD conversions to standard spaces.
@@ -1277,8 +1277,7 @@ def init_bold_grayords_wf(
 generated with surface data transformed directly to fsLR space and subcortical
 data transformed to {mni_density} mm resolution MNI152NLin6Asym space.
 """.format(
-        density=grayord_density,
-        mni_density=mni_density
+        density=grayord_density, mni_density=mni_density
     )
 
     inputnode = pe.Node(
