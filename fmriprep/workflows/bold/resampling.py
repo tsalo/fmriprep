@@ -1254,7 +1254,7 @@ def init_bold_grayords_wf(
         List of BOLD conversions to standard spaces.
     spatial_reference : :obj:`str`
         List of unique identifiers corresponding to the BOLD standard-conversions.
-   
+
 
     Outputs
     -------
