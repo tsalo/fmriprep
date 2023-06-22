@@ -1241,19 +1241,20 @@ def init_bold_grayords_wf(
         Either ``"91k"`` or ``"170k"``, representing the total *grayordinates*.
     mem_gb : :obj:`float`
         Size of BOLD file in GB
+    repetition_time : :obj:`float`
+        Repetition time in seconds
     name : :obj:`str`
         Unique name for the subworkflow (default: ``"bold_grayords_wf"``)
 
     Inputs
     ------
+   bold_fsLR : :obj:`str`
+        List of paths to BOLD series resampled as functional GIFTI files in fsLR space
     bold_std : :obj:`str`
         List of BOLD conversions to standard spaces.
     spatial_reference : :obj:`str`
         List of unique identifiers corresponding to the BOLD standard-conversions.
-    surf_files : :obj:`str`
-        List of BOLD files resampled on the fsaverage (ico7) surfaces.
-    surf_refs :
-        List of unique identifiers corresponding to the BOLD surface-conversions.
+   
 
     Outputs
     -------
@@ -1268,15 +1269,17 @@ def init_bold_grayords_wf(
     from niworkflows.interfaces.utility import KeySelect
 
     workflow = Workflow(name=name)
-    workflow.__desc__ = """\
-*Grayordinates* files [@hcppipelines] containing {density} samples were also
-generated using the highest-resolution ``fsaverage`` as intermediate standardized
-surface space.
-""".format(
-        density=grayord_density
-    )
 
     mni_density = "2" if grayord_density == "91k" else "1"
+
+    workflow.__desc__ = """\
+*Grayordinates* files [@hcppipelines] containing {density} samples were also
+generated with surface data transformed directly to fsLR space and subcortical
+data transformed to {mni_density} mm resolution MNI152NLin6Asym space.
+""".format(
+        density=grayord_density,
+        mni_density=mni_density
+    )
 
     inputnode = pe.Node(
         niu.IdentityInterface(
