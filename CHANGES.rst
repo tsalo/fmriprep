@@ -1,3 +1,17 @@
+23.1.3 (June 24, 2023)
+======================
+
+Bug fix release in the 23.1.x series.
+
+In rare cases where Freesurfer is unable to align to its default atlas in
+Talairach registration, it was unable to fall back to the Schwartz atlas
+because we were not including it in the Docker image. This release exists
+to provide an updated Docker image, and no upgrade is needed for users not
+encountering this issue.
+
+* DOCKER: Include 3T18yoSchwartzReactN32 FreeSurfer atlas in image (#3049)
+
+
 23.1.2 (June 16, 2023)
 ======================
 
