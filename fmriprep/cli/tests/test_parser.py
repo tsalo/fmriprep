@@ -113,13 +113,10 @@ def test_get_parser_update(monkeypatch, capsys, current, latest):
     _build_parser()
     captured = capsys.readouterr().err
 
-    msg = """\
-You are using fMRIPrep-%s, and a newer version of fMRIPrep is available: %s.
+    msg = f"""\
+You are using fMRIPrep-{current}, and a newer version of fMRIPrep is available: {latest}.
 Please check out our documentation about how and when to upgrade:
-https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading""" % (
-        current,
-        latest,
-    )
+https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading"""
 
     assert (msg in captured) is expectation
 

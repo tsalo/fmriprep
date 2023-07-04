@@ -34,6 +34,7 @@ Before every release, unlisted contributors will be invited again to add their n
 | Mentch            | Jeff         |  | 0000-0002-7762-8678 | Speech & Hearing Bioscience & Technology Program, Harvard University                                                                         |
 | Moodie            | Craig A.     |  | 0000-0003-0867-1469 | Department of Psychology, Stanford University                                                                                                |
 | Naveau            | Mikaël       |  | 0000-0001-6948-9068 | Cyceron, UMS 3408 (CNRS - UCBN), France                                                                                                      |
+| Nielson           | Dylan M.     |  | 0000-0003-4613-6643 | Machine Learning Team, National Institute of Mental Health, USA                                                                              |
 | Nitsch            | Alexander    |  | 0000-0002-5740-9451 | Max Planck Institute for Human Cognitive and Brain Sciences, Leipzig, Germany                                                                |
 | Papadopoulos      | Dimitri      |  | 0000-0002-1242-8990 | Neurospin, CEA                                                                                                                               |
 | Plunkett          | Dillon       |  | 0000-0001-7822-6024 | Department of Psychology, Harvard University                                                                                                 |

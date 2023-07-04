@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 """Interfaces for manipulating GIFTI files."""
@@ -7,7 +6,6 @@ import os
 import nibabel as nb
 import numpy as np
 from nipype.interfaces.base import File, SimpleInterface, TraitedSpec, isdefined, traits
-from nipype.utils.filemanip import fname_presuffix
 
 
 class CreateROIInputSpec(TraitedSpec):

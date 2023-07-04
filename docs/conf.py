@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # fmriprep documentation build configuration file, created by
 # sphinx-quickstart on Mon May  9 09:04:25 2016.
 #
@@ -24,7 +22,7 @@ from packaging import version as pver  # Avoid distutils.LooseVersion which is d
 sys.path.append(os.path.abspath("sphinxext"))
 sys.path.insert(0, os.path.abspath("../wrapper"))
 
-from github_link import make_linkcode_resolve
+from github_link import make_linkcode_resolve  # noqa: E402
 
 # -- General configuration ------------------------------------------------
 
@@ -87,7 +85,7 @@ master_doc = "index"
 # General information about the project.
 project = "fmriprep"
 author = "The fMRIPrep developers"
-copyright = "2016-%s, %s" % (datetime.now().year, author)
+copyright = f"2016-{datetime.now().year}, {author}"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
