@@ -125,6 +125,7 @@ def init_bold_fit_wf(
 
     have_hmcref = "hmc_boldref" in precomputed
     have_hmc = "hmc_xforms" in precomputed
+    have_coregref = "coreg_boldref" in precomputed
     # Can contain
     #  1) boldref2fmap
     #  2) boldref2anat
@@ -169,7 +170,6 @@ def init_bold_fit_wf(
             name="initial_boldref_wf",
             omp_nthreads=omp_nthreads,
             bold_file=bold_files,
-            sbref_files=sbref_files,
             multiecho=multiecho,
         )
         initial_boldref_wf.inputs.inputnode.dummy_scans = config.workflow.dummy_scans
@@ -197,6 +197,37 @@ def init_bold_fit_wf(
         hmcref_buffer.inputs.boldref = precomputed["hmc_boldref"]
 
         validate_bold = pe.Node(ValidateImage(), name="validate_bold")
+
+    if not have_coregref:
+        regref_buffer_in = pe.Node(niu.IdentityInterface(fields=["boldref"]), name="regref_buffer_in")
+        if sbref_files:
+            # enhanced reference based on sbref
+            initial_sbref_ref_wf = init_bold_reference_wf(
+                name="initial_sbref_ref_wf",
+                omp_nthreads=omp_nthreads,
+                bold_file=bold_files,
+                sbref_files=sbref_files,
+                multiecho=multiecho,
+            )
+            initial_sbref_ref_wf.inputs.inputnode.dummy_scans = config.workflow.dummy_scans
+
+            workflow.connect([
+                (initial_sbref_ref_wf, regref_buffer_in, [("boldref", "boldref")])]
+            )
+        else:
+            workflow.connect([
+                (hmcref_buffer, regref_buffer_in, [("boldref", "boldref")])]
+            )
+        if has_fieldmap:
+            # SDC on the reference, register to boldref_hmc
+            raise NotImplementedError
+        else:
+            # register to boldref_hmc
+            raise NotImplementedError
+            # workflow.connect([
+            #     (regref_buffer_in, regref_buffer, [("boldref", "boldref")])])
+    else:
+        regref_buffer.inputs.boldref = precomputed["coreg_boldref"]
 
     # Stage 2: Estimate head motion
     if not have_hmc:
