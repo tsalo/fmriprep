@@ -21,10 +21,61 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Utilities to handle BIDS inputs."""
+from __future__ import annotations
+
 import json
 import os
 import sys
+import typing as ty
+from collections import defaultdict
 from pathlib import Path
+
+from bids.layout import BIDSLayout
+
+from ..data import load
+
+
+def collect_derivatives(
+    derivatives_dir: Path,
+    subject_id: str,
+    spec: dict | None = None,
+    patterns: ty.List[str] | None = None,
+):
+    """Gather existing derivatives and compose a cache."""
+    if spec is None or patterns is None:
+        _spec, _patterns = tuple(
+            json.loads(load.readable("data/io_spec.json").read_text()).values()
+        )
+
+        if spec is None:
+            spec = _spec
+        if patterns is None:
+            patterns = _patterns
+
+    derivs_cache = defaultdict(list, {})
+    layout = BIDSLayout(derivatives_dir, config=["bids", "derivatives"], validate=False)
+    derivatives_dir = Path(derivatives_dir)
+
+    # search for both boldrefs
+    for k, q in spec["baseline"].items():
+        q["subject"] = subject_id
+        item = layout.get(return_type='filename', **q)
+        if not item:
+            continue
+        derivs_cache["%s_boldref" % k] = item[0] if len(item) == 1 else item
+
+    for xfm in spec['transforms']:
+        for k, q in spec['transforms'][xfm].items():
+            # flip the X2Y naming for opposite direction
+            if k == 'reverse':
+                xfm = '2'.join(xfm.split('2')[::-1])
+            q = q.copy()
+            q['subject'] = subject_id
+            item = layout.get(return_type='filename', **q)
+            if not item:
+                continue
+            derivs_cache[xfm] = item[0] if len(item) == 1 else item
+    return derivs_cache
 
 
 def write_bidsignore(deriv_dir):
