@@ -104,8 +104,8 @@ def build_workflow(config_file, retval):
         f"Output spaces: {config.execution.output_spaces}.",
     ]
 
-    if config.execution.anat_derivatives:
-        init_msg += [f"Anatomical derivatives: {config.execution.anat_derivatives}."]
+    if config.execution.derivatives:
+        init_msg += [f"Searching for derivatives: {config.execution.derivatives}."]
 
     if config.execution.fs_subjects_dir:
         init_msg += [f"Pre-run FreeSurfer's SUBJECTS_DIR: {config.execution.fs_subjects_dir}."]

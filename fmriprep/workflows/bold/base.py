@@ -29,12 +29,16 @@ Orchestrating the BOLD-preprocessing workflow
 
 """
 import os
+import typing as ty
 
+import bids
 import nibabel as nb
 import numpy as np
+from nipype import logging
 from nipype.interfaces import utility as niu
 from nipype.interfaces.fsl import Split as FSLSplit
 from nipype.pipeline import engine as pe
+from niworkflows.interfaces.header import ValidateImage
 from niworkflows.utils.connections import listify, pop_file
 
 from ... import config
@@ -54,6 +58,295 @@ from .resampling import (
 )
 from .stc import init_bold_stc_wf
 from .t2s import init_bold_t2s_wf, init_t2s_reporting_wf
+
+
+def get_sbrefs(
+    bold_files: ty.List[str],
+    entity_overrides: ty.Dict[str, ty.Any],
+    layout: bids.BIDSLayout,
+) -> ty.List[str]:
+    """Find single-band reference associated with a BOLD file
+
+    Parameters
+    ----------
+    bold_files
+        List of absolute paths to BOLD files
+    entity_overrides
+        Query parameters to override defaults
+    layout
+        :class:`~bids.layout.BIDSLayout` to query
+
+    Returns
+    -------
+    sbref_files
+        List of absolute paths to sbref files associated with input BOLD files
+    """
+    entities = extract_entities(bold_file)
+    entities.pop("echo")
+    entities.update(suffix="sbref", extension=[".nii", ".nii.gz"], **entity_overrides)
+
+    return layout.get(return_type="file", **entities)
+
+
+def init_bold_fit_wf(
+    bold_series: ty.Union[str, ty.List[str]],
+    precomputed: dict,
+    has_fieldmap: bool = False,
+) -> pe.Workflow:
+    from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+
+    workflow = Workflow(name=wf_name)
+
+    bold_files = listify(bold_series)
+    sbref_files = get_sbrefs(
+        bold_files,
+        entity_overrides=config.execution.bids_filters.get('sbref', {}),
+        layout=config.execution.layout,
+    )
+
+    entities = extract_entities(bold_files)
+    echo_idxs = listify(entities.get("echo", []))
+    multiecho = len(echo_idxs) > 2
+
+    estimator_key = None
+    if has_fieldmap:
+        estimator_key = get_estimator(layout, bold_files[0])
+
+        if estimator_key:
+            config.loggers.workflow.info(
+                f"Found usable B0-map (fieldmap) estimator(s) <{', '.join(estimator_key)}> "
+                f"to correct <{bold_file}> for susceptibility-derived distortions."
+            )
+        else:
+            has_fieldmap = False
+            config.loggers.workflow.critical(
+                f"None of the available B0 fieldmaps are associated to <{bold_file}>"
+            )
+
+    have_hmcref = "hmc_boldref" in precomputed
+    have_hmc = "hmc_xforms" in precomputed
+    have_coregref = "coreg_boldref" in precomputed
+    # Can contain
+    #  1) boldref2fmap
+    #  2) boldref2anat
+    #  3) hmc
+    transforms = precomputed.get("transforms", {})
+    # have_regref = "coreg_boldref" in precomputed
+    # XXX This may need a better name
+    coreg_xfm = precomputed.get("transforms", {}).get("boldref", {})
+
+    inputnode = pe.Node(
+        niu.IdentityInterface(
+            fields=[
+                "bold_file",
+                "t1w_preproc",
+                "t1w_mask",
+                "t1w_dseg",
+                "subjects_dir",
+                "subject_id",
+                "fsnative2t1w_xfm",
+            ],
+        ),
+        name="inputnode",
+    )
+    inputnode.inputs.bold_file = bold_series
+
+    # If all derivatives exist, inputnode could go unconnected, so add explicitly
+    workflow.add_nodes([inputnode])
+
+    hmcref_buffer = pe.Node(
+        niu.IdentityInterface(fields=["boldref", "bold_file"]), name="hmcref_buffer"
+    )
+    hmc_buffer = pe.Node(niu.IdentityInterface(fields=["hmc_xforms"]), name="hmc_buffer")
+    fmapreg_buffer = pe.Node(
+        niu.IdentityInterface(fields=["boldref2fmap_xform"]), name="hmc_buffer"
+    )
+    regref_buffer = pe.Node(niu.IdentityInterface(fields=["boldref"]), name="regref_buffer")
+
+    # Stage 1: Generate motion correction boldref
+    if not have_hmcref:
+        config.loggers.workflow.info("Stage 1: Adding HMC boldref workflow")
+        initial_boldref_wf = init_bold_reference_wf(
+            name="initial_boldref_wf",
+            omp_nthreads=omp_nthreads,
+            bold_file=bold_files,
+            multiecho=multiecho,
+        )
+        initial_boldref_wf.inputs.inputnode.dummy_scans = config.workflow.dummy_scans
+
+        ds_initial_boldref_wf = init_ds_boldref_wf(
+            bids_root=bids_root,
+            output_dir=output_dir,
+            desc='initial',
+            name='ds_initial_boldref_wf',
+        )
+
+        # fmt:off
+        workflow.connect([
+            (initial_boldref_wf, hmcref_buffer, [
+                ("outputnode.raw_ref_image", "boldref"),
+                ("outputnode.bold_file", "bold_file"),
+            ]),
+            (hmcref_buffer, ds_initial_boldref_wf, [
+                ("outputnode.raw_ref_image", "inputnode.raw_ref_image"),
+            ]),
+        ])
+        # fmt:on
+    else:
+        config.loggers.workflow.info("Found HMC boldref - skipping Stage 1")
+        hmcref_buffer.inputs.boldref = precomputed["hmc_boldref"]
+
+        validate_bold = pe.Node(ValidateImage(), name="validate_bold")
+
+    if not have_coregref:
+        regref_buffer_in = pe.Node(niu.IdentityInterface(fields=["boldref"]), name="regref_buffer_in")
+        if sbref_files:
+            # enhanced reference based on sbref
+            initial_sbref_ref_wf = init_bold_reference_wf(
+                name="initial_sbref_ref_wf",
+                omp_nthreads=omp_nthreads,
+                bold_file=bold_files,
+                sbref_files=sbref_files,
+                multiecho=multiecho,
+            )
+            initial_sbref_ref_wf.inputs.inputnode.dummy_scans = config.workflow.dummy_scans
+
+            workflow.connect([
+                (initial_sbref_ref_wf, regref_buffer_in, [("boldref", "boldref")])]
+            )
+        else:
+            workflow.connect([
+                (hmcref_buffer, regref_buffer_in, [("boldref", "boldref")])]
+            )
+        if has_fieldmap:
+            # SDC on the reference, register to boldref_hmc
+            raise NotImplementedError
+        else:
+            # register to boldref_hmc
+            raise NotImplementedError
+            # workflow.connect([
+            #     (regref_buffer_in, regref_buffer, [("boldref", "boldref")])])
+    else:
+        regref_buffer.inputs.boldref = precomputed["coreg_boldref"]
+
+    # Stage 2: Estimate head motion
+    if not have_hmc:
+        config.loggers.workflow.info("Stage 2: Adding motion correction workflow")
+        bold_hmc_wf = init_bold_hmc_wf(
+            name="bold_hmc_wf", mem_gb=mem_gb["filesize"], omp_nthreads=omp_nthreads
+        )
+
+        # fmt:off
+        workflow.connect([
+            (hmcref_buffer, bold_hmc_wf, [
+                # XXX Should a high-contrast ref be used for HMC? Maybe not.
+                # https://neurostars.org/t/18037
+                ("boldref", "inputnode.raw_ref_image"),
+                ("bold_file", "inputnode.bold_file"),
+            ]),
+        ])
+        # fmt:on
+    else:
+        config.loggers.workflow.info("Found motion correction transforms - skipping Stage 2")
+        hmc_buffer.inputs.hmc_xforms = precomputed["hmc_xforms"]
+
+    output_select = pe.Node(
+        KeySelect(fields=["fmap", "fmap_ref", "fmap_coeff", "fmap_mask", "sdc_method"]),
+        name="output_select",
+        run_without_submitting=True,
+    )
+
+    if not has_fieldmap:
+        config.loggers.workflow.info("No fieldmaps selected - skipping Stage 3")
+    elif "boldref2fmap" in transforms:
+        config.loggers.workflow.info("Found fieldmap registration transform - skipping Stage 3")
+    else:
+        config.loggers.workflow.info(
+            "Stage 3: Add fieldmap to BOLD reference registration workflow"
+        )
+
+    if has_fieldmap:
+        output_select = pe.Node(
+            KeySelect(fields=["fmap", "fmap_ref", "fmap_coeff", "fmap_mask", "sdc_method"]),
+            name="output_select",
+            run_without_submitting=True,
+        )
+        output_select.inputs.key = estimator_key[0]
+        if len(estimator_key) > 1:
+            config.loggers.workflow.warning(
+                f"Several fieldmaps <{', '.join(estimator_key)}> are "
+                f"'IntendedFor' <{bold_file}>, using {estimator_key[0]}"
+            )
+
+        # fmt:off
+        workflow.connect([
+            (inputnode, output_select, [
+                ("fmap", "fmap"),
+                ("fmap_ref", "fmap_ref"),
+                ("fmap_coeff", "fmap_coeff"),
+                ("fmap_mask", "fmap_mask"),
+                ("sdc_method", "sdc_method"),
+                ("fmap_id", "keys"),
+            ]),
+            (output_select, coeff2epi_wf, [
+                ("fmap_ref", "inputnode.fmap_ref"),
+                ("fmap_coeff", "inputnode.fmap_coeff"),
+                ("fmap_mask", "inputnode.fmap_mask"),
+            ]),
+            (coeff2epi_wf, fmapreg_buffer, [('target2fmap_xfm', 'boldref2fmap_xfm')]),
+        ])
+        # fmt:on
+
+    if "boldref2anat" not in transforms:
+        if has_fieldmap:
+            config.loggers.workflow.info("Stage 3A: Susceptibility correcting boldref")
+
+            output_select = pe.Node(
+                KeySelect(fields=["fmap", "fmap_ref", "fmap_coeff", "fmap_mask", "sdc_method"]),
+                name="output_select",
+                run_without_submitting=True,
+            )
+            output_select.inputs.key = estimator_key[0]
+            if len(estimator_key) > 1:
+                config.loggers.workflow.warning(
+                    f"Several fieldmaps <{', '.join(estimator_key)}> are "
+                    f"'IntendedFor' <{bold_file}>, using {estimator_key[0]}"
+                )
+        else:
+            config.loggers.workflow.info("No fieldmaps to apply - skipping Stage 3A")
+            # fmt:off
+            workflow.connect([
+                (hmcref_buffer, regref_buffer, [("boldref", "boldref")]),
+            ])
+            # fmt:on
+
+        # calculate BOLD registration to T1w
+        bold_reg_wf = init_bold_reg_wf(
+            bold2t1w_dof=config.workflow.bold2t1w_dof,
+            bold2t1w_init=config.workflow.bold2t1w_init,
+            freesurfer=freesurfer,
+            mem_gb=mem_gb["resampled"],
+            name="bold_reg_wf",
+            omp_nthreads=omp_nthreads,
+            sloppy=config.execution.sloppy,
+            use_bbr=config.workflow.use_bbr,
+            use_compression=False,
+        )
+
+        # fmt:off
+        workflow.connect([
+            (regref_buffer, bold_reg_wf, [("boldref", "inputnode.ref_bold_brain")]),
+            (inputnode, bold_reg_wf, [
+                ("t1w_dseg", "inputnode.t1w_dseg"),
+                # Undefined if --fs-no-reconall, but this is safe
+                ("subjects_dir", "inputnode.subjects_dir"),
+                ("subject_id", "inputnode.subject_id"),
+                ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
+            ]),
+        ])
+        # fmt:on
+
+    return workflow
 
 
 def init_func_preproc_wf(bold_file, has_fieldmap=False):
@@ -107,8 +400,6 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
         FreeSurfer SUBJECTS_DIR
     subject_id
         FreeSurfer subject ID
-    t1w2fsnative_xfm
-        LTA-style affine matrix translating from T1w to FreeSurfer-conformed subject space
     fsnative2t1w_xfm
         LTA-style affine matrix translating from FreeSurfer-conformed subject space to T1w
 
@@ -335,7 +626,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "std2anat_xfm",
                 "template",
                 "anat_ribbon",
-                "t1w2fsnative_xfm",
                 "fsnative2t1w_xfm",
                 "surfaces",
                 "morphometrics",
@@ -384,6 +674,16 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ),
         name="outputnode",
     )
+
+    # Outline
+    # 1) Find/create reference
+    # 2) HMC
+    # 3) Apply SDC
+    # 4) BOLD-T1w coregistration
+    # 5) T2* map
+    #
+    # Notes
+    # - STC only used for bold_split (apply)
 
     # Generate a brain-masked conversion of the t1w
     t1w_brain = pe.Node(ApplyMask(), name="t1w_brain")
@@ -866,7 +1166,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (inputnode, bold_surf_wf, [
                 ("subjects_dir", "inputnode.subjects_dir"),
                 ("subject_id", "inputnode.subject_id"),
-                ("t1w2fsnative_xfm", "inputnode.t1w2fsnative_xfm"),
+                ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
             ]),
             (bold_t1_trans_wf, bold_surf_wf, [("outputnode.bold_t1", "inputnode.source_file")]),
             (bold_surf_wf, outputnode, [("outputnode.surfaces", "surfaces")]),

@@ -139,6 +139,49 @@ def prepare_timing_parameters(metadata: dict):
     return timing_parameters
 
 
+def init_ds_boldref_wf(
+    *,
+    bids_root,
+    output_dir,
+    desc: str,
+    name="ds_boldref_wf",
+):
+    workflow = Workflow(name=name)
+
+    inputnode = pe.Node(
+        niu.IdentityInterface(fields=["source_files", "boldref"]),
+        name="inputnode",
+    )
+    outputnode = pe.Node(niu.IdentityInterface(fields=["boldref"]), name="outputnode")
+
+    raw_sources = pe.Node(niu.Function(function=_bids_relative), name="raw_sources")
+    raw_sources.inputs.bids_root = bids_root
+
+    ds_boldref = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc=desc,
+            suffix="boldref",
+            compress=True,
+            dismiss_entities=("echo",),
+        ),
+        name="ds_boldref",
+        run_without_submitting=True,
+    )
+
+    # fmt:off
+    workflow.connect([
+        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, ds_boldref, [('boldref', 'in_file'),
+                                  ('source_files', 'source_file')]),
+        (raw_sources, ds_boldref, [('out', 'RawSources')]),
+        (ds_boldref, outputnode, [('out_file', 'boldref')]),
+    ])
+    # fmt:on
+
+    return workflow
+
+
 def init_func_derivatives_wf(
     bids_root: str,
     cifti_output: bool,

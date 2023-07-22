@@ -1,0 +1,106 @@
+{
+  "queries": {
+    "baseline": {
+      "hmc": {
+        "datatype": "func",
+        "space": null,
+        "desc": "hmc",
+        "suffix": "boldref",
+        "extension": [
+          ".nii.gz",
+          ".nii"
+        ]
+      },
+      "coreg": {
+        "datatype": "func",
+        "space": null,
+        "desc": "coreg",
+        "suffix": "boldref",
+        "extension": [
+          ".nii.gz",
+          ".nii"
+        ]
+      }
+    },
+    "transforms": {
+      "bold2boldref": {
+        "forward": {
+          "datatype": "func",
+          "extension": [
+            "h5",
+            "txt"
+          ],
+          "from": "orig",
+          "to": "boldref",
+          "suffix": "xfm",
+          "mode": "image"
+        },
+        "reverse": {
+          "datatype": "func",
+          "extension": [
+            "h5",
+            "txt"
+          ],
+          "from": "boldref",
+          "to": "orig",
+          "suffix": "xfm",
+          "mode": "image"
+        }
+      },
+      "boldref2anat": {
+        "forward": {
+          "datatype": "func",
+          "extension": [
+            "h5",
+            "txt"
+          ],
+          "from": "boldref",
+          "to": "T1w",
+          "suffix": "xfm",
+          "mode": "image"
+        },
+          "reverse": {
+            "datatype": "func",
+            "extension": [
+              "h5",
+              "txt"
+            ],
+            "from": "T1w",
+            "to": "boldref",
+            "suffix": "xfm",
+            "mode": "image"
+          }
+      },
+      "boldref2fmap": {
+        "forward": {
+          "datatype": "func",
+          "extension": [
+            "h5",
+            "txt"
+          ],
+          "from": "boldref",
+          "to": "fmap",
+          "suffix": "xfm",
+          "mode": "image"
+        },
+        "reverse": {
+          "datatype": "func",
+          "extension": [
+            "h5",
+            "txt"
+          ],
+          "from": "fmap",
+          "to": "boldref",
+          "suffix": "xfm",
+          "mode": "image"
+        }
+      }
+    }
+  },
+  "patterns": [
+    "sub-{subject}[/ses-{session}]/{datatype<func>|func}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}][_res-{res}][_label-{label}][_echo-{echo}][_space-{space}][_desc-{desc}]_{suffix<bold|boldref|dseg|mask>}.{extension<nii|nii.gz|json>|nii.gz}",
+    "sub-{subject}[/ses-{session}]/{datatype<func>|func}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}][_run-{run}]_from-{from}_to-{to}_mode-{mode<image|points>|image}_{suffix<xfm>|xfm}.{extension<txt|h5>}",
+    "sub-{subject}[/ses-{session}]/{datatype<func>|func}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}][_run-{run}][_part-{part}][_desc-{desc}]_{suffix<timeseries>}.{extension<tsv|json>}",
+    "sub-{subject}[/ses-{session}]/{datatype<func>|func}/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_ce-{ceagent}][_rec-{reconstruction}][_space-{space}][_res-{res}][_den-{den}][_hemi-{hemi}[_label-{label}][_desc-{desc}]_{suffix<|boldref|dseg|mask>}.{extension<dtseries.nii|dtseries.json>}"
+  ]
+}

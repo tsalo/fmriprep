@@ -167,7 +167,6 @@ def init_single_subject_wf(subject_id: str):
         subject_data['t2w'] = []
 
     anat_only = config.workflow.anat_only
-    anat_derivatives = config.execution.anat_derivatives
     spaces = config.workflow.spaces
     # Make sure we always go through these two checks
     if not anat_only and not subject_data['bold']:
@@ -179,26 +178,23 @@ def init_single_subject_wf(subject_id: str):
             )
         )
 
-    if anat_derivatives:
+    deriv_cache = {}
+    if config.execution.derivatives:
         from smriprep.utils.bids import collect_derivatives
 
         std_spaces = spaces.get_spaces(nonstandard=False, dim=(3,))
-        anat_derivatives = collect_derivatives(
-            anat_derivatives.absolute(),
-            subject_id,
-            std_spaces,
-            config.workflow.run_reconall,
-        )
-        if anat_derivatives is None:
-            config.loggers.workflow.warning(
-                f"""\
-Attempted to access pre-existing anatomical derivatives at \
-<{config.execution.anat_derivatives}>, however not all expectations of fMRIPrep \
-were met (for participant <{subject_id}>, spaces <{', '.join(std_spaces)}>, \
-reconall <{config.workflow.run_reconall}>)."""
+        std_spaces.append("fsnative")
+        for deriv_dir in config.execution.derivatives:
+            deriv_cache.update(
+                collect_derivatives(
+                    derivatives_dir=deriv_dir,
+                    subject_id=subject_id,
+                    std_spaces=std_spaces,
+                    freesurfer=config.workflow.run_reconall,
+                )
             )
 
-    if not anat_derivatives and not subject_data['t1w']:
+    if "t1w_preproc" not in deriv_cache and not subject_data['t1w']:
         raise Exception(
             f"No T1w images found for participant {subject_id}. All workflows require T1w images."
         )
@@ -255,7 +251,6 @@ It is released under the [CC0]\
         BIDSDataGrabber(
             subject_data=subject_data,
             anat_only=anat_only,
-            anat_derivatives=anat_derivatives,
             subject_id=subject_id,
         ),
         name='bidssrc',
@@ -307,7 +302,7 @@ It is released under the [CC0]\
         bids_root=str(config.execution.bids_dir),
         sloppy=config.execution.sloppy,
         debug=config.execution.debug,
-        existing_derivatives=anat_derivatives,
+        precomputed=deriv_cache,
         freesurfer=config.workflow.run_reconall,
         hires=config.workflow.hires,
         longitudinal=config.workflow.longitudinal,
@@ -336,21 +331,13 @@ It is released under the [CC0]\
         (about, ds_report_about, [('out_report', 'in_file')]),
     ])
 
-    if not anat_derivatives:
-        workflow.connect([
-            (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
-            (bidssrc, summary, [('t1w', 't1w'),
-                                ('t2w', 't2w')]),
-            (bidssrc, ds_report_summary, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
-            (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
-        ])
-    else:
-        workflow.connect([
-            (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
-            (anat_preproc_wf, summary, [('outputnode.t1w_preproc', 't1w')]),
-            (anat_preproc_wf, ds_report_summary, [('outputnode.t1w_preproc', 'source_file')]),
-            (anat_preproc_wf, ds_report_about, [('outputnode.t1w_preproc', 'source_file')]),
-        ])
+    workflow.connect([
+        (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
+        (bidssrc, summary, [('t1w', 't1w'),
+                            ('t2w', 't2w')]),
+        (bidssrc, ds_report_summary, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+        (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+    ])
     # fmt:on
 
     # Overwrite ``out_path_base`` of smriprep's DataSinks
@@ -470,7 +457,6 @@ tasks and sessions), the following preprocessing was performed.
                 ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
                 ('outputnode.subject_id', 'inputnode.subject_id'),
                 ('outputnode.anat_ribbon', 'inputnode.anat_ribbon'),
-                ('outputnode.t1w2fsnative_xfm', 'inputnode.t1w2fsnative_xfm'),
                 ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm'),
                 ('outputnode.surfaces', 'inputnode.surfaces'),
                 ('outputnode.morphometrics', 'inputnode.morphometrics'),
