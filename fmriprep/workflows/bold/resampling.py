@@ -603,13 +603,15 @@ The BOLD time-series were resampled onto the left/right-symmetric template
     )
 
     joinnode = pe.JoinNode(
-        niu.IdentityInterface(fields=['bold_fsLR']),
+        niu.IdentityInterface(fields=['bold_fsLR', 'weights_text']),
         name='joinnode',
         joinsource='itersource',
     )
 
     outputnode = pe.Node(
-        niu.IdentityInterface(fields=['bold_fsLR', 'goodvoxels_mask']),
+        niu.IdentityInterface(
+            fields=['bold_fsLR', 'goodvoxels_mask', 'weights_text'],
+        ),
         name='outputnode',
     )
 
@@ -662,7 +664,10 @@ The BOLD time-series were resampled onto the left/right-symmetric template
     # RibbonVolumeToSurfaceMapping.sh
     # Line 85 thru ...
     volume_to_surface = pe.Node(
-        VolumeToSurfaceMapping(method="ribbon-constrained"),
+        VolumeToSurfaceMapping(
+            method="ribbon-constrained", 
+            output_weights_text="output_weights.txt",
+        ),
         name="volume_to_surface",
         mem_gb=mem_gb * 3,
         n_procs=omp_nthreads,
@@ -729,6 +734,8 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         # Output
         (mask_fsLR, joinnode, [('out_file', 'bold_fsLR')]),
         (joinnode, outputnode, [('bold_fsLR', 'bold_fsLR')]),
+        (volume_to_surface, joinnode, [('weights_text_file', 'weights_text')]),
+        (joinnode, outputnode, [('weights_text', 'weights_text')]),
     ])
     # fmt: on
 

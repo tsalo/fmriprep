@@ -380,6 +380,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "t2star_std",
                 "confounds",
                 "confounds_metadata",
+                "weights_text",
             ]
         ),
         name="outputnode",
@@ -911,6 +912,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
             (bold_fsLR_resampling_wf, func_derivatives_wf, [
                 ("outputnode.goodvoxels_mask", "inputnode.goodvoxels_mask"),
+            ]),
+            (bold_fsLR_resampling_wf, outputnode, [
+                ("outputnode.weights_text", "weights_text"),
             ]),
             (bold_grayords_wf, outputnode, [
                 ("outputnode.cifti_bold", "bold_cifti"),
