@@ -429,10 +429,20 @@ It is released under the [CC0]\
 
             fmap_estimators = [fmap for fmap in fmap_estimators if fmap.bids_id in used_estimators]
 
+            # Simplification: Unused estimators are removed from registry
+            # This fiddles with a private attribute, so it may break in future
+            # versions. However, it does mean the BOLD workflow doesn't need to
+            # replicate the logic that got us to the pared down set of estimators
+            # here.
+            final_ids = {fmap.bids_id for fmap in fmap_estimators}
+            unused_ids = [bids_id for bids_id in fm._estimators if bids_id not in final_ids]
+            for bids_id in unused_ids:
+                del fm._estimators[bids_id]
+
         if fmap_estimators:
             config.loggers.workflow.info(
                 "B0 field inhomogeneity map will be estimated with "
-                f" the following {len(fmap_estimators)} estimators: "
+                f"the following {len(fmap_estimators)} estimator(s): "
                 f"{[e.method for e in fmap_estimators]}."
             )
 
