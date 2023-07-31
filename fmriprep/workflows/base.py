@@ -435,7 +435,7 @@ It is released under the [CC0]\
             # replicate the logic that got us to the pared down set of estimators
             # here.
             final_ids = {fmap.bids_id for fmap in fmap_estimators}
-            unused_ids = [bids_id for bids_id in fm._estimators if bids_id not in final_ids]
+            unused_ids = fm._estimators.keys() - final_ids
             for bids_id in unused_ids:
                 del fm._estimators[bids_id]
 
