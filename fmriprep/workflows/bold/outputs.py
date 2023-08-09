@@ -28,6 +28,7 @@ import typing as ty
 import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
+from smriprep.workflows.outputs import _bids_relative
 
 from fmriprep import config
 from fmriprep.config import DEFAULT_MEMORY_MIN_GB
@@ -145,8 +146,8 @@ def init_ds_boldref_wf(
     output_dir,
     desc: str,
     name="ds_boldref_wf",
-):
-    workflow = Workflow(name=name)
+) -> pe.Workflow:
+    workflow = pe.Workflow(name=name)
 
     inputnode = pe.Node(
         niu.IdentityInterface(fields=["source_files", "boldref"]),
@@ -173,9 +174,53 @@ def init_ds_boldref_wf(
     workflow.connect([
         (inputnode, raw_sources, [('source_files', 'in_files')]),
         (inputnode, ds_boldref, [('boldref', 'in_file'),
-                                  ('source_files', 'source_file')]),
+                                 ('source_files', 'source_file')]),
         (raw_sources, ds_boldref, [('out', 'RawSources')]),
         (ds_boldref, outputnode, [('out_file', 'boldref')]),
+    ])
+    # fmt:on
+
+    return workflow
+
+
+def init_ds_hmc_wf(
+    *,
+    bids_root,
+    output_dir,
+    name="ds_hmc_wf",
+) -> pe.Workflow:
+    workflow = pe.Workflow(name=name)
+
+    inputnode = pe.Node(
+        niu.IdentityInterface(fields=["source_files", "xforms"]),
+        name="inputnode",
+    )
+    outputnode = pe.Node(niu.IdentityInterface(fields=["xforms"]), name="outputnode")
+
+    raw_sources = pe.Node(niu.Function(function=_bids_relative), name="raw_sources")
+    raw_sources.inputs.bids_root = bids_root
+
+    ds_xforms = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc="hmc",
+            suffix="xfm",
+            extension=".txt",
+            compress=True,
+            dismiss_entities=("echo",),
+            **{"from": "orig", "to": "boldref"},
+        ),
+        name="ds_xforms",
+        run_without_submitting=True,
+    )
+
+    # fmt:off
+    workflow.connect([
+        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, ds_xforms, [('xforms', 'in_file'),
+                                ('source_files', 'source_file')]),
+        (raw_sources, ds_xforms, [('out', 'RawSources')]),
+        (ds_xforms, outputnode, [('out_file', 'xforms')]),
     ])
     # fmt:on
 
