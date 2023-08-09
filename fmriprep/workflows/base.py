@@ -90,7 +90,7 @@ def init_fmriprep_wf():
             fsdir.inputs.subjects_dir = str(config.execution.fs_subjects_dir.absolute())
 
     for subject_id in config.execution.participant_label:
-        single_subject_wf = init_single_subject_wf(subject_id)
+        single_subject_wf = init_single_subject_fit_wf(subject_id)
 
         single_subject_wf.config['execution']['crashdump_dir'] = str(
             config.execution.fmriprep_dir / f"sub-{subject_id}" / "log" / config.execution.run_uuid
@@ -110,6 +110,132 @@ def init_fmriprep_wf():
         config.to_filename(log_dir / 'fmriprep.toml')
 
     return fmriprep_wf
+
+
+def init_single_subject_fit_wf(subject_id: str):
+    from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+    from niworkflows.interfaces.bids import BIDSDataGrabber, BIDSInfo
+    from niworkflows.utils.bids import collect_data
+    from niworkflows.utils.misc import fix_multi_T1w_source_name
+    from niworkflows.utils.spaces import Reference
+    from smriprep.workflows.anatomical import init_anat_fit_wf
+
+    from fmriprep.workflows.bold.fit import init_bold_fit_wf
+
+    spaces = config.workflow.spaces
+
+    workflow = Workflow(name=f'fit_sub_{subject_id}_wf')
+    subject_data = collect_data(
+        config.execution.layout,
+        subject_id,
+        task=config.execution.task_id,
+        echo=config.execution.echo_idx,
+        bids_filters=config.execution.bids_filters,
+    )[0]
+
+    deriv_cache = {}
+    if config.execution.derivatives:
+        from smriprep.utils.bids import collect_derivatives as collect_anat_derivatives
+
+        from fmriprep.utils.bids import collect_derivatives as collect_func_derivatives
+
+        std_spaces = spaces.get_spaces(nonstandard=False, dim=(3,))
+        std_spaces.append("fsnative")
+        for deriv_dir in config.execution.derivatives:
+            deriv_cache.update(
+                collect_anat_derivatives(
+                    derivatives_dir=deriv_dir,
+                    subject_id=subject_id,
+                    std_spaces=std_spaces,
+                    freesurfer=config.workflow.run_reconall,
+                )
+            )
+            deriv_cache.update(
+                collect_func_derivatives(
+                    derivatives_dir=deriv_dir,
+                    subject_id=subject_id,
+                )
+            )
+
+    inputnode = pe.Node(niu.IdentityInterface(fields=['subjects_dir']), name='inputnode')
+
+    bidssrc = pe.Node(
+        BIDSDataGrabber(
+            subject_data=subject_data,
+            anat_only=config.execution.anat_only,
+            subject_id=subject_id,
+        ),
+        name='bidssrc',
+    )
+
+    bids_info = pe.Node(
+        BIDSInfo(bids_dir=config.execution.bids_dir, bids_validate=False), name='bids_info'
+    )
+
+    # Build the workflow
+    anat_fit_wf = init_anat_fit_wf(
+        bids_root=str(config.execution.bids_dir),
+        output_dir=str(config.execution.output_dir),
+        freesurfer=config.workflow.run_reconall,
+        hires=config.workflow.hires,
+        longitudinal=config.workflow.longitudinal,
+        t1w=subject_data['t1w'],
+        t2w=subject_data['t2w'],
+        skull_strip_mode=config.workflow.skull_strip_t1w,
+        skull_strip_template=Reference.from_string(config.workflow.skull_strip_template)[0],
+        spaces=spaces,
+        precomputed=deriv_cache,
+        omp_nthreads=config.nipype.omp_nthreads,
+        sloppy=config.execution.sloppy,
+        skull_strip_fixed_seed=config.workflow.skull_strip_fixed_seed,
+    )
+
+    # fmt:off
+    workflow.connect([
+        (inputnode, anat_fit_wf, [('subjects_dir', 'inputnode.subjects_dir')]),
+        (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
+        (bidssrc, anat_fit_wf, [
+            ('t1w', 'inputnode.t1w'),
+            ('t2w', 'inputnode.t2w'),
+            ('roi', 'inputnode.roi'),
+            ('flair', 'inputnode.flair'),
+        ]),
+        (bids_info, anat_fit_wf, [(('subject', _prefix), 'inputnode.subject_id')]),
+    ])
+    # fmt:on
+
+    # Overwrite ``out_path_base`` of smriprep's DataSinks
+    for node in workflow.list_node_names():
+        if node.split('.')[-1].startswith('ds_'):
+            workflow.get_node(node).interface.out_path_base = ""
+
+    if config.workflow.anat_only:
+        return workflow
+
+    # XXX Add Fieldmaps
+    has_fieldmap = False
+
+    for bold_file in subject_data['bold']:
+        func_fit_wf = init_bold_fit_wf(
+            bold_series=bold_file,
+            precomputed=deriv_cache,
+            has_fieldmap=has_fieldmap,
+            omp_nthreads=config.nipype.omp_nthreads,
+        )
+
+        # fmt:off
+        workflow.connect([
+            (anat_fit_wf, func_fit_wf, [
+                ('outputnode.t1w_preproc', 'inputnode.t1w_preproc'),
+                ('outputnode.t1w_mask', 'inputnode.t1w_mask'),
+                ('outputnode.t1w_dseg', 'inputnode.t1w_dseg'),
+                ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
+                ('outputnode.subject_id', 'inputnode.subject_id'),
+                ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm'),
+            ]),
+        ])
+
+    return workflow
 
 
 def init_single_subject_wf(subject_id: str):

@@ -41,8 +41,6 @@ from sdcflows.workflows.apply.correction import init_unwarp_wf
 from sdcflows.workflows.apply.registration import init_coeff2epi_wf
 
 from ... import config
-from ...interfaces import DerivativesDataSink
-from ...interfaces.reports import FunctionalSummary
 
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
@@ -351,7 +349,7 @@ def init_bold_fit_wf(
         bold_reg_wf = init_bold_reg_wf(
             bold2t1w_dof=config.workflow.bold2t1w_dof,
             bold2t1w_init=config.workflow.bold2t1w_init,
-            freesurfer=freesurfer,
+            freesurfer=config.workflow.run_reconall,
             mem_gb=mem_gb["resampled"],
             name="bold_reg_wf",
             omp_nthreads=omp_nthreads,

@@ -29,15 +29,12 @@ Orchestrating the BOLD-preprocessing workflow
 
 """
 import os
-import typing as ty
 
-import bids
 import nibabel as nb
 import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.interfaces.fsl import Split as FSLSplit
 from nipype.pipeline import engine as pe
-from niworkflows.interfaces.header import ValidateImage
 from niworkflows.utils.connections import listify, pop_file
 
 from ... import config
@@ -49,7 +46,6 @@ from ...utils.meepi import combine_meepi_source
 from .confounds import init_bold_confs_wf, init_carpetplot_wf
 from .hmc import init_bold_hmc_wf
 from .outputs import init_func_derivatives_wf
-from .reference import init_raw_boldref_wf
 from .registration import init_bold_reg_wf, init_bold_t1_trans_wf
 from .resampling import (
     init_bold_preproc_trans_wf,
