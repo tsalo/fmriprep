@@ -36,11 +36,12 @@ def build_workflow(config_file, retval):
     """Create the Nipype Workflow that supports the whole execution graph."""
     from pathlib import Path
 
-    from niworkflows.utils.bids import check_pipeline_version, collect_participants
+    from niworkflows.utils.bids import collect_participants
     from niworkflows.utils.misc import check_valid_fs_license
     from pkg_resources import resource_filename as pkgrf
 
     from fmriprep.reports.core import generate_reports
+    from fmriprep.utils.bids import check_pipeline_version
 
     from .. import config
     from ..utils.misc import check_deps
@@ -66,7 +67,7 @@ def build_workflow(config_file, retval):
     build_log.log(25, f"\n{' ' * 9}".join(banner))
 
     # warn if older results exist: check for dataset_description.json in output folder
-    msg = check_pipeline_version(version, fmriprep_dir / "dataset_description.json")
+    msg = check_pipeline_version("fMRIPrep", version, fmriprep_dir / "dataset_description.json")
     if msg is not None:
         build_log.warning(msg)
 
