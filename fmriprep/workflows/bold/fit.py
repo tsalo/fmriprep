@@ -28,6 +28,7 @@ Orchestrating the BOLD-preprocessing workflow
 .. autofunction:: init_func_derivatives_wf
 
 """
+import os
 import typing as ty
 
 import bids
@@ -35,6 +36,7 @@ import nibabel as nb
 import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
+from niworkflows.func.util import init_enhance_and_skullstrip_bold_wf
 from niworkflows.interfaces.header import ValidateImage
 from niworkflows.utils.connections import listify
 from sdcflows.workflows.apply.correction import init_unwarp_wf
@@ -45,7 +47,7 @@ from ... import config
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
 from .outputs import init_ds_boldref_wf, init_ds_hmc_wf
-from .reference import init_enhance_boldref_wf, init_raw_boldref_wf
+from .reference import init_raw_boldref_wf
 from .registration import init_bold_reg_wf
 
 
@@ -72,7 +74,7 @@ def get_sbrefs(
         sorted by EchoTime
     """
     entities = extract_entities(bold_files)
-    entities.pop("echo")
+    entities.pop("echo", None)
     entities.update(suffix="sbref", extension=[".nii", ".nii.gz"], **entity_overrides)
 
     return sorted(
@@ -100,18 +102,16 @@ def init_bold_fit_wf(
     )
     sbref_files = get_sbrefs(
         bold_files,
-        entity_overrides=config.execution.bids_filters.get('sbref', {}),
+        entity_overrides=config.execution.get().get('bids_filters', {}).get('sbref', {}),
         layout=layout,
     )
 
     # Fitting operates on the shortest echo
     # This could become more complicated in the future
     bold_file = bold_files[0]
-    if sbref_files:
-        sbref_file = sbref_files[0]
 
-    if os.path.isfile(ref_file):
-        bold_tlen, mem_gb = _create_mem_gb(ref_file)
+    if os.path.isfile(bold_file):
+        bold_tlen, mem_gb = _create_mem_gb(bold_file)
 
     # Boolean used to update workflow self-descriptions
     multiecho = len(bold_files) > 1
@@ -195,6 +195,7 @@ def init_bold_fit_wf(
             desc='hmc',
             name='ds_hmc_boldref_wf',
         )
+        ds_hmc_boldref_wf.inputs.inputnode.source_files = [bold_file]
 
         # fmt:off
         workflow.connect([
@@ -207,7 +208,7 @@ def init_bold_fit_wf(
         config.loggers.workflow.info("Found HMC boldref - skipping Stage 1")
 
         validate_bold = pe.Node(ValidateImage(), name="validate_bold")
-        validate_bold.inputs.in_file = bold_files[0]
+        validate_bold.inputs.in_file = bold_file
 
         workflow.connect(validate_bold, "out_file", hmcref_buffer, "bold_file")
         hmcref_buffer.inputs.boldref = precomputed["hmc_boldref"]
@@ -223,6 +224,7 @@ def init_bold_fit_wf(
             bids_root=layout.root,
             output_dir=config.execution.output_dir,
         )
+        ds_hmc_wf.inputs.inputnode.source_files = [bold_file]
 
         # fmt:off
         workflow.connect([
@@ -230,7 +232,7 @@ def init_bold_fit_wf(
                 ("boldref", "inputnode.raw_ref_image"),
                 ("bold_file", "inputnode.bold_file"),
             ]),
-            (bold_hmc_wf, ds_hmc_wf, [("outputnode.xforms", "inputnode.xforms")])
+            (bold_hmc_wf, ds_hmc_wf, [("outputnode.xforms", "inputnode.xforms")]),
             (ds_hmc_wf, hmc_buffer, [("outputnode.xforms", "hmc_xforms")]),
         ])
         # fmt:on
@@ -244,13 +246,13 @@ def init_bold_fit_wf(
         config.loggers.workflow.info("Stage 3: Adding coregistration boldref workflow")
 
         # Select initial boldref, enhance contrast, and generate mask
-        fmapref_buffer.inputs.sbref_file = sbref_files
-        enhance_boldref_wf = init_enhance_boldref_wf(omp_nthreads=omp_nthreads)
+        fmapref_buffer.inputs.sbref_files = sbref_files
+        enhance_boldref_wf = init_enhance_and_skullstrip_bold_wf(omp_nthreads=omp_nthreads)
 
         # fmt:off
         workflow.connect([
-            (hmcref_buffer, fmapref_buffer, [("boldref", "boldref")]),
-            (fmapref_buffer, enhance_boldref_wf, [("out", "inputnode.boldref")])
+            (hmcref_buffer, fmapref_buffer, [("boldref", "boldref_files")]),
+            (fmapref_buffer, enhance_boldref_wf, [("out", "inputnode.in_file")])
         ])
         # fmt:on
 
@@ -297,15 +299,15 @@ def init_bold_fit_wf(
                 ]),
                 (coeff2epi_wf, fmapreg_buffer, [('target2fmap_xfm', 'boldref2fmap_xfm')]),
                 (enhance_boldref_wf, coeff2epi_wf, [
-                    ('outputnode.boldref', 'inputnode.target_ref'),
-                    ('outputnode.bold_mask', 'inputnode.target_mask'),
+                    ('outputnode.bias_corrected_file', 'inputnode.target_ref'),
+                    ('outputnode.mask_file', 'inputnode.target_mask'),
                 ]),
                 (coeff2epi_wf, unwarp_wf, [
                     ("outputnode.fmap_coeff", "inputnode.fmap_coeff"),
                 ]),
                 (enhance_boldref_wf, unwarp_wf, [
-                    ('outputnode.boldref', 'inputnode.distorted_ref'),
-                    ('outputnode.boldref', 'inputnode.distorted'),
+                    ('outputnode.bias_corrected_file', 'inputnode.distorted_ref'),
+                    ('outputnode.bias_corrected_file', 'inputnode.distorted'),
                 ]),
                 (unwarp_wf, regref_buffer, [
                     ('outputnode.corrected_ref', 'boldref'),
@@ -317,8 +319,8 @@ def init_bold_fit_wf(
             # fmt:off
             workflow.connect([
                 (enhance_boldref_wf, regref_buffer, [
-                    ('outputnode.boldref', 'boldref'),
-                    ('outputnode.bold_mask', 'boldmask'),
+                    ('outputnode.bias_corrected_file', 'boldref'),
+                    ('outputnode.mask_file', 'boldmask'),
                 ]),
             ])
             # fmt:on
@@ -327,28 +329,6 @@ def init_bold_fit_wf(
         regref_buffer.inputs.boldref = precomputed["coreg_boldref"]
 
     if "boldref2anat" not in transforms:
-        if has_fieldmap:
-            config.loggers.workflow.info("Stage 3A: Susceptibility correcting boldref")
-
-            output_select = pe.Node(
-                KeySelect(fields=["fmap", "fmap_ref", "fmap_coeff", "fmap_mask", "sdc_method"]),
-                name="output_select",
-                run_without_submitting=True,
-            )
-            output_select.inputs.key = estimator_key[0]
-            if len(estimator_key) > 1:
-                config.loggers.workflow.warning(
-                    f"Several fieldmaps <{', '.join(estimator_key)}> are "
-                    f"'IntendedFor' <{bold_file}>, using {estimator_key[0]}"
-                )
-        else:
-            config.loggers.workflow.info("No fieldmaps to apply - skipping Stage 3A")
-            # fmt:off
-            workflow.connect([
-                (hmcref_buffer, regref_buffer, [("boldref", "boldref")]),
-            ])
-            # fmt:on
-
         # calculate BOLD registration to T1w
         bold_reg_wf = init_bold_reg_wf(
             bold2t1w_dof=config.workflow.bold2t1w_dof,
@@ -484,5 +464,7 @@ def get_estimator(layout, fname):
 
 def _select_ref(sbref_files, boldref_files):
     """Select first sbref or boldref file, preferring sbref if available"""
+    from niworkflows.utils.connections import listify
+
     refs = sbref_files or boldref_files
     return listify(refs)[0]

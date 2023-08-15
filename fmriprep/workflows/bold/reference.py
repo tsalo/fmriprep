@@ -104,11 +104,10 @@ using a custom methodology of *fMRIPrep*, for use in head motion correction.
     if bold_file is not None:
         inputnode.inputs.bold_file = bold_file
 
-    val_bold = pe.MapNode(
+    val_bold = pe.Node(
         ValidateImage(),
         name="val_bold",
         mem_gb=DEFAULT_MEMORY_MIN_GB,
-        iterfield=["in_file"],
     )
 
     get_dummy = pe.Node(NonsteadyStatesDetector(), name="get_dummy")
@@ -129,101 +128,10 @@ using a custom methodology of *fMRIPrep*, for use in head motion correction.
         (val_bold, gen_avg, [("out_file", "in_file")]),
         (get_dummy, gen_avg, [("t_mask", "t_mask")]),
         (get_dummy, calc_dummy_scans, [("n_dummy", "algo_dummy_scans")]),
+        (val_bold, outputnode, [("out_file", "bold_file")]),
         (calc_dummy_scans, outputnode, [("skip_vols_num", "skip_vols")]),
         (gen_avg, outputnode, [("out_file", "boldref")]),
         (get_dummy, outputnode, [("n_dummy", "algo_dummy_scans")]),
-    ])
-    # fmt: on
-
-    return workflow
-
-
-def init_enhance_boldref_wf(
-    *,
-    omp_nthreads=1,
-    name="enhance_boldref_wf",
-):
-    """
-    Build a workflow that generates reference BOLD images for a series.
-
-    The raw reference image is the target of :abbr:`HMC (head motion correction)`, and a
-    contrast-enhanced reference is the subject of distortion correction, as well as
-    boundary-based registration to T1w and template spaces.
-
-    This workflow assumes only one BOLD file has been passed.
-
-    Workflow Graph
-        .. workflow::
-            :graph2use: orig
-            :simple_form: yes
-
-            from fmriprep.workflows.bold.reference import init_raw_boldref_wf
-            wf = init_raw_boldref_wf()
-
-    Parameters
-    ----------
-    bold_file : :obj:`str`
-        BOLD series NIfTI file
-    multiecho : :obj:`bool`
-        If multiecho data was supplied, data from the first echo will be selected
-    name : :obj:`str`
-        Name of workflow (default: ``bold_reference_wf``)
-
-    Inputs
-    ------
-    bold_file : str
-        BOLD series NIfTI file
-    dummy_scans : int or None
-        Number of non-steady-state volumes specified by user at beginning of ``bold_file``
-
-    Outputs
-    -------
-    bold_file : str
-        Validated BOLD series NIfTI file
-    boldref : str
-        Reference image to which BOLD series is motion corrected
-    skip_vols : int
-        Number of non-steady-state volumes selected at beginning of ``bold_file``
-    algo_dummy_scans : int
-        Number of non-steady-state volumes agorithmically detected at
-        beginning of ``bold_file``
-
-    """
-    from niworkflows.interfaces.images import RobustAverage
-
-    workflow = Workflow(name=name)
-    workflow.__desc__ = f"""\
-First, a reference volume was generated{' from the shortest echo of the BOLD run' * multiecho},
-using a custom methodology of *fMRIPrep*, for use in head motion correction.
-"""
-
-    inputnode = pe.Node(niu.IdentityInterface(fields=["boldref"]), name="inputnode")
-    outputnode = pe.Node(
-        niu.IdentityInterface(fields=["boldref", "bold_mask", "masked_boldref"]), name="outputnode"
-    )
-
-    validate = pe.Node(
-        ValidateImage(),
-        name="val_bold",
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
-
-    gen_avg = pe.Node(RobustAverage(), name="gen_avg", mem_gb=1)
-
-    enhance_and_skullstrip_wf = init_enhance_and_skullstrip_bold_wf(
-        omp_nthreads=omp_nthreads,
-    )
-
-    # fmt: off
-    workflow.connect([
-        (inputnode, validate, [("bold_file", "in_file")]),
-        (validate, gen_avg, [("out_file", "in_file")]),
-        (gen_avg, enhance_and_skullstrip_wf, [("out_file", "inputnode.in_file")]),
-        (enhance_and_skullstrip_wf, outputnode, [
-            ("outputnode.bias_corrected_file", "boldref"),
-            ("outputnode.mask_file", "bold_mask"),
-            ("outputnode.skull_stripped_file", "masked_boldref"),
-        ]),
     ])
     # fmt: on
 

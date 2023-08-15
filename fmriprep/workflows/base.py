@@ -162,7 +162,7 @@ def init_single_subject_fit_wf(subject_id: str):
     bidssrc = pe.Node(
         BIDSDataGrabber(
             subject_data=subject_data,
-            anat_only=config.execution.anat_only,
+            anat_only=config.workflow.anat_only,
             subject_id=subject_id,
         ),
         name='bidssrc',
