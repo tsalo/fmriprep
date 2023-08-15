@@ -107,7 +107,11 @@ def init_bold_fit_wf(
     # Fitting operates on the shortest echo
     # This could become more complicated in the future
     bold_file = bold_files[0]
-    sbref_file = sbref_files[0]
+    if sbref_files:
+        sbref_file = sbref_files[0]
+
+    if os.path.isfile(ref_file):
+        bold_tlen, mem_gb = _create_mem_gb(ref_file)
 
     # Boolean used to update workflow self-descriptions
     multiecho = len(bold_files) > 1
@@ -240,7 +244,7 @@ def init_bold_fit_wf(
         config.loggers.workflow.info("Stage 3: Adding coregistration boldref workflow")
 
         # Select initial boldref, enhance contrast, and generate mask
-        fmapref_buffer.inputs.sbref_file = sbref_file
+        fmapref_buffer.inputs.sbref_file = sbref_files
         enhance_boldref_wf = init_enhance_boldref_wf(omp_nthreads=omp_nthreads)
 
         # fmt:off
