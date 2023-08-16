@@ -212,14 +212,195 @@ def init_single_subject_fit_wf(subject_id: str):
     if config.workflow.anat_only:
         return workflow
 
-    # XXX Add Fieldmaps
-    has_fieldmap = False
+    from sdcflows import fieldmaps as fm
+
+    fmap_estimators = None
+
+    if any(
+        (
+            "fieldmaps" not in config.workflow.ignore,
+            config.workflow.use_syn_sdc,
+            config.workflow.force_syn,
+        )
+    ):
+        from sdcflows.utils.wrangler import find_estimators
+
+        # SDC Step 1: Run basic heuristics to identify available data for fieldmap estimation
+        # For now, no fmapless
+        filters = None
+        if config.execution.bids_filters is not None:
+            filters = config.execution.bids_filters.get("fmap")
+
+        # In the case where fieldmaps are ignored and `--use-syn-sdc` is requested,
+        # SDCFlows `find_estimators` still receives a full layout (which includes the fmap modality)
+        # and will not calculate fmapless schemes.
+        # Similarly, if fieldmaps are ignored and `--force-syn` is requested,
+        # `fmapless` should be set to True to ensure BOLD targets are found to be corrected.
+        fmapless = bool(config.workflow.use_syn_sdc) or (
+            "fieldmaps" in config.workflow.ignore and config.workflow.force_syn
+        )
+        force_fmapless = config.workflow.force_syn or (
+            "fieldmaps" in config.workflow.ignore and config.workflow.use_syn_sdc
+        )
+
+        fmap_estimators = find_estimators(
+            layout=config.execution.layout,
+            subject=subject_id,
+            fmapless=fmapless,
+            force_fmapless=force_fmapless,
+            bids_filters=filters,
+        )
+
+        if config.workflow.use_syn_sdc and not fmap_estimators:
+            message = (
+                "Fieldmap-less (SyN) estimation was requested, but PhaseEncodingDirection "
+                "information appears to be absent."
+            )
+            config.loggers.workflow.error(message)
+            if config.workflow.use_syn_sdc == "error":
+                raise ValueError(message)
+
+        if "fieldmaps" in config.workflow.ignore and any(
+            f.method == fm.EstimatorType.ANAT for f in fmap_estimators
+        ):
+            config.loggers.workflow.info(
+                'Option "--ignore fieldmaps" was set, but either "--use-syn-sdc" '
+                'or "--force-syn" were given, so fieldmap-less estimation will be executed.'
+            )
+            fmap_estimators = [f for f in fmap_estimators if f.method == fm.EstimatorType.ANAT]
+
+        # Do not calculate fieldmaps that we will not use
+        if fmap_estimators:
+            all_ids = {fmap.bids_id for fmap in fmap_estimators}
+            bold_files = (listify(bold_file)[0] for bold_file in subject_data['bold'])
+
+            all_estimators = {
+                bold_file: [
+                    fmap_id
+                    for fmap_id in get_estimator(config.execution.layout, bold_file)
+                    if fmap_id in all_ids
+                ]
+                for bold_file in bold_files
+            }
+
+            for bold_file, estimator_key in all_estimators.items():
+                if len(estimator_key) > 1:
+                    config.loggers.workflow.warning(
+                        f"Several fieldmaps <{', '.join(estimator_key)}> are "
+                        f"'IntendedFor' <{bold_file}>, using {estimator_key[0]}"
+                    )
+                    estimator_key[1:] = []
+
+            # Final, 1-1 map, dropping uncorrected BOLD
+            estimator_map = {
+                bold_file: estimator_key[0]
+                for bold_file, estimator_key in all_estimators.items()
+                if estimator_key
+            }
+
+            fmap_estimators = [f for f in fmap_estimators if f.bids_id in estimator_map.values()]
+
+        if fmap_estimators:
+            config.loggers.workflow.info(
+                "B0 field inhomogeneity map will be estimated with "
+                f"the following {len(fmap_estimators)} estimator(s): "
+                f"{[e.method for e in fmap_estimators]}."
+            )
+
+    if fmap_estimators:
+        from niworkflows.interfaces.utility import KeySelect
+        from sdcflows.workflows.base import init_fmap_preproc_wf
+
+        fmap_wf = init_fmap_preproc_wf(
+            debug="fieldmaps" in config.execution.debug,
+            estimators=fmap_estimators,
+            omp_nthreads=config.nipype.omp_nthreads,
+            output_dir=str(config.execution.fmriprep_dir),
+            subject=subject_id,
+        )
+
+        # Overwrite ``out_path_base`` of sdcflows's DataSinks
+        for node in fmap_wf.list_node_names():
+            if node.split(".")[-1].startswith("ds_"):
+                fmap_wf.get_node(node).interface.out_path_base = ""
+
+        fmap_select_std = pe.Node(
+            KeySelect(fields=["std2anat_xfm"], key="MNI152NLin2009cAsym"),
+            name="fmap_select_std",
+            run_without_submitting=True,
+        )
+        if any(estimator.method == fm.EstimatorType.ANAT for estimator in fmap_estimators):
+            # fmt:off
+            workflow.connect([
+                (anat_preproc_wf, fmap_select_std, [
+                    ("outputnode.std2anat_xfm", "std2anat_xfm"),
+                    ("outputnode.template", "keys")]),
+            ])
+            # fmt:on
+
+        for estimator in fmap_estimators:
+            config.loggers.workflow.info(
+                f"""\
+Sett    ing-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
+<{',     '.join(s.path.name for s in estimator.sources)}>"""
+            )
+
+            # Mapped and phasediff can be connected internally by SDCFlows
+            if estimator.method in (fm.EstimatorType.MAPPED, fm.EstimatorType.PHASEDIFF):
+                continue
+
+            suffices = [s.suffix for s in estimator.sources]
+
+            if estimator.method == fm.EstimatorType.PEPOLAR:
+                if len(suffices) == 2 and all(suf in ("epi", "bold", "sbref") for suf in suffices):
+                    wf_inputs = getattr(fmap_wf.inputs, f"in_{estimator.bids_id}")
+                    wf_inputs.in_data = [str(s.path) for s in estimator.sources]
+                    wf_inputs.metadata = [s.metadata for s in estimator.sources]
+                else:
+                    raise NotImplementedError("Sophisticated PEPOLAR schemes are unsupported.")
+
+            elif estimator.method == fm.EstimatorType.ANAT:
+                from sdcflows.workflows.fit.syn import init_syn_preprocessing_wf
+
+                sources = [str(s.path) for s in estimator.sources if s.suffix in ("bold", "sbref")]
+                source_meta = [
+                    s.metadata for s in estimator.sources if s.suffix in ("bold", "sbref")
+                ]
+                syn_preprocessing_wf = init_syn_preprocessing_wf(
+                    omp_nthreads=config.nipype.omp_nthreads,
+                    debug=config.execution.sloppy,
+                    auto_bold_nss=True,
+                    t1w_inversion=False,
+                    name=f"syn_preprocessing_{estimator.bids_id}",
+                )
+                syn_preprocessing_wf.inputs.inputnode.in_epis = sources
+                syn_preprocessing_wf.inputs.inputnode.in_meta = source_meta
+
+                # fmt:off
+                workflow.connect([
+                    (anat_preproc_wf, syn_preprocessing_wf, [
+                        ("outputnode.t1w_preproc", "inputnode.in_anat"),
+                        ("outputnode.t1w_mask", "inputnode.mask_anat"),
+                    ]),
+                    (fmap_select_std, syn_preprocessing_wf, [
+                        ("std2anat_xfm", "inputnode.std2anat_xfm"),
+                    ]),
+                    (syn_preprocessing_wf, fmap_wf, [
+                        ("outputnode.epi_ref", f"in_{estimator.bids_id}.epi_ref"),
+                        ("outputnode.epi_mask", f"in_{estimator.bids_id}.epi_mask"),
+                        ("outputnode.anat_ref", f"in_{estimator.bids_id}.anat_ref"),
+                        ("outputnode.anat_mask", f"in_{estimator.bids_id}.anat_mask"),
+                        ("outputnode.sd_prior", f"in_{estimator.bids_id}.sd_prior"),
+                    ]),
+                ])
+                # fmt:on
 
     for bold_file in subject_data['bold']:
+        fieldmap_id = estimator_map.get(listify(bold_file)[0])
         func_fit_wf = init_bold_fit_wf(
             bold_series=bold_file,
             precomputed=deriv_cache,
-            has_fieldmap=has_fieldmap,
+            fieldmap_id=fieldmap_id,
             omp_nthreads=config.nipype.omp_nthreads,
         )
 
@@ -234,6 +415,21 @@ def init_single_subject_fit_wf(subject_id: str):
                 ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm'),
             ]),
         ])
+        # fmt: on
+
+        if fieldmap_id:
+            # fmt:off
+            workflow.connect([
+                (fmap_wf, func_fit_wf, [
+                    ("outputnode.fmap", "inputnode.fmap"),
+                    ("outputnode.fmap_ref", "inputnode.fmap_ref"),
+                    ("outputnode.fmap_coeff", "inputnode.fmap_coeff"),
+                    ("outputnode.fmap_mask", "inputnode.fmap_mask"),
+                    ("outputnode.fmap_id", "inputnode.fmap_id"),
+                    ("outputnode.method", "inputnode.sdc_method"),
+                ]),
+            ])
+            # fmt:on
 
     return workflow
 

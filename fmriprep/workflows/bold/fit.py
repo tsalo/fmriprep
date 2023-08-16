@@ -87,7 +87,7 @@ def init_bold_fit_wf(
     *,
     bold_series: ty.Union[str, ty.List[str]],
     precomputed: dict,
-    has_fieldmap: bool = False,
+    fieldmap_id: ty.Optional[str] = None,
     omp_nthreads: int = 1,
 ) -> pe.Workflow:
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
@@ -116,26 +116,6 @@ def init_bold_fit_wf(
     # Boolean used to update workflow self-descriptions
     multiecho = len(bold_files) > 1
 
-    estimator_key = None
-    if has_fieldmap:
-        from sdcflows import fieldmaps as fm
-
-        # We may have pruned the estimator collection due to `--ignore fieldmaps`
-        estimator_key = [
-            key for key in get_estimator(layout, bold_files[0]) if key in fm._estimators
-        ]
-
-        if not estimator_key:
-            has_fieldmap = False
-            config.loggers.workflow.critical(
-                f"None of the available B0 fieldmaps are associated to <{bold_file}>"
-            )
-        else:
-            config.loggers.workflow.info(
-                f"Found usable B0-map (fieldmap) estimator(s) <{', '.join(estimator_key)}> "
-                f"to correct <{bold_file}> for susceptibility-derived distortions."
-            )
-
     have_hmcref = "hmc_boldref" in precomputed
     have_hmc = "hmc_xforms" in precomputed
     have_coregref = "coreg_boldref" in precomputed
@@ -154,6 +134,14 @@ def init_bold_fit_wf(
         niu.IdentityInterface(
             fields=[
                 "bold_file",
+                # Fieldmap registration
+                "fmap",
+                "fmap_ref",
+                "fmap_coeff",
+                "fmap_mask",
+                "fmap_id",
+                "sdc_method",
+                # Anatomical coregistration
                 "t1w_preproc",
                 "t1w_mask",
                 "t1w_dseg",
@@ -289,7 +277,7 @@ def init_bold_fit_wf(
         ])
         # fmt:on
 
-        if has_fieldmap:
+        if fieldmap_id:
             coeff2epi_wf = init_coeff2epi_wf(
                 debug="fieldmaps" in config.execution.debug,
                 omp_nthreads=config.nipype.omp_nthreads,
@@ -303,21 +291,18 @@ def init_bold_fit_wf(
             )
             unwarp_wf.inputs.inputnode.metadata = layout.get_metadata(bold_file)
 
-            output_select = pe.Node(
-                KeySelect(fields=["fmap", "fmap_ref", "fmap_coeff", "fmap_mask", "sdc_method"]),
-                name="output_select",
+            fmap_select = pe.Node(
+                KeySelect(
+                    fields=["fmap", "fmap_ref", "fmap_coeff", "fmap_mask", "sdc_method"],
+                    key=fieldmap_id,
+                ),
+                name="fmap_select",
                 run_without_submitting=True,
             )
-            output_select.inputs.key = estimator_key[0]
-            if len(estimator_key) > 1:
-                config.loggers.workflow.warning(
-                    f"Several fieldmaps <{', '.join(estimator_key)}> are "
-                    f"'IntendedFor' <{bold_file}>, using {estimator_key[0]}"
-                )
 
             # fmt:off
             workflow.connect([
-                (inputnode, output_select, [
+                (inputnode, fmap_select, [
                     ("fmap", "fmap"),
                     ("fmap_ref", "fmap_ref"),
                     ("fmap_coeff", "fmap_coeff"),
@@ -325,12 +310,12 @@ def init_bold_fit_wf(
                     ("sdc_method", "sdc_method"),
                     ("fmap_id", "keys"),
                 ]),
-                (output_select, coeff2epi_wf, [
+                (fmap_select, coeff2epi_wf, [
                     ("fmap_ref", "inputnode.fmap_ref"),
                     ("fmap_coeff", "inputnode.fmap_coeff"),
                     ("fmap_mask", "inputnode.fmap_mask"),
                 ]),
-                (coeff2epi_wf, fmapreg_buffer, [('target2fmap_xfm', 'boldref2fmap_xfm')]),
+                (coeff2epi_wf, fmapreg_buffer, [('outputnode.target2fmap_xfm', 'boldref2fmap_xfm')]),
                 (enhance_boldref_wf, coeff2epi_wf, [
                     ('outputnode.bias_corrected_file', 'inputnode.target_ref'),
                     ('outputnode.mask_file', 'inputnode.target_mask'),
