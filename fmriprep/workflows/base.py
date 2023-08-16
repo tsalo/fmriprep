@@ -341,8 +341,8 @@ def init_single_subject_fit_wf(subject_id: str):
         for estimator in fmap_estimators:
             config.loggers.workflow.info(
                 f"""\
-Sett    ing-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
-<{',     '.join(s.path.name for s in estimator.sources)}>"""
+Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
+<{', '.join(s.path.name for s in estimator.sources)}>"""
             )
 
             # Mapped and phasediff can be connected internally by SDCFlows
