@@ -340,6 +340,7 @@ def init_bold_fit_wf(
             sloppy=config.execution.sloppy,
             use_bbr=config.workflow.use_bbr,
             use_compression=False,
+            write_report=False,
         )
 
         # fmt:off
