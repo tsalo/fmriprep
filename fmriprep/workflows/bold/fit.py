@@ -46,7 +46,7 @@ from ... import config
 
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
-from .outputs import init_ds_boldref_wf, init_ds_hmc_wf
+from .outputs import init_ds_boldref_wf, init_ds_boldreg_wf, init_ds_hmc_wf
 from .reference import init_raw_boldref_wf
 from .registration import init_bold_reg_wf
 
@@ -166,6 +166,19 @@ def init_bold_fit_wf(
     )
     inputnode.inputs.bold_file = bold_series
 
+    outputnode = pe.Node(
+        niu.IdentityInterface(
+            fields=[
+                "hmc_boldref",
+                "coreg_boldref",
+                "bold_mask",
+                "motion_xfm",
+                "boldref2anat_xfm",
+            ],
+        ),
+        name="outputnode",
+    )
+
     # If all derivatives exist, inputnode could go unconnected, so add explicitly
     workflow.add_nodes([inputnode])
 
@@ -175,9 +188,20 @@ def init_bold_fit_wf(
     fmapref_buffer = pe.Node(niu.Function(function=_select_ref), name="fmapref_buffer")
     hmc_buffer = pe.Node(niu.IdentityInterface(fields=["hmc_xforms"]), name="hmc_buffer")
     fmapreg_buffer = pe.Node(
-        niu.IdentityInterface(fields=["boldref2fmap_xform"]), name="hmc_buffer"
+        niu.IdentityInterface(fields=["boldref2fmap_xform"]), name="fmapreg_buffer"
     )
-    regref_buffer = pe.Node(niu.IdentityInterface(fields=["boldref"]), name="regref_buffer")
+    regref_buffer = pe.Node(
+        niu.IdentityInterface(fields=["boldref", "boldmask"]), name="regref_buffer"
+    )
+
+    # fmt:off
+    workflow.connect([
+        (hmcref_buffer, outputnode, [("boldref", "hmc_boldref")]),
+        (regref_buffer, outputnode, [("boldref", "coreg_boldref"),
+                                     ("boldmask", "bold_mask")]),
+        (hmc_buffer, outputnode, [("hmc_xforms", "motion_xfm")]),
+    ])
+    # fmt:on
 
     # Stage 1: Generate motion correction boldref
     if not have_hmcref:
@@ -249,10 +273,19 @@ def init_bold_fit_wf(
         fmapref_buffer.inputs.sbref_files = sbref_files
         enhance_boldref_wf = init_enhance_and_skullstrip_bold_wf(omp_nthreads=omp_nthreads)
 
+        ds_coreg_boldref_wf = init_ds_boldref_wf(
+            bids_root=layout.root,
+            output_dir=config.execution.output_dir,
+            desc='coreg',
+            name='ds_coreg_boldref_wf',
+        )
+
         # fmt:off
         workflow.connect([
             (hmcref_buffer, fmapref_buffer, [("boldref", "boldref_files")]),
-            (fmapref_buffer, enhance_boldref_wf, [("out", "inputnode.in_file")])
+            (fmapref_buffer, enhance_boldref_wf, [("out", "inputnode.in_file")]),
+            (fmapref_buffer, ds_coreg_boldref_wf, [("out", "inputnode.source_files")]),
+            (ds_coreg_boldref_wf, regref_buffer, [("outputnode.boldref", "boldref")]),
         ])
         # fmt:on
 
@@ -309,8 +342,10 @@ def init_bold_fit_wf(
                     ('outputnode.bias_corrected_file', 'inputnode.distorted_ref'),
                     ('outputnode.bias_corrected_file', 'inputnode.distorted'),
                 ]),
+                (unwarp_wf, ds_coreg_boldref_wf, [
+                    ('outputnode.corrected_ref', 'inputnode.boldref'),
+                ]),
                 (unwarp_wf, regref_buffer, [
-                    ('outputnode.corrected_ref', 'boldref'),
                     ('outputnode.corrected_mask', 'boldmask'),
                 ]),
             ])
@@ -318,8 +353,10 @@ def init_bold_fit_wf(
         else:
             # fmt:off
             workflow.connect([
+                (enhance_boldref_wf, ds_coreg_boldref_wf, [
+                    ('outputnode.bias_corrected_file', 'inputnode.boldref'),
+                ]),
                 (enhance_boldref_wf, regref_buffer, [
-                    ('outputnode.bias_corrected_file', 'boldref'),
                     ('outputnode.mask_file', 'boldmask'),
                 ]),
             ])
@@ -343,9 +380,13 @@ def init_bold_fit_wf(
             write_report=False,
         )
 
+        ds_boldreg_wf = init_ds_boldreg_wf(
+            bids_root=layout.root,
+            output_dir=config.execution.output_dir,
+        )
+
         # fmt:off
         workflow.connect([
-            (regref_buffer, bold_reg_wf, [("boldref", "inputnode.ref_bold_brain")]),
             (inputnode, bold_reg_wf, [
                 ("t1w_dseg", "inputnode.t1w_dseg"),
                 # Undefined if --fs-no-reconall, but this is safe
@@ -353,6 +394,11 @@ def init_bold_fit_wf(
                 ("subject_id", "inputnode.subject_id"),
                 ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
             ]),
+            (regref_buffer, bold_reg_wf, [("boldref", "inputnode.ref_bold_brain")]),
+            # Incomplete sources
+            (regref_buffer, ds_boldreg_wf, [("boldref", "inputnode.source_files")]),
+            (bold_reg_wf, ds_boldreg_wf, [("outputnode.itk_bold_to_t1", "inputnode.boldref2anat_xfm")]),
+            (ds_boldreg_wf, outputnode, [("outputnode.boldref2anat_xfm", "boldref2anat_xfm")]),
         ])
         # fmt:on
 

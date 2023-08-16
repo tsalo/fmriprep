@@ -183,6 +183,51 @@ def init_ds_boldref_wf(
     return workflow
 
 
+def init_ds_boldreg_wf(
+    *,
+    bids_root,
+    output_dir,
+    name="ds_boldreg_wf",
+) -> pe.Workflow:
+    workflow = pe.Workflow(name=name)
+
+    inputnode = pe.Node(
+        niu.IdentityInterface(fields=["source_files", "boldref2anat_xfm"]),
+        name="inputnode",
+    )
+    outputnode = pe.Node(niu.IdentityInterface(fields=["boldref2anat_xfm"]), name="outputnode")
+
+    raw_sources = pe.Node(niu.Function(function=_bids_relative), name="raw_sources")
+    raw_sources.inputs.bids_root = bids_root
+
+    ds_boldref2anat_xfm = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            to='T1w',
+            mode='image',
+            suffix='xfm',
+            extension='.txt',
+            dismiss_entities=('echo',),
+            **{'from': 'boldref'},
+        ),
+        name='ds_boldref2anat_xfm',
+        run_without_submitting=True,
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    )
+
+    # fmt:off
+    workflow.connect([
+        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, ds_boldref2anat_xfm, [('boldref2anat_xfm', 'in_file'),
+                                          ('source_files', 'source_file')]),
+        (raw_sources, ds_boldref2anat_xfm, [('out', 'RawSources')]),
+        (ds_boldref2anat_xfm, outputnode, [('out_file', 'boldref2anat_xfm')]),
+    ])
+    # fmt:on
+
+    return workflow
+
+
 def init_ds_hmc_wf(
     *,
     bids_root,
