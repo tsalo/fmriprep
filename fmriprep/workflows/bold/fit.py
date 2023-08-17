@@ -282,7 +282,6 @@ def init_bold_fit_wf(
                 debug="fieldmaps" in config.execution.debug,
                 omp_nthreads=config.nipype.omp_nthreads,
                 sloppy=config.execution.sloppy,
-                write_coeff=True,
             )
             unwarp_wf = init_unwarp_wf(
                 free_mem=config.environment.free_mem,
@@ -335,11 +334,10 @@ def init_bold_fit_wf(
                     ("outputnode.fmap_coeff", "inputnode.fmap_coeff"),
                 ]),
                 (enhance_boldref_wf, unwarp_wf, [
-                    ('outputnode.bias_corrected_file', 'inputnode.distorted_ref'),
                     ('outputnode.bias_corrected_file', 'inputnode.distorted'),
                 ]),
                 (unwarp_wf, ds_coreg_boldref_wf, [
-                    ('outputnode.corrected_ref', 'inputnode.boldref'),
+                    ('outputnode.corrected', 'inputnode.boldref'),
                 ]),
                 (unwarp_wf, regref_buffer, [
                     ('outputnode.corrected_mask', 'boldmask'),
