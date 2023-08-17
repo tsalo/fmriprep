@@ -46,7 +46,7 @@ from ... import config
 
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
-from .outputs import init_ds_boldref_wf, init_ds_boldreg_wf, init_ds_hmc_wf
+from .outputs import init_ds_boldref_wf, init_ds_hmc_wf, init_ds_registration_wf
 from .reference import init_raw_boldref_wf
 from .registration import init_bold_reg_wf
 
@@ -300,6 +300,14 @@ def init_bold_fit_wf(
                 run_without_submitting=True,
             )
 
+            ds_fmapreg_wf = init_ds_registration_wf(
+                bids_root=layout.root,
+                output_dir=config.execution.output_dir,
+                source="boldref",
+                dest=fieldmap_id.replace('_', ''),
+                name="ds_fmapreg_wf",
+            )
+
             # fmt:off
             workflow.connect([
                 (inputnode, fmap_select, [
@@ -315,7 +323,10 @@ def init_bold_fit_wf(
                     ("fmap_coeff", "inputnode.fmap_coeff"),
                     ("fmap_mask", "inputnode.fmap_mask"),
                 ]),
-                (coeff2epi_wf, fmapreg_buffer, [('outputnode.target2fmap_xfm', 'boldref2fmap_xfm')]),
+                (coeff2epi_wf, ds_fmapreg_wf, [('outputnode.target2fmap_xfm', 'inputnode.xform')]),
+                # XXX Incomplete
+                (fmapref_buffer, ds_fmapreg_wf, [('out', 'inputnode.source_files')]),
+                (ds_fmapreg_wf, fmapreg_buffer, [('outputnode.xform', 'boldref2fmap_xfm')]),
                 (enhance_boldref_wf, coeff2epi_wf, [
                     ('outputnode.bias_corrected_file', 'inputnode.target_ref'),
                     ('outputnode.mask_file', 'inputnode.target_mask'),
@@ -365,9 +376,12 @@ def init_bold_fit_wf(
             write_report=False,
         )
 
-        ds_boldreg_wf = init_ds_boldreg_wf(
+        ds_boldreg_wf = init_ds_registration_wf(
             bids_root=layout.root,
             output_dir=config.execution.output_dir,
+            source="boldref",
+            dest="T1w",
+            name="ds_boldreg_wf",
         )
 
         # fmt:off
@@ -382,8 +396,8 @@ def init_bold_fit_wf(
             (regref_buffer, bold_reg_wf, [("boldref", "inputnode.ref_bold_brain")]),
             # Incomplete sources
             (regref_buffer, ds_boldreg_wf, [("boldref", "inputnode.source_files")]),
-            (bold_reg_wf, ds_boldreg_wf, [("outputnode.itk_bold_to_t1", "inputnode.boldref2anat_xfm")]),
-            (ds_boldreg_wf, outputnode, [("outputnode.boldref2anat_xfm", "boldref2anat_xfm")]),
+            (bold_reg_wf, ds_boldreg_wf, [("outputnode.itk_bold_to_t1", "inputnode.xform")]),
+            (ds_boldreg_wf, outputnode, [("outputnode.xform", "boldref2anat_xfm")]),
         ])
         # fmt:on
 

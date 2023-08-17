@@ -183,34 +183,35 @@ def init_ds_boldref_wf(
     return workflow
 
 
-def init_ds_boldreg_wf(
+def init_ds_registration_wf(
     *,
-    bids_root,
-    output_dir,
-    name="ds_boldreg_wf",
+    bids_root: str,
+    output_dir: str,
+    source: str,
+    dest: str,
+    name: str,
 ) -> pe.Workflow:
     workflow = pe.Workflow(name=name)
 
     inputnode = pe.Node(
-        niu.IdentityInterface(fields=["source_files", "boldref2anat_xfm"]),
+        niu.IdentityInterface(fields=["source_files", "xform"]),
         name="inputnode",
     )
-    outputnode = pe.Node(niu.IdentityInterface(fields=["boldref2anat_xfm"]), name="outputnode")
+    outputnode = pe.Node(niu.IdentityInterface(fields=["xform"]), name="outputnode")
 
     raw_sources = pe.Node(niu.Function(function=_bids_relative), name="raw_sources")
     raw_sources.inputs.bids_root = bids_root
 
-    ds_boldref2anat_xfm = pe.Node(
+    ds_xform = pe.Node(
         DerivativesDataSink(
             base_directory=output_dir,
-            to='T1w',
             mode='image',
             suffix='xfm',
             extension='.txt',
             dismiss_entities=('echo',),
-            **{'from': 'boldref'},
+            **{'from': source, 'to': dest},
         ),
-        name='ds_boldref2anat_xfm',
+        name='ds_xform',
         run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
@@ -218,10 +219,10 @@ def init_ds_boldreg_wf(
     # fmt:off
     workflow.connect([
         (inputnode, raw_sources, [('source_files', 'in_files')]),
-        (inputnode, ds_boldref2anat_xfm, [('boldref2anat_xfm', 'in_file'),
-                                          ('source_files', 'source_file')]),
-        (raw_sources, ds_boldref2anat_xfm, [('out', 'RawSources')]),
-        (ds_boldref2anat_xfm, outputnode, [('out_file', 'boldref2anat_xfm')]),
+        (inputnode, ds_xform, [('xform', 'in_file'),
+                               ('source_files', 'source_file')]),
+        (raw_sources, ds_xform, [('out', 'RawSources')]),
+        (ds_xform, outputnode, [('out_file', 'xform')]),
     ])
     # fmt:on
 
