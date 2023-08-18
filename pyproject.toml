@@ -34,7 +34,7 @@ dependencies = [
     "requests",
     "sdcflows  @ git+https://github.com/nipreps/sdcflows.git@master",
     "smriprep @ git+https://github.com/nipreps/smriprep.git@master",
-    "tedana ~= 0.0.9",
+    "tedana >= 0.0.9",
     "templateflow >= 23.0.0",
     "toml",
     "codecarbon",
