@@ -90,7 +90,7 @@ def init_fmriprep_wf():
             fsdir.inputs.subjects_dir = str(config.execution.fs_subjects_dir.absolute())
 
     for subject_id in config.execution.participant_label:
-        single_subject_wf = init_single_subject_wf(subject_id)
+        single_subject_wf = init_single_subject_fit_wf(subject_id)
 
         single_subject_wf.config['execution']['crashdump_dir'] = str(
             config.execution.fmriprep_dir / f"sub-{subject_id}" / "log" / config.execution.run_uuid
@@ -110,6 +110,328 @@ def init_fmriprep_wf():
         config.to_filename(log_dir / 'fmriprep.toml')
 
     return fmriprep_wf
+
+
+def init_single_subject_fit_wf(subject_id: str):
+    from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+    from niworkflows.interfaces.bids import BIDSDataGrabber, BIDSInfo
+    from niworkflows.utils.bids import collect_data
+    from niworkflows.utils.misc import fix_multi_T1w_source_name
+    from niworkflows.utils.spaces import Reference
+    from smriprep.workflows.anatomical import init_anat_fit_wf
+
+    from fmriprep.workflows.bold.fit import init_bold_fit_wf
+
+    spaces = config.workflow.spaces
+
+    workflow = Workflow(name=f'fit_sub_{subject_id}_wf')
+    subject_data = collect_data(
+        config.execution.layout,
+        subject_id,
+        task=config.execution.task_id,
+        echo=config.execution.echo_idx,
+        bids_filters=config.execution.bids_filters,
+    )[0]
+
+    deriv_cache = {}
+    if config.execution.derivatives:
+        from smriprep.utils.bids import collect_derivatives as collect_anat_derivatives
+
+        from fmriprep.utils.bids import collect_derivatives as collect_func_derivatives
+
+        std_spaces = spaces.get_spaces(nonstandard=False, dim=(3,))
+        std_spaces.append("fsnative")
+        for deriv_dir in config.execution.derivatives:
+            deriv_cache.update(
+                collect_anat_derivatives(
+                    derivatives_dir=deriv_dir,
+                    subject_id=subject_id,
+                    std_spaces=std_spaces,
+                    freesurfer=config.workflow.run_reconall,
+                )
+            )
+            deriv_cache.update(
+                collect_func_derivatives(
+                    derivatives_dir=deriv_dir,
+                    subject_id=subject_id,
+                )
+            )
+
+    inputnode = pe.Node(niu.IdentityInterface(fields=['subjects_dir']), name='inputnode')
+
+    bidssrc = pe.Node(
+        BIDSDataGrabber(
+            subject_data=subject_data,
+            anat_only=config.workflow.anat_only,
+            subject_id=subject_id,
+        ),
+        name='bidssrc',
+    )
+
+    bids_info = pe.Node(
+        BIDSInfo(bids_dir=config.execution.bids_dir, bids_validate=False), name='bids_info'
+    )
+
+    # Build the workflow
+    anat_fit_wf = init_anat_fit_wf(
+        bids_root=str(config.execution.bids_dir),
+        output_dir=str(config.execution.output_dir),
+        freesurfer=config.workflow.run_reconall,
+        hires=config.workflow.hires,
+        longitudinal=config.workflow.longitudinal,
+        t1w=subject_data['t1w'],
+        t2w=subject_data['t2w'],
+        skull_strip_mode=config.workflow.skull_strip_t1w,
+        skull_strip_template=Reference.from_string(config.workflow.skull_strip_template)[0],
+        spaces=spaces,
+        precomputed=deriv_cache,
+        omp_nthreads=config.nipype.omp_nthreads,
+        sloppy=config.execution.sloppy,
+        skull_strip_fixed_seed=config.workflow.skull_strip_fixed_seed,
+    )
+
+    # fmt:off
+    workflow.connect([
+        (inputnode, anat_fit_wf, [('subjects_dir', 'inputnode.subjects_dir')]),
+        (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
+        (bidssrc, anat_fit_wf, [
+            ('t1w', 'inputnode.t1w'),
+            ('t2w', 'inputnode.t2w'),
+            ('roi', 'inputnode.roi'),
+            ('flair', 'inputnode.flair'),
+        ]),
+        (bids_info, anat_fit_wf, [(('subject', _prefix), 'inputnode.subject_id')]),
+    ])
+    # fmt:on
+
+    # Overwrite ``out_path_base`` of smriprep's DataSinks
+    for node in workflow.list_node_names():
+        if node.split('.')[-1].startswith('ds_'):
+            workflow.get_node(node).interface.out_path_base = ""
+
+    if config.workflow.anat_only:
+        return workflow
+
+    from sdcflows import fieldmaps as fm
+
+    fmap_estimators = None
+
+    if any(
+        (
+            "fieldmaps" not in config.workflow.ignore,
+            config.workflow.use_syn_sdc,
+            config.workflow.force_syn,
+        )
+    ):
+        from sdcflows.utils.wrangler import find_estimators
+
+        # SDC Step 1: Run basic heuristics to identify available data for fieldmap estimation
+        # For now, no fmapless
+        filters = None
+        if config.execution.bids_filters is not None:
+            filters = config.execution.bids_filters.get("fmap")
+
+        # In the case where fieldmaps are ignored and `--use-syn-sdc` is requested,
+        # SDCFlows `find_estimators` still receives a full layout (which includes the fmap modality)
+        # and will not calculate fmapless schemes.
+        # Similarly, if fieldmaps are ignored and `--force-syn` is requested,
+        # `fmapless` should be set to True to ensure BOLD targets are found to be corrected.
+        fmapless = bool(config.workflow.use_syn_sdc) or (
+            "fieldmaps" in config.workflow.ignore and config.workflow.force_syn
+        )
+        force_fmapless = config.workflow.force_syn or (
+            "fieldmaps" in config.workflow.ignore and config.workflow.use_syn_sdc
+        )
+
+        fmap_estimators = find_estimators(
+            layout=config.execution.layout,
+            subject=subject_id,
+            fmapless=fmapless,
+            force_fmapless=force_fmapless,
+            bids_filters=filters,
+        )
+
+        if config.workflow.use_syn_sdc and not fmap_estimators:
+            message = (
+                "Fieldmap-less (SyN) estimation was requested, but PhaseEncodingDirection "
+                "information appears to be absent."
+            )
+            config.loggers.workflow.error(message)
+            if config.workflow.use_syn_sdc == "error":
+                raise ValueError(message)
+
+        if "fieldmaps" in config.workflow.ignore and any(
+            f.method == fm.EstimatorType.ANAT for f in fmap_estimators
+        ):
+            config.loggers.workflow.info(
+                'Option "--ignore fieldmaps" was set, but either "--use-syn-sdc" '
+                'or "--force-syn" were given, so fieldmap-less estimation will be executed.'
+            )
+            fmap_estimators = [f for f in fmap_estimators if f.method == fm.EstimatorType.ANAT]
+
+        # Do not calculate fieldmaps that we will not use
+        if fmap_estimators:
+            all_ids = {fmap.bids_id for fmap in fmap_estimators}
+            bold_files = (listify(bold_file)[0] for bold_file in subject_data['bold'])
+
+            all_estimators = {
+                bold_file: [
+                    fmap_id
+                    for fmap_id in get_estimator(config.execution.layout, bold_file)
+                    if fmap_id in all_ids
+                ]
+                for bold_file in bold_files
+            }
+
+            for bold_file, estimator_key in all_estimators.items():
+                if len(estimator_key) > 1:
+                    config.loggers.workflow.warning(
+                        f"Several fieldmaps <{', '.join(estimator_key)}> are "
+                        f"'IntendedFor' <{bold_file}>, using {estimator_key[0]}"
+                    )
+                    estimator_key[1:] = []
+
+            # Final, 1-1 map, dropping uncorrected BOLD
+            estimator_map = {
+                bold_file: estimator_key[0]
+                for bold_file, estimator_key in all_estimators.items()
+                if estimator_key
+            }
+
+            fmap_estimators = [f for f in fmap_estimators if f.bids_id in estimator_map.values()]
+
+        if fmap_estimators:
+            config.loggers.workflow.info(
+                "B0 field inhomogeneity map will be estimated with "
+                f"the following {len(fmap_estimators)} estimator(s): "
+                f"{[e.method for e in fmap_estimators]}."
+            )
+
+    if fmap_estimators:
+        from niworkflows.interfaces.utility import KeySelect
+        from sdcflows.workflows.base import init_fmap_preproc_wf
+
+        fmap_wf = init_fmap_preproc_wf(
+            debug="fieldmaps" in config.execution.debug,
+            estimators=fmap_estimators,
+            omp_nthreads=config.nipype.omp_nthreads,
+            output_dir=str(config.execution.fmriprep_dir),
+            subject=subject_id,
+        )
+
+        # Overwrite ``out_path_base`` of sdcflows's DataSinks
+        for node in fmap_wf.list_node_names():
+            if node.split(".")[-1].startswith("ds_"):
+                fmap_wf.get_node(node).interface.out_path_base = ""
+
+        fmap_select_std = pe.Node(
+            KeySelect(fields=["std2anat_xfm"], key="MNI152NLin2009cAsym"),
+            name="fmap_select_std",
+            run_without_submitting=True,
+        )
+        if any(estimator.method == fm.EstimatorType.ANAT for estimator in fmap_estimators):
+            # fmt:off
+            workflow.connect([
+                (anat_preproc_wf, fmap_select_std, [
+                    ("outputnode.std2anat_xfm", "std2anat_xfm"),
+                    ("outputnode.template", "keys")]),
+            ])
+            # fmt:on
+
+        for estimator in fmap_estimators:
+            config.loggers.workflow.info(
+                f"""\
+Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
+<{', '.join(s.path.name for s in estimator.sources)}>"""
+            )
+
+            # Mapped and phasediff can be connected internally by SDCFlows
+            if estimator.method in (fm.EstimatorType.MAPPED, fm.EstimatorType.PHASEDIFF):
+                continue
+
+            suffices = [s.suffix for s in estimator.sources]
+
+            if estimator.method == fm.EstimatorType.PEPOLAR:
+                if len(suffices) == 2 and all(suf in ("epi", "bold", "sbref") for suf in suffices):
+                    wf_inputs = getattr(fmap_wf.inputs, f"in_{estimator.bids_id}")
+                    wf_inputs.in_data = [str(s.path) for s in estimator.sources]
+                    wf_inputs.metadata = [s.metadata for s in estimator.sources]
+                else:
+                    raise NotImplementedError("Sophisticated PEPOLAR schemes are unsupported.")
+
+            elif estimator.method == fm.EstimatorType.ANAT:
+                from sdcflows.workflows.fit.syn import init_syn_preprocessing_wf
+
+                sources = [str(s.path) for s in estimator.sources if s.suffix in ("bold", "sbref")]
+                source_meta = [
+                    s.metadata for s in estimator.sources if s.suffix in ("bold", "sbref")
+                ]
+                syn_preprocessing_wf = init_syn_preprocessing_wf(
+                    omp_nthreads=config.nipype.omp_nthreads,
+                    debug=config.execution.sloppy,
+                    auto_bold_nss=True,
+                    t1w_inversion=False,
+                    name=f"syn_preprocessing_{estimator.bids_id}",
+                )
+                syn_preprocessing_wf.inputs.inputnode.in_epis = sources
+                syn_preprocessing_wf.inputs.inputnode.in_meta = source_meta
+
+                # fmt:off
+                workflow.connect([
+                    (anat_preproc_wf, syn_preprocessing_wf, [
+                        ("outputnode.t1w_preproc", "inputnode.in_anat"),
+                        ("outputnode.t1w_mask", "inputnode.mask_anat"),
+                    ]),
+                    (fmap_select_std, syn_preprocessing_wf, [
+                        ("std2anat_xfm", "inputnode.std2anat_xfm"),
+                    ]),
+                    (syn_preprocessing_wf, fmap_wf, [
+                        ("outputnode.epi_ref", f"in_{estimator.bids_id}.epi_ref"),
+                        ("outputnode.epi_mask", f"in_{estimator.bids_id}.epi_mask"),
+                        ("outputnode.anat_ref", f"in_{estimator.bids_id}.anat_ref"),
+                        ("outputnode.anat_mask", f"in_{estimator.bids_id}.anat_mask"),
+                        ("outputnode.sd_prior", f"in_{estimator.bids_id}.sd_prior"),
+                    ]),
+                ])
+                # fmt:on
+
+    for bold_file in subject_data['bold']:
+        fieldmap_id = estimator_map.get(listify(bold_file)[0])
+        func_fit_wf = init_bold_fit_wf(
+            bold_series=bold_file,
+            precomputed=deriv_cache,
+            fieldmap_id=fieldmap_id,
+            omp_nthreads=config.nipype.omp_nthreads,
+        )
+
+        # fmt:off
+        workflow.connect([
+            (anat_fit_wf, func_fit_wf, [
+                ('outputnode.t1w_preproc', 'inputnode.t1w_preproc'),
+                ('outputnode.t1w_mask', 'inputnode.t1w_mask'),
+                ('outputnode.t1w_dseg', 'inputnode.t1w_dseg'),
+                ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
+                ('outputnode.subject_id', 'inputnode.subject_id'),
+                ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm'),
+            ]),
+        ])
+        # fmt: on
+
+        if fieldmap_id:
+            # fmt:off
+            workflow.connect([
+                (fmap_wf, func_fit_wf, [
+                    ("outputnode.fmap", "inputnode.fmap"),
+                    ("outputnode.fmap_ref", "inputnode.fmap_ref"),
+                    ("outputnode.fmap_coeff", "inputnode.fmap_coeff"),
+                    ("outputnode.fmap_mask", "inputnode.fmap_mask"),
+                    ("outputnode.fmap_id", "inputnode.fmap_id"),
+                    ("outputnode.method", "inputnode.sdc_method"),
+                ]),
+            ])
+            # fmt:on
+
+    return workflow
 
 
 def init_single_subject_wf(subject_id: str):
@@ -167,7 +489,6 @@ def init_single_subject_wf(subject_id: str):
         subject_data['t2w'] = []
 
     anat_only = config.workflow.anat_only
-    anat_derivatives = config.execution.anat_derivatives
     spaces = config.workflow.spaces
     # Make sure we always go through these two checks
     if not anat_only and not subject_data['bold']:
@@ -179,26 +500,23 @@ def init_single_subject_wf(subject_id: str):
             )
         )
 
-    if anat_derivatives:
+    deriv_cache = {}
+    if config.execution.derivatives:
         from smriprep.utils.bids import collect_derivatives
 
         std_spaces = spaces.get_spaces(nonstandard=False, dim=(3,))
-        anat_derivatives = collect_derivatives(
-            anat_derivatives.absolute(),
-            subject_id,
-            std_spaces,
-            config.workflow.run_reconall,
-        )
-        if anat_derivatives is None:
-            config.loggers.workflow.warning(
-                f"""\
-Attempted to access pre-existing anatomical derivatives at \
-<{config.execution.anat_derivatives}>, however not all expectations of fMRIPrep \
-were met (for participant <{subject_id}>, spaces <{', '.join(std_spaces)}>, \
-reconall <{config.workflow.run_reconall}>)."""
+        std_spaces.append("fsnative")
+        for deriv_dir in config.execution.derivatives:
+            deriv_cache.update(
+                collect_derivatives(
+                    derivatives_dir=deriv_dir,
+                    subject_id=subject_id,
+                    std_spaces=std_spaces,
+                    freesurfer=config.workflow.run_reconall,
+                )
             )
 
-    if not anat_derivatives and not subject_data['t1w']:
+    if "t1w_preproc" not in deriv_cache and not subject_data['t1w']:
         raise Exception(
             f"No T1w images found for participant {subject_id}. All workflows require T1w images."
         )
@@ -255,7 +573,6 @@ It is released under the [CC0]\
         BIDSDataGrabber(
             subject_data=subject_data,
             anat_only=anat_only,
-            anat_derivatives=anat_derivatives,
             subject_id=subject_id,
         ),
         name='bidssrc',
@@ -307,7 +624,7 @@ It is released under the [CC0]\
         bids_root=str(config.execution.bids_dir),
         sloppy=config.execution.sloppy,
         debug=config.execution.debug,
-        existing_derivatives=anat_derivatives,
+        precomputed=deriv_cache,
         freesurfer=config.workflow.run_reconall,
         hires=config.workflow.hires,
         longitudinal=config.workflow.longitudinal,
@@ -336,21 +653,13 @@ It is released under the [CC0]\
         (about, ds_report_about, [('out_report', 'in_file')]),
     ])
 
-    if not anat_derivatives:
-        workflow.connect([
-            (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
-            (bidssrc, summary, [('t1w', 't1w'),
-                                ('t2w', 't2w')]),
-            (bidssrc, ds_report_summary, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
-            (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
-        ])
-    else:
-        workflow.connect([
-            (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
-            (anat_preproc_wf, summary, [('outputnode.t1w_preproc', 't1w')]),
-            (anat_preproc_wf, ds_report_summary, [('outputnode.t1w_preproc', 'source_file')]),
-            (anat_preproc_wf, ds_report_about, [('outputnode.t1w_preproc', 'source_file')]),
-        ])
+    workflow.connect([
+        (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
+        (bidssrc, summary, [('t1w', 't1w'),
+                            ('t2w', 't2w')]),
+        (bidssrc, ds_report_summary, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+        (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+    ])
     # fmt:on
 
     # Overwrite ``out_path_base`` of smriprep's DataSinks
@@ -480,7 +789,6 @@ tasks and sessions), the following preprocessing was performed.
                 ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
                 ('outputnode.subject_id', 'inputnode.subject_id'),
                 ('outputnode.anat_ribbon', 'inputnode.anat_ribbon'),
-                ('outputnode.t1w2fsnative_xfm', 'inputnode.t1w2fsnative_xfm'),
                 ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm'),
                 ('outputnode.surfaces', 'inputnode.surfaces'),
                 ('outputnode.morphometrics', 'inputnode.morphometrics'),

@@ -107,8 +107,6 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
         FreeSurfer SUBJECTS_DIR
     subject_id
         FreeSurfer subject ID
-    t1w2fsnative_xfm
-        LTA-style affine matrix translating from T1w to FreeSurfer-conformed subject space
     fsnative2t1w_xfm
         LTA-style affine matrix translating from FreeSurfer-conformed subject space to T1w
 
@@ -342,7 +340,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "std2anat_xfm",
                 "template",
                 "anat_ribbon",
-                "t1w2fsnative_xfm",
                 "fsnative2t1w_xfm",
                 "surfaces",
                 "morphometrics",
@@ -387,10 +384,21 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 "t2star_std",
                 "confounds",
                 "confounds_metadata",
+                "weights_text",
             ]
         ),
         name="outputnode",
     )
+
+    # Outline
+    # 1) Find/create reference
+    # 2) HMC
+    # 3) Apply SDC
+    # 4) BOLD-T1w coregistration
+    # 5) T2* map
+    #
+    # Notes
+    # - STC only used for bold_split (apply)
 
     # Generate a brain-masked conversion of the t1w
     t1w_brain = pe.Node(ApplyMask(), name="t1w_brain")
@@ -873,7 +881,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (inputnode, bold_surf_wf, [
                 ("subjects_dir", "inputnode.subjects_dir"),
                 ("subject_id", "inputnode.subject_id"),
-                ("t1w2fsnative_xfm", "inputnode.t1w2fsnative_xfm"),
+                ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
             ]),
             (bold_t1_trans_wf, bold_surf_wf, [("outputnode.bold_t1", "inputnode.source_file")]),
             (bold_surf_wf, outputnode, [("outputnode.surfaces", "surfaces")]),
@@ -918,6 +926,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
             (bold_fsLR_resampling_wf, func_derivatives_wf, [
                 ("outputnode.goodvoxels_mask", "inputnode.goodvoxels_mask"),
+            ]),
+            (bold_fsLR_resampling_wf, outputnode, [
+                ("outputnode.weights_text", "weights_text"),
             ]),
             (bold_grayords_wf, outputnode, [
                 ("outputnode.cifti_bold", "bold_cifti"),

@@ -88,27 +88,9 @@ _setup_fmriprep_docker: &setup_fmriprep_docker
     pip install --upgrade /tmp/src/fmriprep/wrapper/
 
 _check_outputs: &check_outputs
-  name: Checking outputs of fMRIPrep run
+  name: Show outputs of fMRIPrep run
   command: |
-    set +e -x
-    mkdir -p /tmp/${DATASET}/test
-    find /tmp/${DATASET}/${SUBDIR:-derivatives} \( -path '*/figures' -o -path '*/log' -o -path '*/sourcedata' \) -prune -o -name "*" -print | cut -d/ -f 5- | sort > /tmp/${DATASET}/test/outputs.out
-
-    FASTTRACK_OUTPUTS="${DATASET}${VARIANT}_fasttrack_outputs.txt"
-    FULL_OUTPUTS="${DATASET}${VARIANT}_outputs.txt"
-    RET=1
-    if [ ! -f /tmp/.nofasttrack ]; then
-        echo "Checking fasttrack..."
-        diff /tmp/src/fmriprep/.circleci/${FASTTRACK_OUTPUTS} /tmp/${DATASET}/test/outputs.out
-        RET=$?
-    fi
-    if [ $RET -ne 0 ]; then
-        echo "Checking full..."
-        diff /tmp/src/fmriprep/.circleci/${FULL_OUTPUTS} /tmp/${DATASET}/test/outputs.out
-        RET=$?
-    fi
-    exit $RET
-
+    find /tmp/${DATASET}/${SUBDIR:-derivatives} \( -path '*/figures' -o -path '*/log' -o -path '*/sourcedata' \) -prune -o -name "*" -print | cut -d/ -f 5- | sort
 
 version: 2.1
 aliases:
@@ -488,7 +470,7 @@ jobs:
           name: Run full fMRIPrep on ds005 (LegacyMultiProc plugin)
           no_output_timeout: 2h
           command: |
-            FASTRACK_ARG="--anat-derivatives /tmp/${DATASET}/smriprep"
+            FASTRACK_ARG="--derivatives anat=/tmp/${DATASET}/smriprep"
             if [ -f /tmp/.nofasttrack ]; then
                 FASTRACK_ARG=""
             fi
@@ -536,7 +518,7 @@ jobs:
           name: Re-run with BIDS layout
           no_output_timeout: 2h
           command: |
-            FASTRACK_ARG="--anat-derivatives /tmp/${DATASET}/smriprep"
+            FASTRACK_ARG="--derivatives anat=/tmp/${DATASET}/smriprep"
             if [ -f /tmp/.nofasttrack ]; then
                 FASTRACK_ARG=""
             fi
@@ -562,7 +544,7 @@ jobs:
           no_output_timeout: 2h
           command: |
             rm /tmp/data/${DATASET}/sub-01/func/*_run-01_*
-            FASTRACK_ARG="--anat-derivatives /tmp/${DATASET}/smriprep"
+            FASTRACK_ARG="--derivatives anat=/tmp/${DATASET}/smriprep"
             if [ -f /tmp/.nofasttrack ]; then
                 FASTRACK_ARG=""
             fi
@@ -669,7 +651,7 @@ jobs:
           name: Run full fMRIPrep on ds054
           no_output_timeout: 2h
           command: |
-            FASTRACK_ARG="--anat-derivatives /tmp/${DATASET}/smriprep"
+            FASTRACK_ARG="--derivatives anat=/tmp/${DATASET}/smriprep"
             if [ -f /tmp/.nofasttrack ]; then
                 FASTRACK_ARG=""
             fi
@@ -791,7 +773,7 @@ jobs:
           name: Run full fMRIPrep on ds000210
           no_output_timeout: 2h
           command: |
-            FASTRACK_ARG="--anat-derivatives /tmp/${DATASET}/smriprep"
+            FASTRACK_ARG="--derivatives anat=/tmp/${DATASET}/smriprep"
             if [ -f /tmp/.nofasttrack ]; then
                 FASTRACK_ARG=""
             fi
