@@ -85,7 +85,7 @@ fuzzywuzzy==0.18.0
     # via codecarbon
 greenlet==2.0.2
     # via sqlalchemy
-h5py==3.9.0
+h5py==3.8.0
     # via nitransforms
 humanize==4.8.0
     # via
