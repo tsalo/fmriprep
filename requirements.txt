@@ -149,7 +149,7 @@ mapca==0.0.3
     # via tedana
 markupsafe==2.1.3
     # via jinja2
-matplotlib==3.7.2
+matplotlib==3.7.1
     # via
     #   nitime
     #   niworkflows
