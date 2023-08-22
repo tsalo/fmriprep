@@ -244,7 +244,7 @@ ENV MKL_NUM_THREADS=1 \
 
 # Installing FMRIPREP
 COPY --from=src /src/fmriprep/dist/*.whl .
-RUN pip install --no-cache-dir $( ls *.whl )[telemetry,test]
+RUN pip install --no-cache-dir $( ls *.whl )[container,test]
 
 RUN find $HOME -type d -exec chmod go=u {} + && \
     find $HOME -type f -exec chmod go=u {} + && \
