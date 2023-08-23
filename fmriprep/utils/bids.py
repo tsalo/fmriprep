@@ -34,7 +34,7 @@ from bids.layout import BIDSLayout
 from bids.utils import listify
 from packaging.version import Version
 
-from ..data import load
+from ..data import load as load_data
 
 
 def collect_derivatives(
@@ -47,7 +47,7 @@ def collect_derivatives(
     """Gather existing derivatives and compose a cache."""
     if spec is None or patterns is None:
         _spec, _patterns = tuple(
-            json.loads(load.readable("data/io_spec.json").read_text()).values()
+            json.loads(load_data.readable("io_spec.json").read_text()).values()
         )
 
         if spec is None:
