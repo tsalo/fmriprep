@@ -32,9 +32,9 @@ dependencies = [
     "psutil >= 5.4",
     "pybids >= 0.15.2",
     "requests",
-    "sdcflows  @ git+https://github.com/nipreps/sdcflows.git@master",
+    "sdcflows  @ git+https://github.com/nipreps/sdcflows.git@maint/2.5.x",
     "smriprep @ git+https://github.com/nipreps/smriprep.git@master",
-    "tedana ~= 0.0.9",
+    "tedana >= 0.0.9",
     "templateflow >= 23.0.0",
     "toml",
     "codecarbon",
@@ -64,6 +64,12 @@ dev = [
 ]
 duecredit = ["duecredit"]
 resmon = []
+container = [
+    "fmriprep[telemetry]",
+    # templateflow extras
+    "datalad",
+    "datalad-osf",
+]
 telemetry = [
     "migas >= 0.3.0",
     "sentry-sdk >= 1.3",
