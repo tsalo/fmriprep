@@ -326,7 +326,7 @@ def init_single_subject_fit_wf(subject_id: str):
         if any(estimator.method == fm.EstimatorType.ANAT for estimator in fmap_estimators):
             # fmt:off
             workflow.connect([
-                (anat_preproc_wf, fmap_select_std, [
+                (anat_fit_wf, fmap_select_std, [
                     ("outputnode.std2anat_xfm", "std2anat_xfm"),
                     ("outputnode.template", "keys")]),
             ])
@@ -372,7 +372,7 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
 
                 # fmt:off
                 workflow.connect([
-                    (anat_preproc_wf, syn_preprocessing_wf, [
+                    (anat_fit_wf, syn_preprocessing_wf, [
                         ("outputnode.t1w_preproc", "inputnode.in_anat"),
                         ("outputnode.t1w_mask", "inputnode.mask_anat"),
                     ]),
