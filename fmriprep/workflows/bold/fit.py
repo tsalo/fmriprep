@@ -38,6 +38,7 @@ from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.func.util import init_enhance_and_skullstrip_bold_wf
 from niworkflows.interfaces.header import ValidateImage
+from niworkflows.interfaces.nitransforms import ConcatenateXFMs
 from niworkflows.utils.connections import listify
 from sdcflows.workflows.apply.correction import init_unwarp_wf
 from sdcflows.workflows.apply.registration import init_coeff2epi_wf
@@ -299,6 +300,8 @@ def init_bold_fit_wf(
                 run_without_submitting=True,
             )
 
+            itk_mat2txt = pe.Node(ConcatenateXFMs(out_fmt="itk"), name="itk_text")
+
             ds_fmapreg_wf = init_ds_registration_wf(
                 bids_root=layout.root,
                 output_dir=config.execution.output_dir,
@@ -322,7 +325,8 @@ def init_bold_fit_wf(
                     ("fmap_coeff", "inputnode.fmap_coeff"),
                     ("fmap_mask", "inputnode.fmap_mask"),
                 ]),
-                (coeff2epi_wf, ds_fmapreg_wf, [('outputnode.target2fmap_xfm', 'inputnode.xform')]),
+                (coeff2epi_wf, itk_mat2txt, [('outputnode.target2fmap_xfm', 'in_xfms')]),
+                (itk_mat2txt, ds_fmapreg_wf, [('out_xfm', 'inputnode.xform')]),
                 # XXX Incomplete
                 (fmapref_buffer, ds_fmapreg_wf, [('out', 'inputnode.source_files')]),
                 (ds_fmapreg_wf, fmapreg_buffer, [('outputnode.xform', 'boldref2fmap_xfm')]),
