@@ -397,6 +397,8 @@ def init_bold_fit_wf(
         # fmt:off
         workflow.connect([
             (inputnode, bold_reg_wf, [
+                ("t1w_preproc", "inputnode.t1w_preproc"),
+                ("t1w_mask", "inputnode.t1w_mask"),
                 ("t1w_dseg", "inputnode.t1w_dseg"),
                 # Undefined if --fs-no-reconall, but this is safe
                 ("subjects_dir", "inputnode.subjects_dir"),
