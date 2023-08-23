@@ -23,77 +23,28 @@
       }
     },
     "transforms": {
-      "bold2boldref": {
-        "forward": {
-          "datatype": "func",
-          "extension": [
-            "h5",
-            "txt"
-          ],
-          "from": "orig",
-          "to": "boldref",
-          "suffix": "xfm",
-          "mode": "image"
-        },
-        "reverse": {
-          "datatype": "func",
-          "extension": [
-            "h5",
-            "txt"
-          ],
-          "from": "boldref",
-          "to": "orig",
-          "suffix": "xfm",
-          "mode": "image"
-        }
+      "hmc": {
+        "datatype": "func",
+        "from": "orig",
+        "to": "boldref",
+        "mode": "image",
+        "suffix": "xfm",
+        "extension": ".txt"
       },
       "boldref2anat": {
-        "forward": {
-          "datatype": "func",
-          "extension": [
-            "h5",
-            "txt"
-          ],
-          "from": "boldref",
-          "to": "T1w",
-          "suffix": "xfm",
-          "mode": "image"
-        },
-          "reverse": {
-            "datatype": "func",
-            "extension": [
-              "h5",
-              "txt"
-            ],
-            "from": "T1w",
-            "to": "boldref",
-            "suffix": "xfm",
-            "mode": "image"
-          }
+        "datatype": "func",
+        "from": "orig",
+        "to": "anat",
+        "mode": "image",
+        "suffix": "xfm",
+        "extension": ".txt"
       },
       "boldref2fmap": {
-        "forward": {
-          "datatype": "func",
-          "extension": [
-            "h5",
-            "txt"
-          ],
-          "from": "boldref",
-          "to": "fmap",
-          "suffix": "xfm",
-          "mode": "image"
-        },
-        "reverse": {
-          "datatype": "func",
-          "extension": [
-            "h5",
-            "txt"
-          ],
-          "from": "fmap",
-          "to": "boldref",
-          "suffix": "xfm",
-          "mode": "image"
-        }
+        "datatype": "func",
+        "from": "orig",
+        "mode": "image",
+        "suffix": "xfm",
+        "extension": ".txt"
       }
     }
   },
