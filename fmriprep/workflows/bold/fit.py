@@ -38,6 +38,7 @@ from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.func.util import init_enhance_and_skullstrip_bold_wf
 from niworkflows.interfaces.header import ValidateImage
+from niworkflows.interfaces.nitransforms import ConcatenateXFMs
 from niworkflows.utils.connections import listify
 from sdcflows.workflows.apply.correction import init_unwarp_wf
 from sdcflows.workflows.apply.registration import init_coeff2epi_wf
@@ -282,7 +283,6 @@ def init_bold_fit_wf(
                 debug="fieldmaps" in config.execution.debug,
                 omp_nthreads=config.nipype.omp_nthreads,
                 sloppy=config.execution.sloppy,
-                write_coeff=True,
             )
             unwarp_wf = init_unwarp_wf(
                 free_mem=config.environment.free_mem,
@@ -299,6 +299,8 @@ def init_bold_fit_wf(
                 name="fmap_select",
                 run_without_submitting=True,
             )
+
+            itk_mat2txt = pe.Node(ConcatenateXFMs(out_fmt="itk"), name="itk_text")
 
             ds_fmapreg_wf = init_ds_registration_wf(
                 bids_root=layout.root,
@@ -323,7 +325,8 @@ def init_bold_fit_wf(
                     ("fmap_coeff", "inputnode.fmap_coeff"),
                     ("fmap_mask", "inputnode.fmap_mask"),
                 ]),
-                (coeff2epi_wf, ds_fmapreg_wf, [('outputnode.target2fmap_xfm', 'inputnode.xform')]),
+                (coeff2epi_wf, itk_mat2txt, [('outputnode.target2fmap_xfm', 'in_xfms')]),
+                (itk_mat2txt, ds_fmapreg_wf, [('out_xfm', 'inputnode.xform')]),
                 # XXX Incomplete
                 (fmapref_buffer, ds_fmapreg_wf, [('out', 'inputnode.source_files')]),
                 (ds_fmapreg_wf, fmapreg_buffer, [('outputnode.xform', 'boldref2fmap_xfm')]),
@@ -335,11 +338,10 @@ def init_bold_fit_wf(
                     ("outputnode.fmap_coeff", "inputnode.fmap_coeff"),
                 ]),
                 (enhance_boldref_wf, unwarp_wf, [
-                    ('outputnode.bias_corrected_file', 'inputnode.distorted_ref'),
                     ('outputnode.bias_corrected_file', 'inputnode.distorted'),
                 ]),
                 (unwarp_wf, ds_coreg_boldref_wf, [
-                    ('outputnode.corrected_ref', 'inputnode.boldref'),
+                    ('outputnode.corrected', 'inputnode.boldref'),
                 ]),
                 (unwarp_wf, regref_buffer, [
                     ('outputnode.corrected_mask', 'boldmask'),
