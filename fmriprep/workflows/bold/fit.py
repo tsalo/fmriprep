@@ -300,7 +300,7 @@ def init_bold_fit_wf(
                 run_without_submitting=True,
             )
 
-            itk_mat2txt = pe.Node(ConcatenateXFMs(out_fmt="itk"), name="itk_text")
+            itk_mat2txt = pe.Node(ConcatenateXFMs(out_fmt="itk"), name="itk_mat2txt")
 
             ds_fmapreg_wf = init_ds_registration_wf(
                 bids_root=layout.root,
