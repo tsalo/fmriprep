@@ -394,7 +394,7 @@ sqlalchemy==2.0.20
     # via pybids
 svgutils==0.3.4
     # via niworkflows
-tedana==0.0.13
+tedana==23.0.1
     # via
     #   fmriprep
     #   fmriprep (pyproject.toml)
