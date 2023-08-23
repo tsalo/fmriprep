@@ -23,7 +23,6 @@
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.func.util import init_enhance_and_skullstrip_bold_wf
 from niworkflows.interfaces.header import ValidateImage
 from niworkflows.utils.misc import pass_dummy_scans
 
@@ -83,7 +82,6 @@ def init_raw_boldref_wf(
     """
     from niworkflows.interfaces.bold import NonsteadyStatesDetector
     from niworkflows.interfaces.images import RobustAverage
-    from niworkflows.utils.connections import pop_file as _pop
 
     workflow = Workflow(name=name)
     workflow.__desc__ = f"""\

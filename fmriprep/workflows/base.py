@@ -137,8 +137,6 @@ def init_single_subject_fit_wf(subject_id: str):
     if config.execution.derivatives:
         from smriprep.utils.bids import collect_derivatives as collect_anat_derivatives
 
-        from fmriprep.utils.bids import collect_derivatives as collect_func_derivatives
-
         std_spaces = spaces.get_spaces(nonstandard=False, dim=(3,))
         std_spaces.append("fsnative")
         for deriv_dir in config.execution.derivatives:
@@ -208,7 +206,8 @@ def init_single_subject_fit_wf(subject_id: str):
 
     from sdcflows import fieldmaps as fm
 
-    fmap_estimators = None
+    fmap_estimators = []
+    estimator_map = {}
 
     if any(
         (
