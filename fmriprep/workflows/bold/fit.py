@@ -44,6 +44,7 @@ from sdcflows.workflows.apply.correction import init_unwarp_wf
 from sdcflows.workflows.apply.registration import init_coeff2epi_wf
 
 from ... import config
+from ...utils.bids import extract_entities
 
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
@@ -118,16 +119,15 @@ def init_bold_fit_wf(
     multiecho = len(bold_files) > 1
 
     have_hmcref = "hmc_boldref" in precomputed
-    have_hmc = "hmc_xforms" in precomputed
     have_coregref = "coreg_boldref" in precomputed
     # Can contain
     #  1) boldref2fmap
     #  2) boldref2anat
     #  3) hmc
     transforms = precomputed.get("transforms", {})
-    # have_regref = "coreg_boldref" in precomputed
-    # XXX This may need a better name
-    coreg_xfm = precomputed.get("transforms", {}).get("boldref", {})
+    hmc_xforms = transforms.get("hmc")
+    boldref2fmap_xform = transforms.get("boldref2fmap")
+    boldref2anat_xform = transforms.get("boldref2anat")
 
     workflow = Workflow(name=_get_wf_name(bold_file))
 
@@ -227,7 +227,7 @@ def init_bold_fit_wf(
         hmcref_buffer.inputs.boldref = precomputed["hmc_boldref"]
 
     # Stage 2: Estimate head motion
-    if not have_hmc:
+    if not hmc_xforms:
         config.loggers.workflow.info("Stage 2: Adding motion correction workflow")
         bold_hmc_wf = init_bold_hmc_wf(
             name="bold_hmc_wf", mem_gb=mem_gb["filesize"], omp_nthreads=omp_nthreads
@@ -251,7 +251,7 @@ def init_bold_fit_wf(
         # fmt:on
     else:
         config.loggers.workflow.info("Found motion correction transforms - skipping Stage 2")
-        hmc_buffer.inputs.hmc_xforms = precomputed["hmc_xforms"]
+        hmc_buffer.inputs.hmc_xforms = hmc_xforms
 
     # Stage 3: Create coregistration reference
     # Fieldmap correction only happens during fit if this stage is needed
@@ -279,18 +279,6 @@ def init_bold_fit_wf(
         # fmt:on
 
         if fieldmap_id:
-            coeff2epi_wf = init_coeff2epi_wf(
-                debug="fieldmaps" in config.execution.debug,
-                omp_nthreads=config.nipype.omp_nthreads,
-                sloppy=config.execution.sloppy,
-            )
-            unwarp_wf = init_unwarp_wf(
-                free_mem=config.environment.free_mem,
-                debug="fieldmaps" in config.execution.debug,
-                omp_nthreads=config.nipype.omp_nthreads,
-            )
-            unwarp_wf.inputs.inputnode.metadata = layout.get_metadata(bold_file)
-
             fmap_select = pe.Node(
                 KeySelect(
                     fields=["fmap", "fmap_ref", "fmap_coeff", "fmap_mask", "sdc_method"],
@@ -300,15 +288,49 @@ def init_bold_fit_wf(
                 run_without_submitting=True,
             )
 
-            itk_mat2txt = pe.Node(ConcatenateXFMs(out_fmt="itk"), name="itk_mat2txt")
+            if not boldref2fmap_xform:
+                fmapreg_wf = init_coeff2epi_wf(
+                    debug="fieldmaps" in config.execution.debug,
+                    omp_nthreads=config.nipype.omp_nthreads,
+                    sloppy=config.execution.sloppy,
+                    name="fmapreg_wf",
+                )
 
-            ds_fmapreg_wf = init_ds_registration_wf(
-                bids_root=layout.root,
-                output_dir=config.execution.output_dir,
-                source="boldref",
-                dest=fieldmap_id.replace('_', ''),
-                name="ds_fmapreg_wf",
+                itk_mat2txt = pe.Node(ConcatenateXFMs(out_fmt="itk"), name="itk_mat2txt")
+
+                ds_fmapreg_wf = init_ds_registration_wf(
+                    bids_root=layout.root,
+                    output_dir=config.execution.output_dir,
+                    source="boldref",
+                    dest=fieldmap_id.replace('_', ''),
+                    name="ds_fmapreg_wf",
+                )
+
+                # fmt:off
+                workflow.connect([
+                    (enhance_boldref_wf, fmapreg_wf, [
+                        ('outputnode.bias_corrected_file', 'inputnode.target_ref'),
+                        ('outputnode.mask_file', 'inputnode.target_mask'),
+                    ]),
+                    (fmap_select, fmapreg_wf, [
+                        ("fmap_ref", "inputnode.fmap_ref"),
+                        ("fmap_mask", "inputnode.fmap_mask"),
+                    ]),
+                    (fmapreg_wf, itk_mat2txt, [('outputnode.target2fmap_xfm', 'in_xfms')]),
+                    (itk_mat2txt, ds_fmapreg_wf, [('out_xfm', 'inputnode.xform')]),
+                    (fmapref_buffer, ds_fmapreg_wf, [('out', 'inputnode.source_files')]),
+                    (ds_fmapreg_wf, fmapreg_buffer, [('outputnode.xform', 'boldref2fmap_xfm')]),
+                ])
+                # fmt:on
+            else:
+                fmapreg_buffer.inputs.boldref2fmap_xform = boldref2fmap_xform
+
+            unwarp_wf = init_unwarp_wf(
+                free_mem=config.environment.free_mem,
+                debug="fieldmaps" in config.execution.debug,
+                omp_nthreads=config.nipype.omp_nthreads,
             )
+            unwarp_wf.inputs.inputnode.metadata = layout.get_metadata(bold_file)
 
             # fmt:off
             workflow.connect([
@@ -320,22 +342,8 @@ def init_bold_fit_wf(
                     ("sdc_method", "sdc_method"),
                     ("fmap_id", "keys"),
                 ]),
-                (fmap_select, coeff2epi_wf, [
-                    ("fmap_ref", "inputnode.fmap_ref"),
+                (fmap_select, unwarp_wf, [
                     ("fmap_coeff", "inputnode.fmap_coeff"),
-                    ("fmap_mask", "inputnode.fmap_mask"),
-                ]),
-                (coeff2epi_wf, itk_mat2txt, [('outputnode.target2fmap_xfm', 'in_xfms')]),
-                (itk_mat2txt, ds_fmapreg_wf, [('out_xfm', 'inputnode.xform')]),
-                # XXX Incomplete
-                (fmapref_buffer, ds_fmapreg_wf, [('out', 'inputnode.source_files')]),
-                (ds_fmapreg_wf, fmapreg_buffer, [('outputnode.xform', 'boldref2fmap_xfm')]),
-                (enhance_boldref_wf, coeff2epi_wf, [
-                    ('outputnode.bias_corrected_file', 'inputnode.target_ref'),
-                    ('outputnode.mask_file', 'inputnode.target_mask'),
-                ]),
-                (coeff2epi_wf, unwarp_wf, [
-                    ("outputnode.fmap_coeff", "inputnode.fmap_coeff"),
                 ]),
                 (enhance_boldref_wf, unwarp_wf, [
                     ('outputnode.bias_corrected_file', 'inputnode.distorted'),
@@ -363,7 +371,7 @@ def init_bold_fit_wf(
         config.loggers.workflow.info("Found coregistration reference - skipping Stage 3")
         regref_buffer.inputs.boldref = precomputed["coreg_boldref"]
 
-    if "boldref2anat" not in transforms:
+    if not boldref2anat_xform:
         # calculate BOLD registration to T1w
         bold_reg_wf = init_bold_reg_wf(
             bold2t1w_dof=config.workflow.bold2t1w_dof,
@@ -389,6 +397,8 @@ def init_bold_fit_wf(
         # fmt:off
         workflow.connect([
             (inputnode, bold_reg_wf, [
+                ("t1w_preproc", "inputnode.t1w_preproc"),
+                ("t1w_mask", "inputnode.t1w_mask"),
                 ("t1w_dseg", "inputnode.t1w_dseg"),
                 # Undefined if --fs-no-reconall, but this is safe
                 ("subjects_dir", "inputnode.subjects_dir"),
@@ -402,6 +412,8 @@ def init_bold_fit_wf(
             (ds_boldreg_wf, outputnode, [("outputnode.xform", "boldref2anat_xfm")]),
         ])
         # fmt:on
+    else:
+        outputnode.inputs.boldref2anat_xfm = boldref2anat_xform
 
     return workflow
 
@@ -450,64 +462,6 @@ def _to_join(in_file, join_file):
         return in_file
     res = JoinTSVColumns(in_file=in_file, join_file=join_file).run()
     return res.outputs.out_file
-
-
-def extract_entities(file_list):
-    """
-    Return a dictionary of common entities given a list of files.
-
-    Examples
-    --------
-    >>> extract_entities("sub-01/anat/sub-01_T1w.nii.gz")
-    {'subject': '01', 'suffix': 'T1w', 'datatype': 'anat', 'extension': '.nii.gz'}
-    >>> extract_entities(["sub-01/anat/sub-01_T1w.nii.gz"] * 2)
-    {'subject': '01', 'suffix': 'T1w', 'datatype': 'anat', 'extension': '.nii.gz'}
-    >>> extract_entities(["sub-01/anat/sub-01_run-1_T1w.nii.gz",
-    ...                   "sub-01/anat/sub-01_run-2_T1w.nii.gz"])
-    {'subject': '01', 'run': [1, 2], 'suffix': 'T1w', 'datatype': 'anat', 'extension': '.nii.gz'}
-
-    """
-    from collections import defaultdict
-
-    from bids.layout import parse_file_entities
-
-    entities = defaultdict(list)
-    for e, v in [
-        ev_pair for f in listify(file_list) for ev_pair in parse_file_entities(f).items()
-    ]:
-        entities[e].append(v)
-
-    def _unique(inlist):
-        inlist = sorted(set(inlist))
-        if len(inlist) == 1:
-            return inlist[0]
-        return inlist
-
-    return {k: _unique(v) for k, v in entities.items()}
-
-
-def get_img_orientation(imgf):
-    """Return the image orientation as a string"""
-    img = nb.load(imgf)
-    return "".join(nb.aff2axcodes(img.affine))
-
-
-def get_estimator(layout, fname):
-    field_source = layout.get_metadata(fname).get("B0FieldSource")
-    if isinstance(field_source, str):
-        field_source = (field_source,)
-
-    if field_source is None:
-        import re
-        from pathlib import Path
-
-        from sdcflows.fieldmaps import get_identifier
-
-        # Fallback to IntendedFor
-        intended_rel = re.sub(r"^sub-[a-zA-Z0-9]*/", "", str(Path(fname).relative_to(layout.root)))
-        field_source = get_identifier(intended_rel)
-
-    return field_source
 
 
 def _select_ref(sbref_files, boldref_files):

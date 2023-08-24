@@ -133,27 +133,19 @@ def init_single_subject_fit_wf(subject_id: str):
         bids_filters=config.execution.bids_filters,
     )[0]
 
-    deriv_cache = {}
+    anatomical_cache = {}
     if config.execution.derivatives:
         from smriprep.utils.bids import collect_derivatives as collect_anat_derivatives
-
-        from fmriprep.utils.bids import collect_derivatives as collect_func_derivatives
 
         std_spaces = spaces.get_spaces(nonstandard=False, dim=(3,))
         std_spaces.append("fsnative")
         for deriv_dir in config.execution.derivatives:
-            deriv_cache.update(
+            anatomical_cache.update(
                 collect_anat_derivatives(
                     derivatives_dir=deriv_dir,
                     subject_id=subject_id,
                     std_spaces=std_spaces,
                     freesurfer=config.workflow.run_reconall,
-                )
-            )
-            deriv_cache.update(
-                collect_func_derivatives(
-                    derivatives_dir=deriv_dir,
-                    subject_id=subject_id,
                 )
             )
 
@@ -184,7 +176,7 @@ def init_single_subject_fit_wf(subject_id: str):
         skull_strip_mode=config.workflow.skull_strip_t1w,
         skull_strip_template=Reference.from_string(config.workflow.skull_strip_template)[0],
         spaces=spaces,
-        precomputed=deriv_cache,
+        precomputed=anatomical_cache,
         omp_nthreads=config.nipype.omp_nthreads,
         sloppy=config.execution.sloppy,
         skull_strip_fixed_seed=config.workflow.skull_strip_fixed_seed,
@@ -214,7 +206,8 @@ def init_single_subject_fit_wf(subject_id: str):
 
     from sdcflows import fieldmaps as fm
 
-    fmap_estimators = None
+    fmap_estimators = []
+    estimator_map = {}
 
     if any(
         (
@@ -332,7 +325,7 @@ def init_single_subject_fit_wf(subject_id: str):
         if any(estimator.method == fm.EstimatorType.ANAT for estimator in fmap_estimators):
             # fmt:off
             workflow.connect([
-                (anat_preproc_wf, fmap_select_std, [
+                (anat_fit_wf, fmap_select_std, [
                     ("outputnode.std2anat_xfm", "std2anat_xfm"),
                     ("outputnode.template", "keys")]),
             ])
@@ -378,7 +371,7 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
 
                 # fmt:off
                 workflow.connect([
-                    (anat_preproc_wf, syn_preprocessing_wf, [
+                    (anat_fit_wf, syn_preprocessing_wf, [
                         ("outputnode.t1w_preproc", "inputnode.in_anat"),
                         ("outputnode.t1w_mask", "inputnode.mask_anat"),
                     ]),
@@ -397,9 +390,24 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
 
     for bold_file in subject_data['bold']:
         fieldmap_id = estimator_map.get(listify(bold_file)[0])
+
+        functional_cache = {}
+        if config.execution.derivatives:
+            from fmriprep.utils.bids import collect_derivatives, extract_entities
+
+            entities = extract_entities(bold_file)
+
+            for deriv_dir in config.execution.derivatives:
+                functional_cache.update(
+                    collect_derivatives(
+                        derivatives_dir=deriv_dir,
+                        entities=entities,
+                        fieldmap_id=fieldmap_id,
+                    )
+                )
         func_fit_wf = init_bold_fit_wf(
             bold_series=bold_file,
-            precomputed=deriv_cache,
+            precomputed=functional_cache,
             fieldmap_id=fieldmap_id,
             omp_nthreads=config.nipype.omp_nthreads,
         )

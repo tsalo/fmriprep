@@ -297,7 +297,7 @@ class environment(_Config):
 class nipype(_Config):
     """Nipype settings."""
 
-    crashfile_format = "txt"
+    crashfile_format = "pklz"
     """The file format for crashfiles, either text or pickle."""
     get_linked_libs = False
     """Run NiPype's tool to enlist linked libraries for every interface."""
@@ -314,6 +314,8 @@ class nipype(_Config):
         "raise_insufficient": False,
     }
     """Settings for NiPype's execution plugin."""
+    remove_unnecessary_outputs = False
+    """Clean up unused outputs after running"""
     resource_monitor = False
     """Enable resource monitor."""
     stop_on_first_crash = True
@@ -357,6 +359,7 @@ class nipype(_Config):
                     "crashdump_dir": str(execution.log_dir),
                     "crashfile_format": cls.crashfile_format,
                     "get_linked_libs": cls.get_linked_libs,
+                    "remove_unnecessary_outputs": cls.remove_unnecessary_outputs,
                     "stop_on_first_crash": cls.stop_on_first_crash,
                     "check_version": False,  # disable future telemetry
                 }
