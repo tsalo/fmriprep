@@ -255,6 +255,15 @@ def _build_parser(**kwargs):
     g_subset = parser.add_argument_group("Options for performing only a subset of the workflow")
     g_subset.add_argument("--anat-only", action="store_true", help="Run anatomical workflows only")
     g_subset.add_argument(
+        "--level",
+        action="store",
+        default="full",
+        choices=["minimal", "resampling", "full"],
+        help="Processing level; may be 'minimal' (nothing that can be recomputed), "
+        "'resampling' (recomputable targets that aid in resampling) "
+        "or 'full' (all target outputs).",
+    )
+    g_subset.add_argument(
         "--boilerplate-only",
         "--boilerplate_only",
         action="store_true",
