@@ -5,10 +5,12 @@ on:
     branches:
       - master
       - maint/*
+      - next
   pull_request:
     branches:
       - master
       - maint/*
+      - next
 
 defaults:
   run:
