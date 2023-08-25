@@ -439,6 +439,43 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
             ])
             # fmt:on
 
+    if config.workflow.level == "minimal":
+        return workflow
+
+    if config.workflow.run_reconall:
+        from smriprep.workflows.surfaces import (
+            init_anat_ribbon_wf,
+            init_gifti_surface_wf,
+            init_sphere_reg_wf,
+        )
+
+        gifti_surface_wf = init_gifti_surface_wf()
+        sphere_reg_wf = init_sphere_reg_wf()
+        anat_ribbon_wf = init_anat_ribbon_wf()
+
+        # fmt:off
+        workflow.connect([
+            (anat_fit_wf, gifti_surface_wf, [
+                ("outputnode.subjects_dir", "inputnode.subjects_dir"),
+                ("outputnode.subject_id", "inputnode.subject_id"),
+                ("outputnode.fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
+            ]),
+            (anat_fit_wf, sphere_reg_wf, [
+                ("outputnode.subjects_dir", "inputnode.subjects_dir"),
+                ("outputnode.subject_id", "inputnode.subject_id"),
+            ]),
+            (anat_fit_wf, anat_ribbon_wf, [
+                ("outputnode.t1w_mask", "inputnode.t1w_mask"),
+            ]),
+            (gifti_surface_wf, anat_ribbon_wf, [
+                ("outputnode.surfaces", "inputnode.surfaces"),
+            ]),
+        ])
+        # fmt:on
+
+    if config.workflow.level == "resampling":
+        return workflow
+
     return workflow
 
 
