@@ -197,13 +197,8 @@ def init_single_subject_fit_wf(subject_id: str):
     ])
     # fmt:on
 
-    # Overwrite ``out_path_base`` of smriprep's DataSinks
-    for node in workflow.list_node_names():
-        if node.split('.')[-1].startswith('ds_'):
-            workflow.get_node(node).interface.out_path_base = ""
-
     if config.workflow.anat_only:
-        return workflow
+        return clean_datasinks(workflow)
 
     fmap_estimators, estimator_map = map_fieldmap_estimation(
         layout=config.execution.layout,
@@ -362,9 +357,10 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
             # fmt:on
 
     if config.workflow.level == "minimal":
-        return workflow
+        return clean_datasinks(workflow)
 
     if config.workflow.run_reconall:
+        from smriprep.workflows.outputs import init_ds_surfaces_wf
         from smriprep.workflows.surfaces import (
             init_anat_ribbon_wf,
             init_fsLR_reg_wf,
@@ -378,6 +374,11 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
             surfaces=["sphere_reg"], to_scanner=False, name="gifti_spheres_wf"
         )
         fsLR_reg_wf = init_fsLR_reg_wf()
+        ds_surfaces_wf = init_ds_surfaces_wf(
+            bids_root=str(config.execution.bids_dir),
+            output_dir=str(config.execution.output_dir),
+            surfaces=["white", "pial", "midthickness", "sphere_reg", "sphere_reg_fsLR"],
+        )
         anat_ribbon_wf = init_anat_ribbon_wf()
 
         # fmt:off
@@ -402,13 +403,27 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
                 ("outputnode.white", "inputnode.white"),
                 ("outputnode.pial", "inputnode.pial"),
             ]),
+            (anat_fit_wf, ds_surfaces_wf, [
+                ("outputnode.t1w_valid_list", "inputnode.source_files"),
+            ]),
+            (gifti_surfaces_wf, ds_surfaces_wf, [
+                ("outputnode.white", "inputnode.white"),
+                ("outputnode.pial", "inputnode.pial"),
+                ("outputnode.midthickness", "inputnode.midthickness"),
+            ]),
+            (gifti_spheres_wf, ds_surfaces_wf, [
+                ("outputnode.sphere_reg", "inputnode.sphere_reg"),
+            ]),
+            (fsLR_reg_wf, ds_surfaces_wf, [
+                ("outputnode.sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
+            ]),
         ])
         # fmt:on
 
     if config.workflow.level == "resampling":
-        return workflow
+        return clean_datasinks(workflow)
 
-    return workflow
+    return clean_datasinks(workflow)
 
 
 def init_single_subject_wf(subject_id: str):
@@ -968,3 +983,11 @@ def map_fieldmap_estimation(
 
 def _prefix(subid):
     return subid if subid.startswith('sub-') else f'sub-{subid}'
+
+
+def clean_datasinks(workflow: pe.Workflow) -> pe.Workflow:
+    # Overwrite ``out_path_base`` of smriprep's DataSinks
+    for node in workflow.list_node_names():
+        if node.split('.')[-1].startswith('ds_'):
+            workflow.get_node(node).interface.out_path_base = ""
+    return workflow
