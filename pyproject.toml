@@ -33,7 +33,7 @@ dependencies = [
     "pybids >= 0.15.2",
     "requests",
     "sdcflows  @ git+https://github.com/nipreps/sdcflows.git@master",
-    "smriprep @ git+https://github.com/nipreps/smriprep.git@next",
+    "smriprep @ git+https://github.com/effigies/smriprep.git@rf/split_surface_workflows",
     "tedana >= 0.0.9",
     "templateflow >= 23.0.0",
     "toml",
