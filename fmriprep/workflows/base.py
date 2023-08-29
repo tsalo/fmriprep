@@ -397,7 +397,7 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
                 ("outputnode.sphere_reg", "inputnode.sphere_reg"),
             ]),
             (anat_fit_wf, anat_ribbon_wf, [
-                ("outputnode.t1w_mask", "inputnode.t1w_mask"),
+                ("outputnode.t1w_mask", "inputnode.ref_file"),
             ]),
             (gifti_surfaces_wf, anat_ribbon_wf, [
                 ("outputnode.white", "inputnode.white"),
