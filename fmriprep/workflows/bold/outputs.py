@@ -220,23 +220,23 @@ def init_func_fit_reports_wf(
         mem_gb=1,
     )
 
-    dseg_boldref = pe.Node(
+    t1w_wm = pe.Node(
+        niu.Function(function=dseg_label),
+        name="t1w_wm",
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    )
+    t1w_wm.inputs.label = 2  # BIDS default is WM=2
+
+    boldref_wm = pe.Node(
         ApplyTransforms(
             dimension=3,
             default_value=0,
             invert_transform_flags=[True],
-            interpolation="GenericLabel",
+            interpolation="NearestNeighbor",
         ),
-        name="dseg_boldref",
+        name="boldref_wm",
         mem_gb=1,
     )
-
-    wm_boldref = pe.Node(
-        niu.Function(function=dseg_label),
-        name="wm_boldref",
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
-    wm_boldref.inputs.label = 2  # BIDS default is WM=2
 
     # fmt:off
     workflow.connect([
@@ -245,12 +245,12 @@ def init_func_fit_reports_wf(
             ('coreg_boldref', 'reference_image'),
             ('boldref2anat_xfm', 'transforms'),
         ]),
-        (inputnode, dseg_boldref, [
-            ('t1w_dseg', 'input_image'),
+        (inputnode, t1w_wm, [('t1w_dseg', 'in_seg')]),
+        (inputnode, boldref_wm, [
             ('coreg_boldref', 'reference_image'),
             ('boldref2anat_xfm', 'transforms'),
         ]),
-        (dseg_boldref, wm_boldref, [('output_image', 'in_seg')]),
+        (t1w_wm, boldref_wm, [('out', 'input_image')]),
     ])
     # fmt:on
 
@@ -295,7 +295,7 @@ def init_func_fit_reports_wf(
                 ('sdc_boldref', 'before'),
                 ('coreg_boldref', 'after'),
             ]),
-            (wm_boldref, sdc_report, [('out', 'wm_seg')]),
+            (boldref_wm, sdc_report, [('output_image', 'wm_seg')]),
             (inputnode, ds_sdc_report, [('source_file', 'source_file')]),
             (sdc_report, ds_sdc_report, [('out_report', 'in_file')]),
         ])
@@ -326,14 +326,9 @@ def init_func_fit_reports_wf(
 
     # fmt:off
     workflow.connect([
-        (inputnode, t1w_boldref, [
-            ('t1w_preproc', 'input_image'),
-            ('coreg_boldref', 'reference_image'),
-            ('boldref2anat_xfm', 'transforms'),
-        ]),
         (inputnode, epi_t1_report, [('coreg_boldref', 'after')]),
         (t1w_boldref, epi_t1_report, [('output_image', 'before')]),
-        (wm_boldref, epi_t1_report, [('out', 'wm_seg')]),
+        (boldref_wm, epi_t1_report, [('output_image', 'wm_seg')]),
         (inputnode, ds_epi_t1_report, [('source_file', 'source_file')]),
         (epi_t1_report, ds_epi_t1_report, [('out_report', 'in_file')]),
     ])
