@@ -28,6 +28,7 @@ import typing as ty
 import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
+from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 from smriprep.workflows.outputs import _bids_relative
 
 from fmriprep import config
@@ -138,6 +139,169 @@ def prepare_timing_parameters(metadata: dict):
             timing_parameters["StartTime"] = tzero
 
     return timing_parameters
+
+
+def init_func_fit_reports_wf(
+    *,
+    sdc_correction: bool,
+    freesurfer: bool,
+    output_dir: str,
+    name="func_fit_reports_wf",
+) -> pe.Workflow:
+    """
+    Set up a battery of datasinks to store reports in the right location.
+
+    Parameters
+    ----------
+    freesurfer : :obj:`bool`
+        FreeSurfer was enabled
+    output_dir : :obj:`str`
+        Directory in which to save derivatives
+    name : :obj:`str`
+        Workflow name (default: anat_reports_wf)
+
+    Inputs
+    ------
+    source_file
+        Input BOLD images
+
+    std_t1w
+        T1w image resampled to standard space
+    std_mask
+        Mask of skull-stripped template
+    subject_dir
+        FreeSurfer SUBJECTS_DIR
+    subject_id
+        FreeSurfer subject ID
+    t1w_conform_report
+        Conformation report
+    t1w_preproc
+        The T1w reference map, which is calculated as the average of bias-corrected
+        and preprocessed T1w images, defining the anatomical space.
+    t1w_dseg
+        Segmentation in T1w space
+    t1w_mask
+        Brain (binary) mask estimated by brain extraction.
+    template
+        Template space and specifications
+
+    """
+    from niworkflows.interfaces.reportlets.masks import ROIsPlot
+    from niworkflows.interfaces.reportlets.registration import (
+        SimpleBeforeAfterRPT as SimpleBeforeAfter,
+    )
+
+    workflow = pe.Workflow(name=name)
+
+    inputfields = [
+        "source_file",
+        "sdc_boldref",
+        "coreg_boldref",
+        "boldref2anat_xfm",
+        "t1w_preproc",
+        "t1w_mask",
+        "t1w_dseg",
+        # May be missing
+        "subject_id",
+        "subjects_dir",
+    ]
+    inputnode = pe.Node(niu.IdentityInterface(fields=inputfields), name="inputnode")
+
+    # Reportlets follow the structure of init_bold_fit_wf stages
+    # - SDC1:
+    #       Before: Pre-SDC boldref
+    #       After: Fieldmap reference resampled on boldref
+    #       Three-way: Fieldmap resampled on boldref
+    # - SDC2:
+    #       Before: Pre-SDC boldref with white matter mask
+    #       After: Post-SDC boldref with white matter mask
+    # - EPI-T1 registration:
+    #       Before: T1w brain with white matter mask
+    #       After: Resampled boldref with white matter mask
+
+    if sdc_correction:
+        # SDC2
+        sdc_report = pe.Node(
+            SimpleBeforeAfter(
+                before_label="Distorted",
+                after_label="Corrected",
+                dismiss_affine=True,
+            ),
+            name="sdc_report",
+            mem_gb=0.1,
+        )
+
+        ds_sdc_report = pe.Node(
+            DerivativesDataSink(
+                base_directory=output_dir,
+                desc="sdc",
+                suffix="bold",
+                datatype="figures",
+                dismiss_entities=("echo",),
+            ),
+            name="ds_sdc_report",
+        )
+
+        # fmt:off
+        workflow.connect([
+            (inputnode, sdc_report, [
+                ('sdc_boldref', 'before'),
+                ('coreg_boldref', 'after'),
+            ]),
+            (inputnode, ds_sdc_report, [('source_file', 'source_file')]),
+            (sdc_report, ds_sdc_report, [('out_report', 'in_file')]),
+        ])
+        # fmt:on
+
+    # EPI-T1 registration
+    # Resample T1w image onto EPI-space
+    t1w_boldref = pe.Node(
+        ApplyTransforms(
+            dimension=3,
+            default_value=0,
+            float=True,
+            invert_transform_flags=[True],
+            interpolation="LanczosWindowedSinc",
+        ),
+        name="t1w_boldref",
+        mem_gb=1,
+    )
+
+    epi_t1_report = pe.Node(
+        SimpleBeforeAfter(
+            before_label="T1w",
+            after_label="EPI",
+        ),
+        name="epi_t1_report",
+        mem_gb=0.1,
+    )
+
+    ds_epi_t1_report = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc="coreg",
+            suffix="bold",
+            datatype="figures",
+            dismiss_entities=("echo",),
+        ),
+        name="ds_epi_t1_report",
+    )
+
+    # fmt:off
+    workflow.connect([
+        (inputnode, t1w_boldref, [
+            ('t1w_preproc', 'input_image'),
+            ('coreg_boldref', 'reference_image'),
+            ('boldref2anat_xfm', 'transforms'),
+        ]),
+        (inputnode, epi_t1_report, [('coreg_boldref', 'after')]),
+        (t1w_boldref, epi_t1_report, [('output_image', 'before')]),
+        (inputnode, ds_epi_t1_report, [('source_file', 'source_file')]),
+        (epi_t1_report, ds_epi_t1_report, [('out_report', 'in_file')]),
+    ])
+    # fmt:on
+
+    return workflow
 
 
 def init_ds_boldref_wf(

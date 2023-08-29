@@ -48,7 +48,12 @@ from ...utils.bids import extract_entities
 
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
-from .outputs import init_ds_boldref_wf, init_ds_hmc_wf, init_ds_registration_wf
+from .outputs import (
+    init_ds_boldref_wf,
+    init_ds_hmc_wf,
+    init_ds_registration_wf,
+    init_func_fit_reports_wf,
+)
 from .reference import init_raw_boldref_wf
 from .registration import init_bold_reg_wf
 
@@ -183,12 +188,32 @@ def init_bold_fit_wf(
         niu.IdentityInterface(fields=["boldref", "boldmask"]), name="regref_buffer"
     )
 
+    func_fit_reports_wf = init_func_fit_reports_wf(
+        # TODO: Enable sdc report even if we find coregref
+        sdc_correction=not (have_coregref or fieldmap_id is None),
+        freesurfer=config.workflow.run_reconall,
+        output_dir=config.execution.fmriprep_dir,
+    )
+
     # fmt:off
     workflow.connect([
         (hmcref_buffer, outputnode, [("boldref", "hmc_boldref")]),
         (regref_buffer, outputnode, [("boldref", "coreg_boldref"),
                                      ("boldmask", "bold_mask")]),
         (hmc_buffer, outputnode, [("hmc_xforms", "motion_xfm")]),
+        (inputnode, func_fit_reports_wf, [
+            ("bold_file", "inputnode.source_file"),
+            ("t1w_preproc", "inputnode.t1w_preproc"),
+            # May not need all of these
+            ("t1w_mask", "inputnode.t1w_mask"),
+            ("t1w_dseg", "inputnode.t1w_dseg"),
+            ("subjects_dir", "inputnode.subjects_dir"),
+            ("subject_id", "inputnode.subject_id"),
+        ]),
+        (outputnode, func_fit_reports_wf, [
+            ("coreg_boldref", "inputnode.coreg_boldref"),
+            ("boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
+        ]),
     ])
     # fmt:on
 
@@ -275,6 +300,7 @@ def init_bold_fit_wf(
             (fmapref_buffer, enhance_boldref_wf, [("out", "inputnode.in_file")]),
             (fmapref_buffer, ds_coreg_boldref_wf, [("out", "inputnode.source_files")]),
             (ds_coreg_boldref_wf, regref_buffer, [("outputnode.boldref", "boldref")]),
+            (fmapref_buffer, func_fit_reports_wf, [("out", "inputnode.sdc_boldref")]),
         ])
         # fmt:on
 
