@@ -204,7 +204,7 @@ def init_bold_fit_wf(
 
         ds_hmc_boldref_wf = init_ds_boldref_wf(
             bids_root=layout.root,
-            output_dir=config.execution.output_dir,
+            output_dir=config.execution.fmriprep_dir,
             desc='hmc',
             name='ds_hmc_boldref_wf',
         )
@@ -235,7 +235,7 @@ def init_bold_fit_wf(
 
         ds_hmc_wf = init_ds_hmc_wf(
             bids_root=layout.root,
-            output_dir=config.execution.output_dir,
+            output_dir=config.execution.fmriprep_dir,
         )
         ds_hmc_wf.inputs.inputnode.source_files = [bold_file]
 
@@ -264,7 +264,7 @@ def init_bold_fit_wf(
 
         ds_coreg_boldref_wf = init_ds_boldref_wf(
             bids_root=layout.root,
-            output_dir=config.execution.output_dir,
+            output_dir=config.execution.fmriprep_dir,
             desc='coreg',
             name='ds_coreg_boldref_wf',
         )
@@ -300,7 +300,7 @@ def init_bold_fit_wf(
 
                 ds_fmapreg_wf = init_ds_registration_wf(
                     bids_root=layout.root,
-                    output_dir=config.execution.output_dir,
+                    output_dir=config.execution.fmriprep_dir,
                     source="boldref",
                     dest=fieldmap_id.replace('_', ''),
                     name="ds_fmapreg_wf",
@@ -388,7 +388,7 @@ def init_bold_fit_wf(
 
         ds_boldreg_wf = init_ds_registration_wf(
             bids_root=layout.root,
-            output_dir=config.execution.output_dir,
+            output_dir=config.execution.fmriprep_dir,
             source="boldref",
             dest="T1w",
             name="ds_boldreg_wf",
