@@ -34,6 +34,7 @@ import sys
 import warnings
 from copy import deepcopy
 
+import bids
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.utils.connections import listify
@@ -196,112 +197,28 @@ def init_single_subject_fit_wf(subject_id: str):
     ])
     # fmt:on
 
-    # Overwrite ``out_path_base`` of smriprep's DataSinks
-    for node in workflow.list_node_names():
-        if node.split('.')[-1].startswith('ds_'):
-            workflow.get_node(node).interface.out_path_base = ""
-
     if config.workflow.anat_only:
-        return workflow
+        return clean_datasinks(workflow)
 
-    from sdcflows import fieldmaps as fm
-
-    fmap_estimators = []
-    estimator_map = {}
-
-    if any(
-        (
-            "fieldmaps" not in config.workflow.ignore,
-            config.workflow.use_syn_sdc,
-            config.workflow.force_syn,
-        )
-    ):
-        from sdcflows.utils.wrangler import find_estimators
-
-        # SDC Step 1: Run basic heuristics to identify available data for fieldmap estimation
-        # For now, no fmapless
-        filters = None
-        if config.execution.bids_filters is not None:
-            filters = config.execution.bids_filters.get("fmap")
-
-        # In the case where fieldmaps are ignored and `--use-syn-sdc` is requested,
-        # SDCFlows `find_estimators` still receives a full layout (which includes the fmap modality)
-        # and will not calculate fmapless schemes.
-        # Similarly, if fieldmaps are ignored and `--force-syn` is requested,
-        # `fmapless` should be set to True to ensure BOLD targets are found to be corrected.
-        fmapless = bool(config.workflow.use_syn_sdc) or (
-            "fieldmaps" in config.workflow.ignore and config.workflow.force_syn
-        )
-        force_fmapless = config.workflow.force_syn or (
-            "fieldmaps" in config.workflow.ignore and config.workflow.use_syn_sdc
-        )
-
-        fmap_estimators = find_estimators(
-            layout=config.execution.layout,
-            subject=subject_id,
-            fmapless=fmapless,
-            force_fmapless=force_fmapless,
-            bids_filters=filters,
-        )
-
-        if config.workflow.use_syn_sdc and not fmap_estimators:
-            message = (
-                "Fieldmap-less (SyN) estimation was requested, but PhaseEncodingDirection "
-                "information appears to be absent."
-            )
-            config.loggers.workflow.error(message)
-            if config.workflow.use_syn_sdc == "error":
-                raise ValueError(message)
-
-        if "fieldmaps" in config.workflow.ignore and any(
-            f.method == fm.EstimatorType.ANAT for f in fmap_estimators
-        ):
-            config.loggers.workflow.info(
-                'Option "--ignore fieldmaps" was set, but either "--use-syn-sdc" '
-                'or "--force-syn" were given, so fieldmap-less estimation will be executed.'
-            )
-            fmap_estimators = [f for f in fmap_estimators if f.method == fm.EstimatorType.ANAT]
-
-        # Do not calculate fieldmaps that we will not use
-        if fmap_estimators:
-            all_ids = {fmap.bids_id for fmap in fmap_estimators}
-            bold_files = (listify(bold_file)[0] for bold_file in subject_data['bold'])
-
-            all_estimators = {
-                bold_file: [
-                    fmap_id
-                    for fmap_id in get_estimator(config.execution.layout, bold_file)
-                    if fmap_id in all_ids
-                ]
-                for bold_file in bold_files
-            }
-
-            for bold_file, estimator_key in all_estimators.items():
-                if len(estimator_key) > 1:
-                    config.loggers.workflow.warning(
-                        f"Several fieldmaps <{', '.join(estimator_key)}> are "
-                        f"'IntendedFor' <{bold_file}>, using {estimator_key[0]}"
-                    )
-                    estimator_key[1:] = []
-
-            # Final, 1-1 map, dropping uncorrected BOLD
-            estimator_map = {
-                bold_file: estimator_key[0]
-                for bold_file, estimator_key in all_estimators.items()
-                if estimator_key
-            }
-
-            fmap_estimators = [f for f in fmap_estimators if f.bids_id in estimator_map.values()]
-
-        if fmap_estimators:
-            config.loggers.workflow.info(
-                "B0 field inhomogeneity map will be estimated with "
-                f"the following {len(fmap_estimators)} estimator(s): "
-                f"{[e.method for e in fmap_estimators]}."
-            )
+    fmap_estimators, estimator_map = map_fieldmap_estimation(
+        layout=config.execution.layout,
+        subject_id=subject_id,
+        bold_data=subject_data['bold'],
+        ignore_fieldmaps="fieldmaps" in config.workflow.ignore,
+        use_syn=config.workflow.use_syn_sdc,
+        force_syn=config.workflow.force_syn,
+        filters=config.execution.get().get('bids_filters', {}).get('fmap'),
+    )
 
     if fmap_estimators:
+        config.loggers.workflow.info(
+            "B0 field inhomogeneity map will be estimated with the following "
+            f"{len(fmap_estimators)} estimator(s): "
+            f"{[e.method for e in fmap_estimators]}."
+        )
+
         from niworkflows.interfaces.utility import KeySelect
+        from sdcflows import fieldmaps as fm
         from sdcflows.workflows.base import init_fmap_preproc_wf
 
         fmap_wf = init_fmap_preproc_wf(
@@ -439,7 +356,74 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
             ])
             # fmt:on
 
-    return workflow
+    if config.workflow.level == "minimal":
+        return clean_datasinks(workflow)
+
+    if config.workflow.run_reconall:
+        from smriprep.workflows.outputs import init_ds_surfaces_wf
+        from smriprep.workflows.surfaces import (
+            init_anat_ribbon_wf,
+            init_fsLR_reg_wf,
+            init_gifti_surfaces_wf,
+        )
+
+        gifti_surfaces_wf = init_gifti_surfaces_wf(
+            surfaces=["white", "pial", "midthickness"],
+        )
+        gifti_spheres_wf = init_gifti_surfaces_wf(
+            surfaces=["sphere_reg"], to_scanner=False, name="gifti_spheres_wf"
+        )
+        fsLR_reg_wf = init_fsLR_reg_wf()
+        ds_surfaces_wf = init_ds_surfaces_wf(
+            bids_root=str(config.execution.bids_dir),
+            output_dir=str(config.execution.output_dir),
+            surfaces=["white", "pial", "midthickness", "sphere_reg", "sphere_reg_fsLR"],
+        )
+        anat_ribbon_wf = init_anat_ribbon_wf()
+
+        # fmt:off
+        workflow.connect([
+            (anat_fit_wf, gifti_surfaces_wf, [
+                ("outputnode.subjects_dir", "inputnode.subjects_dir"),
+                ("outputnode.subject_id", "inputnode.subject_id"),
+                ("outputnode.fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
+            ]),
+            (anat_fit_wf, gifti_spheres_wf, [
+                ("outputnode.subjects_dir", "inputnode.subjects_dir"),
+                ("outputnode.subject_id", "inputnode.subject_id"),
+                # No transform for spheres, following HCP pipelines' lead
+            ]),
+            (gifti_spheres_wf, fsLR_reg_wf, [
+                ("outputnode.sphere_reg", "inputnode.sphere_reg"),
+            ]),
+            (anat_fit_wf, anat_ribbon_wf, [
+                ("outputnode.t1w_mask", "inputnode.t1w_mask"),
+            ]),
+            (gifti_surfaces_wf, anat_ribbon_wf, [
+                ("outputnode.white", "inputnode.white"),
+                ("outputnode.pial", "inputnode.pial"),
+            ]),
+            (anat_fit_wf, ds_surfaces_wf, [
+                ("outputnode.t1w_valid_list", "inputnode.source_files"),
+            ]),
+            (gifti_surfaces_wf, ds_surfaces_wf, [
+                ("outputnode.white", "inputnode.white"),
+                ("outputnode.pial", "inputnode.pial"),
+                ("outputnode.midthickness", "inputnode.midthickness"),
+            ]),
+            (gifti_spheres_wf, ds_surfaces_wf, [
+                ("outputnode.sphere_reg", "inputnode.sphere_reg"),
+            ]),
+            (fsLR_reg_wf, ds_surfaces_wf, [
+                ("outputnode.sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
+            ]),
+        ])
+        # fmt:on
+
+    if config.workflow.level == "resampling":
+        return clean_datasinks(workflow)
+
+    return clean_datasinks(workflow)
 
 
 def init_single_subject_wf(subject_id: str):
@@ -921,5 +905,89 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
     return workflow
 
 
+def map_fieldmap_estimation(
+    layout: bids.BIDSLayout,
+    subject_id: str,
+    bold_data: list,
+    ignore_fieldmaps: bool,
+    use_syn: bool | str,
+    force_syn: bool,
+    filters: dict | None,
+) -> tuple[list, dict]:
+    if not any((not ignore_fieldmaps, use_syn, force_syn)):
+        return [], {}
+
+    from sdcflows import fieldmaps as fm
+    from sdcflows.utils.wrangler import find_estimators
+
+    # In the case where fieldmaps are ignored and `--use-syn-sdc` is requested,
+    # SDCFlows `find_estimators` still receives a full layout (which includes the fmap modality)
+    # and will not calculate fmapless schemes.
+    # Similarly, if fieldmaps are ignored and `--force-syn` is requested,
+    # `fmapless` should be set to True to ensure BOLD targets are found to be corrected.
+    fmap_estimators = find_estimators(
+        layout=layout,
+        subject=subject_id,
+        fmapless=bool(use_syn) or ignore_fieldmaps and force_syn,
+        force_fmapless=force_syn or ignore_fieldmaps and use_syn,
+        bids_filters=filters,
+    )
+
+    if not fmap_estimators:
+        if use_syn:
+            message = (
+                "Fieldmap-less (SyN) estimation was requested, but PhaseEncodingDirection "
+                "information appears to be absent."
+            )
+            config.loggers.workflow.error(message)
+            if use_syn == "error":
+                raise ValueError(message)
+        return [], {}
+
+    if ignore_fieldmaps and any(f.method == fm.EstimatorType.ANAT for f in fmap_estimators):
+        config.loggers.workflow.info(
+            'Option "--ignore fieldmaps" was set, but either "--use-syn-sdc" '
+            'or "--force-syn" were given, so fieldmap-less estimation will be executed.'
+        )
+        fmap_estimators = [f for f in fmap_estimators if f.method == fm.EstimatorType.ANAT]
+
+    # Pare down estimators to those that are actually used
+    # If fmap_estimators == [], all loops/comprehensions terminate immediately
+    all_ids = {fmap.bids_id for fmap in fmap_estimators}
+    bold_files = (listify(bold_file)[0] for bold_file in bold_data)
+
+    all_estimators = {
+        bold_file: [fmap_id for fmap_id in get_estimator(layout, bold_file) if fmap_id in all_ids]
+        for bold_file in bold_files
+    }
+
+    for bold_file, estimator_key in all_estimators.items():
+        if len(estimator_key) > 1:
+            config.loggers.workflow.warning(
+                f"Several fieldmaps <{', '.join(estimator_key)}> are "
+                f"'IntendedFor' <{bold_file}>, using {estimator_key[0]}"
+            )
+            estimator_key[1:] = []
+
+    # Final, 1-1 map, dropping uncorrected BOLD
+    estimator_map = {
+        bold_file: estimator_key[0]
+        for bold_file, estimator_key in all_estimators.items()
+        if estimator_key
+    }
+
+    fmap_estimators = [f for f in fmap_estimators if f.bids_id in estimator_map.values()]
+
+    return fmap_estimators, estimator_map
+
+
 def _prefix(subid):
     return subid if subid.startswith('sub-') else f'sub-{subid}'
+
+
+def clean_datasinks(workflow: pe.Workflow) -> pe.Workflow:
+    # Overwrite ``out_path_base`` of smriprep's DataSinks
+    for node in workflow.list_node_names():
+        if node.split('.')[-1].startswith('ds_'):
+            workflow.get_node(node).interface.out_path_base = ""
+    return workflow
