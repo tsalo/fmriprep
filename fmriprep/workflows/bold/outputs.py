@@ -29,6 +29,7 @@ import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
+from niworkflows.utils.images import dseg_label
 from smriprep.workflows.outputs import _bids_relative
 
 from fmriprep import config
@@ -186,7 +187,6 @@ def init_func_fit_reports_wf(
         Template space and specifications
 
     """
-    from niworkflows.interfaces.reportlets.masks import ROIsPlot
     from niworkflows.interfaces.reportlets.registration import (
         SimpleBeforeAfterRPT as SimpleBeforeAfter,
     )
@@ -206,6 +206,53 @@ def init_func_fit_reports_wf(
         "subjects_dir",
     ]
     inputnode = pe.Node(niu.IdentityInterface(fields=inputfields), name="inputnode")
+
+    # Resample anatomical references into BOLD space for plotting
+    t1w_boldref = pe.Node(
+        ApplyTransforms(
+            dimension=3,
+            default_value=0,
+            float=True,
+            invert_transform_flags=[True],
+            interpolation="LanczosWindowedSinc",
+        ),
+        name="t1w_boldref",
+        mem_gb=1,
+    )
+
+    dseg_boldref = pe.Node(
+        ApplyTransforms(
+            dimension=3,
+            default_value=0,
+            invert_transform_flags=[True],
+            interpolation="GenericLabel",
+        ),
+        name="dseg_boldref",
+        mem_gb=1,
+    )
+
+    wm_boldref = pe.Node(
+        niu.Function(function=dseg_label),
+        name="wm_boldref",
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    )
+    wm_boldref.inputs.label = 2  # BIDS default is WM=2
+
+    # fmt:off
+    workflow.connect([
+        (inputnode, t1w_boldref, [
+            ('t1w_preproc', 'input_image'),
+            ('coreg_boldref', 'reference_image'),
+            ('boldref2anat_xfm', 'transforms'),
+        ]),
+        (inputnode, dseg_boldref, [
+            ('t1w_dseg', 'input_image'),
+            ('coreg_boldref', 'reference_image'),
+            ('boldref2anat_xfm', 'transforms'),
+        ]),
+        (dseg_boldref, wm_boldref, [('output_image', 'in_seg')]),
+    ])
+    # fmt:on
 
     # Reportlets follow the structure of init_bold_fit_wf stages
     # - SDC1:
@@ -248,6 +295,7 @@ def init_func_fit_reports_wf(
                 ('sdc_boldref', 'before'),
                 ('coreg_boldref', 'after'),
             ]),
+            (wm_boldref, sdc_report, [('out', 'wm_seg')]),
             (inputnode, ds_sdc_report, [('source_file', 'source_file')]),
             (sdc_report, ds_sdc_report, [('out_report', 'in_file')]),
         ])
@@ -255,17 +303,6 @@ def init_func_fit_reports_wf(
 
     # EPI-T1 registration
     # Resample T1w image onto EPI-space
-    t1w_boldref = pe.Node(
-        ApplyTransforms(
-            dimension=3,
-            default_value=0,
-            float=True,
-            invert_transform_flags=[True],
-            interpolation="LanczosWindowedSinc",
-        ),
-        name="t1w_boldref",
-        mem_gb=1,
-    )
 
     epi_t1_report = pe.Node(
         SimpleBeforeAfter(
@@ -296,6 +333,7 @@ def init_func_fit_reports_wf(
         ]),
         (inputnode, epi_t1_report, [('coreg_boldref', 'after')]),
         (t1w_boldref, epi_t1_report, [('output_image', 'before')]),
+        (wm_boldref, epi_t1_report, [('out', 'wm_seg')]),
         (inputnode, ds_epi_t1_report, [('source_file', 'source_file')]),
         (epi_t1_report, ds_epi_t1_report, [('out_report', 'in_file')]),
     ])
