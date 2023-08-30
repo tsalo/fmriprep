@@ -151,6 +151,7 @@ markupsafe==2.1.3
     # via jinja2
 matplotlib==3.7.2
     # via
+    #   nireports
     #   nitime
     #   niworkflows
     #   seaborn
@@ -175,6 +176,7 @@ nibabel==5.1.0
     #   mapca
     #   nilearn
     #   nipype
+    #   nireports
     #   nitime
     #   nitransforms
     #   niworkflows
@@ -185,15 +187,21 @@ nibabel==5.1.0
 nilearn==0.10.1
     # via
     #   mapca
+    #   nireports
     #   niworkflows
     #   tedana
 nipype==1.8.6
     # via
     #   fmriprep
     #   fmriprep (pyproject.toml)
+    #   nireports
     #   niworkflows
     #   sdcflows
     #   smriprep
+nireports==23.1.0
+    # via
+    #   fmriprep
+    #   fmriprep (pyproject.toml)
 nitime==0.10.1
     # via
     #   fmriprep
@@ -226,6 +234,7 @@ numpy==1.25.2
     #   nibabel
     #   nilearn
     #   nipype
+    #   nireports
     #   nitime
     #   nitransforms
     #   niworkflows
@@ -262,6 +271,7 @@ pandas==2.0.3
     #   fmriprep (pyproject.toml)
     #   formulaic
     #   nilearn
+    #   nireports
     #   niworkflows
     #   pybids
     #   seaborn
@@ -291,6 +301,7 @@ pybids==0.16.3
     # via
     #   fmriprep
     #   fmriprep (pyproject.toml)
+    #   nireports
     #   niworkflows
     #   sdcflows
     #   smriprep
@@ -325,6 +336,7 @@ pywavelets==1.4.1
 pyyaml==6.0.1
     # via
     #   bokeh
+    #   nireports
     #   niworkflows
     #   smriprep
 rdflib==7.0.0
@@ -373,7 +385,9 @@ sdcflows==2.5.1
     #   fmriprep
     #   fmriprep (pyproject.toml)
 seaborn==0.12.2
-    # via niworkflows
+    # via
+    #   nireports
+    #   niworkflows
 secretstorage==3.3.3
     # via keyring
 sentry-sdk==1.29.2
@@ -393,7 +407,9 @@ smriprep==0.12.2
 sqlalchemy==2.0.20
     # via pybids
 svgutils==0.3.4
-    # via niworkflows
+    # via
+    #   nireports
+    #   niworkflows
 tedana==23.0.1
     # via
     #   fmriprep
@@ -402,6 +418,7 @@ templateflow==23.0.0
     # via
     #   fmriprep
     #   fmriprep (pyproject.toml)
+    #   nireports
     #   niworkflows
     #   sdcflows
     #   smriprep

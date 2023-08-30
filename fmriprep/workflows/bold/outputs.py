@@ -1194,8 +1194,8 @@ def init_bold_preproc_report_wf(
 
     """
     from nipype.algorithms.confounds import TSNR
+    from nireports.interfaces.reporting.base import SimpleBeforeAfterRPT
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-    from niworkflows.interfaces.reportlets.registration import SimpleBeforeAfterRPT
 
     from ...interfaces import DerivativesDataSink
 
