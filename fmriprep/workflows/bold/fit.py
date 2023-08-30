@@ -349,7 +349,7 @@ def init_bold_fit_wf(
                 ])
                 # fmt:on
             else:
-                fmapreg_buffer.inputs.boldref2fmap_xform = boldref2fmap_xform
+                fmapreg_buffer.inputs.boldref2fmap_xfm = boldref2fmap_xform
 
             unwarp_wf = init_unwarp_wf(
                 free_mem=config.environment.free_mem,
@@ -380,6 +380,11 @@ def init_bold_fit_wf(
                 (unwarp_wf, regref_buffer, [
                     ('outputnode.corrected_mask', 'boldmask'),
                 ]),
+                (fmap_select, func_fit_reports_wf, [("fmap_ref", "inputnode.fmap_ref")]),
+                (fmapreg_buffer, func_fit_reports_wf, [
+                    ("boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
+                ]),
+                (unwarp_wf, func_fit_reports_wf, [("outputnode.fieldmap", "inputnode.fieldmap")]),
             ])
             # fmt:on
         else:

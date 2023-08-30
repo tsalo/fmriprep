@@ -190,6 +190,7 @@ def init_func_fit_reports_wf(
     from niworkflows.interfaces.reportlets.registration import (
         SimpleBeforeAfterRPT as SimpleBeforeAfter,
     )
+    from sdcflows.interfaces.reportlets import FieldmapReportlet
 
     workflow = pe.Workflow(name=name)
 
@@ -198,9 +199,12 @@ def init_func_fit_reports_wf(
         "sdc_boldref",
         "coreg_boldref",
         "boldref2anat_xfm",
+        "boldref2fmap_xfm",
         "t1w_preproc",
         "t1w_mask",
         "t1w_dseg",
+        "fieldmap",
+        "fmap_ref",
         # May be missing
         "subject_id",
         "subjects_dir",
@@ -267,6 +271,40 @@ def init_func_fit_reports_wf(
     #       After: Resampled boldref with white matter mask
 
     if sdc_correction:
+        fmapref_boldref = pe.Node(
+            ApplyTransforms(
+                dimension=3,
+                default_value=0,
+                float=True,
+                invert_transform_flags=[True],
+                interpolation="LanczosWindowedSinc",
+            ),
+            name="fmapref_boldref",
+            mem_gb=1,
+        )
+
+        # SDC1
+        sdcreg_report = pe.Node(
+            FieldmapReportlet(
+                reference_label="BOLD reference",
+                moving_label="Fieldmap reference",
+                show="both",
+            ),
+            name="sdecreg_report",
+            mem_gb=0.1,
+        )
+
+        ds_sdcreg_report = pe.Node(
+            DerivativesDataSink(
+                base_directory=output_dir,
+                desc="sdcreg",
+                suffix="bold",
+                datatype="figures",
+                dismiss_entities=("echo",),
+            ),
+            name="ds_sdcreg_report",
+        )
+
         # SDC2
         sdc_report = pe.Node(
             SimpleBeforeAfter(
@@ -291,6 +329,18 @@ def init_func_fit_reports_wf(
 
         # fmt:off
         workflow.connect([
+            (inputnode, fmapref_boldref, [
+                ('fmap_ref', 'input_image'),
+                ('coreg_boldref', 'reference_image'),
+                ('boldref2fmap_xfm', 'transforms'),
+            ]),
+            (inputnode, sdcreg_report, [
+                ('sdc_boldref', 'reference'),
+                ('fieldmap', 'fieldmap')
+            ]),
+            (fmapref_boldref, sdcreg_report, [('output_image', 'moving')]),
+            (inputnode, ds_sdcreg_report, [('source_file', 'source_file')]),
+            (sdcreg_report, ds_sdcreg_report, [('out_report', 'in_file')]),
             (inputnode, sdc_report, [
                 ('sdc_boldref', 'before'),
                 ('coreg_boldref', 'after'),
