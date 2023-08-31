@@ -196,6 +196,7 @@ def init_bold_fit_wf(
 
     summary = pe.Node(
         FunctionalSummary(
+            distortion_correction="None",  # Can override with connection
             registration=("FSL", "FreeSurfer")[config.workflow.run_reconall],
             registration_dof=config.workflow.bold2t1w_dof,
             registration_init=config.workflow.bold2t1w_init,
