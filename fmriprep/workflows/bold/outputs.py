@@ -297,7 +297,7 @@ def init_func_fit_reports_wf(
         ds_sdcreg_report = pe.Node(
             DerivativesDataSink(
                 base_directory=output_dir,
-                desc="sdcreg",
+                desc="fieldmap",
                 suffix="bold",
                 datatype="figures",
                 dismiss_entities=("echo",),
