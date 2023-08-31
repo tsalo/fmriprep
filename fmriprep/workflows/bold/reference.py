@@ -94,7 +94,15 @@ using a custom methodology of *fMRIPrep*, for use in head motion correction.
         name="inputnode",
     )
     outputnode = pe.Node(
-        niu.IdentityInterface(fields=["bold_file", "boldref", "skip_vols", "algo_dummy_scans"]),
+        niu.IdentityInterface(
+            fields=[
+                "bold_file",
+                "boldref",
+                "skip_vols",
+                "algo_dummy_scans",
+                "validation_report",
+            ]
+        ),
         name="outputnode",
     )
 
@@ -126,7 +134,10 @@ using a custom methodology of *fMRIPrep*, for use in head motion correction.
         (val_bold, gen_avg, [("out_file", "in_file")]),
         (get_dummy, gen_avg, [("t_mask", "t_mask")]),
         (get_dummy, calc_dummy_scans, [("n_dummy", "algo_dummy_scans")]),
-        (val_bold, outputnode, [("out_file", "bold_file")]),
+        (val_bold, outputnode, [
+            ("out_file", "bold_file"),
+            ("out_report", "validation_report"),
+        ]),
         (calc_dummy_scans, outputnode, [("skip_vols_num", "skip_vols")]),
         (gen_avg, outputnode, [("out_file", "boldref")]),
         (get_dummy, outputnode, [("n_dummy", "algo_dummy_scans")]),

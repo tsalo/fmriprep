@@ -208,8 +208,35 @@ def init_func_fit_reports_wf(
         # May be missing
         "subject_id",
         "subjects_dir",
+        # Report snippets
+        "summary_report",
+        "validation_report",
     ]
     inputnode = pe.Node(niu.IdentityInterface(fields=inputfields), name="inputnode")
+
+    ds_summary = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc="summary",
+            datatype="figures",
+            dismiss_entities=("echo",),
+        ),
+        name="ds_report_summary",
+        run_without_submitting=True,
+        mem_gb=config.DEFAULT_MEMORY_MIN_GB,
+    )
+
+    ds_validation = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc="validation",
+            datatype="figures",
+            dismiss_entities=("echo",),
+        ),
+        name="ds_report_validation",
+        run_without_submitting=True,
+        mem_gb=config.DEFAULT_MEMORY_MIN_GB,
+    )
 
     # Resample anatomical references into BOLD space for plotting
     t1w_boldref = pe.Node(
@@ -244,6 +271,14 @@ def init_func_fit_reports_wf(
 
     # fmt:off
     workflow.connect([
+        (inputnode, ds_summary, [
+            ('source_file', 'source_file'),
+            ('summary_report', 'in_file'),
+        ]),
+        (inputnode, ds_validation, [
+            ('source_file', 'source_file'),
+            ('validation_report', 'in_file'),
+        ]),
         (inputnode, t1w_boldref, [
             ('t1w_preproc', 'input_image'),
             ('coreg_boldref', 'reference_image'),
