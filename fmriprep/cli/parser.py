@@ -425,6 +425,12 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         "Optionally, the number of grayordinate can be specified "
         "(default is 91k, which equates to 2mm resolution)",
     )
+    g_outputs.add_argument(
+        "--no-msm",
+        action="store_false",
+        dest="run_msmsulc",
+        help="Disable Multimodal Surface Matching surface registration.",
+    )
 
     g_aroma = parser.add_argument_group("[DEPRECATED] Options for running ICA_AROMA")
     g_aroma.add_argument(
