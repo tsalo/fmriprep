@@ -165,6 +165,43 @@ def init_single_subject_fit_wf(subject_id: str):
         BIDSInfo(bids_dir=config.execution.bids_dir, bids_validate=False), name='bids_info'
     )
 
+    summary = pe.Node(
+        SubjectSummary(
+            std_spaces=spaces.get_spaces(nonstandard=False),
+            nstd_spaces=spaces.get_spaces(standard=False),
+        ),
+        name='summary',
+        run_without_submitting=True,
+    )
+
+    about = pe.Node(
+        AboutSummary(version=config.environment.version, command=' '.join(sys.argv)),
+        name='about',
+        run_without_submitting=True,
+    )
+
+    ds_report_summary = pe.Node(
+        DerivativesDataSink(
+            base_directory=config.execution.fmriprep_dir,
+            desc='summary',
+            datatype="figures",
+            dismiss_entities=("echo",),
+        ),
+        name='ds_report_summary',
+        run_without_submitting=True,
+    )
+
+    ds_report_about = pe.Node(
+        DerivativesDataSink(
+            base_directory=config.execution.fmriprep_dir,
+            desc='about',
+            datatype="figures",
+            dismiss_entities=("echo",),
+        ),
+        name='ds_report_about',
+        run_without_submitting=True,
+    )
+
     # Build the workflow
     anat_fit_wf = init_anat_fit_wf(
         bids_root=str(config.execution.bids_dir),
@@ -194,6 +231,14 @@ def init_single_subject_fit_wf(subject_id: str):
             ('flair', 'inputnode.flair'),
         ]),
         (bids_info, anat_fit_wf, [(('subject', _prefix), 'inputnode.subject_id')]),
+        # Reporting connections
+        (inputnode, summary, [('subjects_dir', 'subjects_dir')]),
+        (bidssrc, summary, [('t1w', 't1w'), ('t2w', 't2w'), ('bold', 'bold')]),
+        (bids_info, summary, [('subject', 'subject_id')]),
+        (bidssrc, ds_report_summary, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+        (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+        (summary, ds_report_summary, [('out_report', 'in_file')]),
+        (about, ds_report_about, [('out_report', 'in_file')]),
     ])
     # fmt:on
 

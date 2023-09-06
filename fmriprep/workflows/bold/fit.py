@@ -44,11 +44,17 @@ from sdcflows.workflows.apply.correction import init_unwarp_wf
 from sdcflows.workflows.apply.registration import init_coeff2epi_wf
 
 from ... import config
+from ...interfaces.reports import FunctionalSummary
 from ...utils.bids import extract_entities
 
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
-from .outputs import init_ds_boldref_wf, init_ds_hmc_wf, init_ds_registration_wf
+from .outputs import (
+    init_ds_boldref_wf,
+    init_ds_hmc_wf,
+    init_ds_registration_wf,
+    init_func_fit_reports_wf,
+)
 from .reference import init_raw_boldref_wf
 from .registration import init_bold_reg_wf
 
@@ -111,6 +117,11 @@ def init_bold_fit_wf(
     # Fitting operates on the shortest echo
     # This could become more complicated in the future
     bold_file = bold_files[0]
+
+    # Get metadata from BOLD file(s)
+    entities = extract_entities(bold_files)
+    metadata = layout.get_metadata(bold_file)
+    orientation = "".join(nb.aff2axcodes(nb.load(bold_file).affine))
 
     if os.path.isfile(bold_file):
         bold_tlen, mem_gb = _create_mem_gb(bold_file)
@@ -183,12 +194,50 @@ def init_bold_fit_wf(
         niu.IdentityInterface(fields=["boldref", "boldmask"]), name="regref_buffer"
     )
 
+    summary = pe.Node(
+        FunctionalSummary(
+            distortion_correction="None",  # Can override with connection
+            registration=("FSL", "FreeSurfer")[config.workflow.run_reconall],
+            registration_dof=config.workflow.bold2t1w_dof,
+            registration_init=config.workflow.bold2t1w_init,
+            pe_direction=metadata.get("PhaseEncodingDirection"),
+            echo_idx=entities.get("echo", []),
+            tr=metadata["RepetitionTime"],
+            orientation=orientation,
+        ),
+        name="summary",
+        mem_gb=config.DEFAULT_MEMORY_MIN_GB,
+        run_without_submitting=True,
+    )
+    summary.inputs.dummy_scans = config.workflow.dummy_scans
+
+    func_fit_reports_wf = init_func_fit_reports_wf(
+        # TODO: Enable sdc report even if we find coregref
+        sdc_correction=not (have_coregref or fieldmap_id is None),
+        freesurfer=config.workflow.run_reconall,
+        output_dir=config.execution.fmriprep_dir,
+    )
+
     # fmt:off
     workflow.connect([
         (hmcref_buffer, outputnode, [("boldref", "hmc_boldref")]),
         (regref_buffer, outputnode, [("boldref", "coreg_boldref"),
                                      ("boldmask", "bold_mask")]),
         (hmc_buffer, outputnode, [("hmc_xforms", "motion_xfm")]),
+        (inputnode, func_fit_reports_wf, [
+            ("bold_file", "inputnode.source_file"),
+            ("t1w_preproc", "inputnode.t1w_preproc"),
+            # May not need all of these
+            ("t1w_mask", "inputnode.t1w_mask"),
+            ("t1w_dseg", "inputnode.t1w_dseg"),
+            ("subjects_dir", "inputnode.subjects_dir"),
+            ("subject_id", "inputnode.subject_id"),
+        ]),
+        (outputnode, func_fit_reports_wf, [
+            ("coreg_boldref", "inputnode.coreg_boldref"),
+            ("boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
+        ]),
+        (summary, func_fit_reports_wf, [("out_report", "inputnode.summary_report")]),
     ])
     # fmt:on
 
@@ -204,7 +253,7 @@ def init_bold_fit_wf(
 
         ds_hmc_boldref_wf = init_ds_boldref_wf(
             bids_root=layout.root,
-            output_dir=config.execution.output_dir,
+            output_dir=config.execution.fmriprep_dir,
             desc='hmc',
             name='ds_hmc_boldref_wf',
         )
@@ -215,6 +264,10 @@ def init_bold_fit_wf(
             (hmc_boldref_wf, hmcref_buffer, [("outputnode.bold_file", "bold_file")]),
             (hmc_boldref_wf, ds_hmc_boldref_wf, [("outputnode.boldref", "inputnode.boldref")]),
             (ds_hmc_boldref_wf, hmcref_buffer, [("outputnode.boldref", "boldref")]),
+            (hmc_boldref_wf, summary, [("outputnode.algo_dummy_scans", "algo_dummy_scans")]),
+            (hmc_boldref_wf, func_fit_reports_wf, [
+                ("outputnode.validation_report", "inputnode.validation_report"),
+            ]),
         ])
         # fmt:on
     else:
@@ -223,8 +276,14 @@ def init_bold_fit_wf(
         validate_bold = pe.Node(ValidateImage(), name="validate_bold")
         validate_bold.inputs.in_file = bold_file
 
-        workflow.connect(validate_bold, "out_file", hmcref_buffer, "bold_file")
         hmcref_buffer.inputs.boldref = precomputed["hmc_boldref"]
+
+        # fmt:off
+        workflow.connect([
+            (validate_bold, hmcref_buffer, [("out_file", "bold_file")]),
+            (validate_bold, func_fit_reports_wf, [("out_report", "inputnode.validation_report")]),
+        ])
+        # fmt:on
 
     # Stage 2: Estimate head motion
     if not hmc_xforms:
@@ -235,7 +294,7 @@ def init_bold_fit_wf(
 
         ds_hmc_wf = init_ds_hmc_wf(
             bids_root=layout.root,
-            output_dir=config.execution.output_dir,
+            output_dir=config.execution.fmriprep_dir,
         )
         ds_hmc_wf.inputs.inputnode.source_files = [bold_file]
 
@@ -264,7 +323,7 @@ def init_bold_fit_wf(
 
         ds_coreg_boldref_wf = init_ds_boldref_wf(
             bids_root=layout.root,
-            output_dir=config.execution.output_dir,
+            output_dir=config.execution.fmriprep_dir,
             desc='coreg',
             name='ds_coreg_boldref_wf',
         )
@@ -275,6 +334,7 @@ def init_bold_fit_wf(
             (fmapref_buffer, enhance_boldref_wf, [("out", "inputnode.in_file")]),
             (fmapref_buffer, ds_coreg_boldref_wf, [("out", "inputnode.source_files")]),
             (ds_coreg_boldref_wf, regref_buffer, [("outputnode.boldref", "boldref")]),
+            (fmapref_buffer, func_fit_reports_wf, [("out", "inputnode.sdc_boldref")]),
         ])
         # fmt:on
 
@@ -300,7 +360,7 @@ def init_bold_fit_wf(
 
                 ds_fmapreg_wf = init_ds_registration_wf(
                     bids_root=layout.root,
-                    output_dir=config.execution.output_dir,
+                    output_dir=config.execution.fmriprep_dir,
                     source="boldref",
                     dest=fieldmap_id.replace('_', ''),
                     name="ds_fmapreg_wf",
@@ -323,7 +383,7 @@ def init_bold_fit_wf(
                 ])
                 # fmt:on
             else:
-                fmapreg_buffer.inputs.boldref2fmap_xform = boldref2fmap_xform
+                fmapreg_buffer.inputs.boldref2fmap_xfm = boldref2fmap_xform
 
             unwarp_wf = init_unwarp_wf(
                 free_mem=config.environment.free_mem,
@@ -354,6 +414,12 @@ def init_bold_fit_wf(
                 (unwarp_wf, regref_buffer, [
                     ('outputnode.corrected_mask', 'boldmask'),
                 ]),
+                (fmap_select, func_fit_reports_wf, [("fmap_ref", "inputnode.fmap_ref")]),
+                (fmap_select, summary, [("sdc_method", "distortion_correction")]),
+                (fmapreg_buffer, func_fit_reports_wf, [
+                    ("boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
+                ]),
+                (unwarp_wf, func_fit_reports_wf, [("outputnode.fieldmap", "inputnode.fieldmap")]),
             ])
             # fmt:on
         else:
@@ -388,7 +454,7 @@ def init_bold_fit_wf(
 
         ds_boldreg_wf = init_ds_registration_wf(
             bids_root=layout.root,
-            output_dir=config.execution.output_dir,
+            output_dir=config.execution.fmriprep_dir,
             source="boldref",
             dest="T1w",
             name="ds_boldreg_wf",
@@ -410,6 +476,7 @@ def init_bold_fit_wf(
             (regref_buffer, ds_boldreg_wf, [("boldref", "inputnode.source_files")]),
             (bold_reg_wf, ds_boldreg_wf, [("outputnode.itk_bold_to_t1", "inputnode.xform")]),
             (ds_boldreg_wf, outputnode, [("outputnode.xform", "boldref2anat_xfm")]),
+            (bold_reg_wf, summary, [("outputnode.fallback", "fallback")]),
         ])
         # fmt:on
     else:
