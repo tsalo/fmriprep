@@ -537,6 +537,8 @@ class workflow(_Config):
     """Ignore particular steps for *fMRIPrep*."""
     longitudinal = False
     """Run FreeSurfer ``recon-all`` with the ``-logitudinal`` flag."""
+    run_msmsulc = True
+    """Run Multimodal Surface Matching surface registration."""
     medial_surface_nan = None
     """Fill medial surface with :abbr:`NaNs (not-a-number)` when sampling."""
     project_goodvoxels = False
@@ -573,6 +575,12 @@ class workflow(_Config):
     in the absence of any alternatives."""
     me_t2s_fit_method = "curvefit"
     """The method by which to estimate T2*/S0 for multi-echo data"""
+
+    @classmethod
+    def init(cls):
+        # Avoid additional runtime if not required
+        if not cls.cifti_output:
+            cls.run_msmsulc = False
 
 
 class loggers:
