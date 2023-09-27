@@ -666,6 +666,7 @@ It is released under the [CC0]\
         hires=config.workflow.hires,
         longitudinal=config.workflow.longitudinal,
         omp_nthreads=config.nipype.omp_nthreads,
+        msm_sulc=config.workflow.run_msmsulc,
         output_dir=fmriprep_dir,
         skull_strip_fixed_seed=config.workflow.skull_strip_fixed_seed,
         skull_strip_mode=config.workflow.skull_strip_t1w,
