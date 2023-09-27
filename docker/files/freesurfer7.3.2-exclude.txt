@@ -810,8 +810,6 @@ freesurfer/mni/bin/mincview
 freesurfer/mni/bin/mincwindow
 freesurfer/mni/bin/mnc2nii
 freesurfer/mni/bin/mritoself
-freesurfer/mni/bin/mritotal
-freesurfer/mni/bin/mritotal~
 freesurfer/mni/bin/ncdump
 freesurfer/mni/bin/ncgen
 freesurfer/mni/bin/nii2mnc
@@ -840,11 +838,9 @@ freesurfer/mni/bin/xfminvert
 freesurfer/mni/bin/xfmtool
 freesurfer/mni/bin/zscore_vol
 freesurfer/mni/data
-freesurfer/mni/etc
 freesurfer/mni/include
 freesurfer/mni/mni.srcbuild.June2015.tgz
 freesurfer/mni/share/man
-freesurfer/mni/share/mni_autoreg
 freesurfer/mni/share/N3
 freesurfer/models
 freesurfer/python/lib/python3.8/test
