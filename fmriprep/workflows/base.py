@@ -146,7 +146,6 @@ def init_single_subject_fit_wf(subject_id: str):
                     derivatives_dir=deriv_dir,
                     subject_id=subject_id,
                     std_spaces=std_spaces,
-                    freesurfer=config.workflow.run_reconall,
                 )
             )
 
@@ -209,6 +208,7 @@ def init_single_subject_fit_wf(subject_id: str):
         freesurfer=config.workflow.run_reconall,
         hires=config.workflow.hires,
         longitudinal=config.workflow.longitudinal,
+        msm_sulc=config.workflow.run_msmsulc,
         t1w=subject_data['t1w'],
         t2w=subject_data['t2w'],
         skull_strip_mode=config.workflow.skull_strip_t1w,
@@ -404,67 +404,6 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
     if config.workflow.level == "minimal":
         return clean_datasinks(workflow)
 
-    if config.workflow.run_reconall:
-        from smriprep.workflows.outputs import init_ds_surfaces_wf
-        from smriprep.workflows.surfaces import (
-            init_anat_ribbon_wf,
-            init_fsLR_reg_wf,
-            init_gifti_surfaces_wf,
-        )
-
-        gifti_surfaces_wf = init_gifti_surfaces_wf(
-            surfaces=["white", "pial", "midthickness"],
-        )
-        gifti_spheres_wf = init_gifti_surfaces_wf(
-            surfaces=["sphere_reg"], to_scanner=False, name="gifti_spheres_wf"
-        )
-        fsLR_reg_wf = init_fsLR_reg_wf()
-        ds_surfaces_wf = init_ds_surfaces_wf(
-            bids_root=str(config.execution.bids_dir),
-            output_dir=str(config.execution.output_dir),
-            surfaces=["white", "pial", "midthickness", "sphere_reg", "sphere_reg_fsLR"],
-        )
-        anat_ribbon_wf = init_anat_ribbon_wf()
-
-        # fmt:off
-        workflow.connect([
-            (anat_fit_wf, gifti_surfaces_wf, [
-                ("outputnode.subjects_dir", "inputnode.subjects_dir"),
-                ("outputnode.subject_id", "inputnode.subject_id"),
-                ("outputnode.fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
-            ]),
-            (anat_fit_wf, gifti_spheres_wf, [
-                ("outputnode.subjects_dir", "inputnode.subjects_dir"),
-                ("outputnode.subject_id", "inputnode.subject_id"),
-                # No transform for spheres, following HCP pipelines' lead
-            ]),
-            (gifti_spheres_wf, fsLR_reg_wf, [
-                ("outputnode.sphere_reg", "inputnode.sphere_reg"),
-            ]),
-            (anat_fit_wf, anat_ribbon_wf, [
-                ("outputnode.t1w_mask", "inputnode.ref_file"),
-            ]),
-            (gifti_surfaces_wf, anat_ribbon_wf, [
-                ("outputnode.white", "inputnode.white"),
-                ("outputnode.pial", "inputnode.pial"),
-            ]),
-            (anat_fit_wf, ds_surfaces_wf, [
-                ("outputnode.t1w_valid_list", "inputnode.source_files"),
-            ]),
-            (gifti_surfaces_wf, ds_surfaces_wf, [
-                ("outputnode.white", "inputnode.white"),
-                ("outputnode.pial", "inputnode.pial"),
-                ("outputnode.midthickness", "inputnode.midthickness"),
-            ]),
-            (gifti_spheres_wf, ds_surfaces_wf, [
-                ("outputnode.sphere_reg", "inputnode.sphere_reg"),
-            ]),
-            (fsLR_reg_wf, ds_surfaces_wf, [
-                ("outputnode.sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
-            ]),
-        ])
-        # fmt:on
-
     if config.workflow.level == "resampling":
         return clean_datasinks(workflow)
 
@@ -549,7 +488,6 @@ def init_single_subject_wf(subject_id: str):
                     derivatives_dir=deriv_dir,
                     subject_id=subject_id,
                     std_spaces=std_spaces,
-                    freesurfer=config.workflow.run_reconall,
                 )
             )
 
