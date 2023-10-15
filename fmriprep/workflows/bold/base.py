@@ -140,6 +140,13 @@ def init_bold_wf(
     fmriprep_dir = config.execution.fmriprep_dir
     omp_nthreads = config.nipype.omp_nthreads
 
+    nvols, mem_gb = _create_mem_gb(bold_file)
+    if nvols <= 5 - config.execution.sloppy:
+        config.loggers.workflow.warning(
+            f"Too short BOLD series (<= 5 timepoints). Skipping processing of <{bold_file}>."
+        )
+        return
+
     functional_cache = {}
     if config.execution.derivatives:
         from fmriprep.utils.bids import collect_derivatives, extract_entities
@@ -453,17 +460,6 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
         SimpleBeforeAfterRPT as SimpleBeforeAfter,
     )
     from niworkflows.interfaces.utility import KeySelect
-
-    img = nb.load(bold_file[0] if isinstance(bold_file, (list, tuple)) else bold_file)
-    nvols = 1 if img.ndim < 4 else img.shape[3]
-    if nvols <= 5 - config.execution.sloppy:
-        config.loggers.workflow.warning(
-            f"Too short BOLD series (<= 5 timepoints). Skipping processing of <{bold_file}>."
-        )
-        return
-
-    mem_gb = {"filesize": 1, "resampled": 1, "largemem": 1}
-    bold_tlen = 10
 
     # Have some options handy
     omp_nthreads = config.nipype.omp_nthreads
@@ -1439,7 +1435,7 @@ def _create_mem_gb(bold_fname):
     nvox = int(np.prod(img.shape, dtype='u8'))
     # Assume tools will coerce to 8-byte floats to be safe
     bold_size_gb = 8 * nvox / (1024**3)
-    bold_tlen = img.shape[-1]
+    bold_tlen = 1 if img.ndim < 4 else img.shape[3]
     mem_gb = {
         "filesize": bold_size_gb,
         "resampled": bold_size_gb * 4,

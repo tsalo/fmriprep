@@ -483,6 +483,9 @@ tasks and sessions), the following preprocessing was performed.
             precomputed=functional_cache,
             fieldmap_id=fieldmap_id,
         )
+        if bold_wf is None:
+            continue
+
         bold_wf.__desc__ = func_pre_desc + (bold_wf.__desc__ or "")
 
         workflow.connect([
