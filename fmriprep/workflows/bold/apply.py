@@ -25,6 +25,96 @@ if ty.TYPE_CHECKING:
     from niworkflows.utils.spaces import SpatialReferences
 
 
+def init_bold_volumetric_resample_wf(
+    *,
+    fieldmap_id: ty.Optional[str] = None,
+    omp_nthreads: int = 1,
+    name: str = 'bold_volumetric_resample_wf',
+) -> pe.Workflow:
+    workflow = pe.Workflow(name=name)
+
+    inputnode = pe.Node(
+        niu.IdentityInterface(
+            fields=[
+                "bold_file",
+                "ref_file",
+                # HMC
+                "motion_xfm",
+                # SDC
+                "boldref2fmap_xfm",
+                "fmap_ref",
+                "fmap_coeff",
+                "fmap_id",
+                # Anatomical
+                "boldref2anat_xfm",
+                # Template
+                "anat2std_xfm",
+            ],
+        ),
+        name='inputnode',
+    )
+
+    boldref2target = pe.Node(niu.Merge(2), name='boldref2target')
+    bold2target = pe.Node(niu.Merge(2), name='bold2target')
+    resample = pe.Node(ResampleSeries(), name="resample", n_procs=omp_nthreads)
+
+    workflow.connect([
+        (inputnode, boldref2target, [
+            ('boldref2anat_xfm', 'in1'),
+            ('anat2std_xfm', 'in2'),
+        ]),
+        (inputnode, bold2target, [('motion_xfm', 'in1')]),
+        (inputnode, resample, [
+            ('bold_file', 'in_file'),
+            ('ref_file', 'ref_file'),
+        ]),
+        (boldref2target, bold2target, [('out', 'in2')]),
+        (bold2target, resample, [('out', 'transforms')]),
+    ])  # fmt:skip
+
+    if fieldmap_id:
+        fmap_select = pe.Node(
+            KeySelect(fields=["fmap_ref", "fmap_coeff"], key=fieldmap_id),
+            name="fmap_select",
+            run_without_submitting=True,
+        )
+        distortion_params = pe.Node(
+            DistortionParameters(metadata=metadata),
+            name="distortion_params",
+            run_without_submitting=True,
+        )
+        fmap2target = pe.Node(niu.Merge(2), name='fmap2target')
+        inverses = pe.Node(niu.Function(function=_gen_inverses), name='inverses')
+
+        fmap_recon = pe.Node(ReconstructFieldmap(), name="fmap_recon")
+
+        workflow.connect([
+            (inputnode, fmap_select, [
+                ("fmap_ref", "fmap_ref"),
+                ("fmap_coeff", "fmap_coeff"),
+                ("fmap_id", "keys"),
+            ]),
+            (inputnode, distortion_params, [('bold_file', 'in_file')]),
+            (inputnode, fmap2target, [('fmapreg_xfm', 'in1')]),
+            (boldref2target, fmap2target, [('out', 'in2')]),
+            (boldref2target, inverses, [('out', 'inlist')]),
+            (fmap_select, fmap_recon, [
+                ("fmap_coeff", "in_coeffs"),
+                ("fmap_ref", "fmap_ref_file"),
+            ]),
+            (fmap2target, fmap_recon, [('out', 'transforms')]),
+            (inverses, fmap_recon, [('out', 'inverse')]),
+            # Inject fieldmap correction into resample node
+            (distortion_params, resample, [
+                ("readout_time", "ro_time"),
+                ("pe_direction", "pe_dir"),
+            ]),
+            (fmap_recon, resample, [('out_file', 'fieldmap')]),
+        ])  # fmt:skip
+
+    return workflow
+
+
 def init_bold_apply_wf(
     *,
     spaces: SpatialReferences,
@@ -49,3 +139,16 @@ def init_bold_apply_wf(
         # )
 
     return workflow
+
+
+def _gen_inverses(inlist: list) -> list[bool]:
+    """Create a list indicating the first transform should be inverted.
+
+    The input list is the collection of transforms that follow the
+    inverted one.
+    """
+    from niworkflows.utils.connections import listify
+
+    if not inlist:
+        return [True]
+    return [True] + [False] * len(listify(inlist))

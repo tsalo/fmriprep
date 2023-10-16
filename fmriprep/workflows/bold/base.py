@@ -45,6 +45,7 @@ from ...interfaces.reports import FunctionalSummary
 from ...utils.meepi import combine_meepi_source
 
 # BOLD workflows
+from .apply import init_bold_volumetric_resample_wf
 from .confounds import init_bold_confs_wf, init_carpetplot_wf
 from .fit import init_bold_fit_wf, init_bold_native_wf
 from .hmc import init_bold_hmc_wf
@@ -231,26 +232,45 @@ def init_bold_wf(
     #   - Save native outputs/echos only if requested
     #
 
-    bold_native_wf = init_bold_native_wf(bold_series=bold_series, fieldmap_id=fieldmap_id)
+    bold_native_wf = init_bold_native_wf(
+        bold_series=bold_series,
+        fieldmap_id=fieldmap_id,
+        omp_nthreads=omp_nthreads,
+    )
+    bold_anat_wf = init_bold_volumetric_resample_wf(
+        fieldmap_id=fieldmap_id if not multiecho else None,
+        omp_nthreads=omp_nthreads,
+        name='bold_anat_wf',
+    )
 
     workflow.connect([
+        (inputnode, bold_native_wf, [
+            ("fmap_ref", "inputnode.fmap_ref"),
+            ("fmap_coeff", "inputnode.fmap_coeff"),
+            ("fmap_id", "inputnode.fmap_id"),
+        ]),
+        (inputnode, bold_anat_wf, [
+            ("t1w_preproc", "inputnode.ref_file"),
+            ("fmap_ref", "inputnode.fmap_ref"),
+            ("fmap_coeff", "inputnode.fmap_coeff"),
+            ("fmap_id", "inputnode.fmap_id"),
+        ]),
         (bold_fit_wf, bold_native_wf, [
             ("outputnode.coreg_boldref", "inputnode.boldref"),
             ("outputnode.bold_mask", "inputnode.bold_mask"),
             ("outputnode.motion_xfm", "inputnode.motion_xfm"),
-            ("outputnode.boldref2fmap_xfm", "inputnode.fmapreg_xfm"),
+            ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
             ("outputnode.dummy_scans", "inputnode.dummy_scans"),
         ]),
+        (bold_fit_wf, bold_anat_wf, [
+            ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
+            ("outputnode.boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
+        ]),
+        (bold_native_wf, bold_anat_wf, [
+            ("outputnode.bold_minimal", "inputnode.bold_file"),
+            ("outputnode.motion_xfm", "inputnode.motion_xfm"),
+        ]),
     ])  # fmt:skip
-
-    if fieldmap_id:
-        workflow.connect([
-            (inputnode, bold_native_wf, [
-                ("fmap_ref", "inputnode.fmap_ref"),
-                ("fmap_coeff", "inputnode.fmap_coeff"),
-                ("fmap_id", "inputnode.fmap_id"),
-            ]),
-        ])  # fmt:skip
 
     boldref_out = bool(nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref')))
     echos_out = multiecho and config.execution.me_output_echos
@@ -276,6 +296,8 @@ def init_bold_wf(
                 ('outputnode.t2star_map', 'inputnode.t2star'),
             ]),
         ])  # fmt:skip
+
+    anat_out = bool(nonstd_spaces.intersection(('anat', 'T1w')))
 
     if multiecho:
         t2s_reporting_wf = init_t2s_reporting_wf()
