@@ -99,7 +99,7 @@ class ResampleSeries(SimpleInterface):
 
             pe_info = [(pe_axis, -ro_time if (axis_flip ^ pe_flip) else ro_time)] * nvols
 
-        resampled = resample_bold(
+        resampled = resample_image(
             source=source,
             target=target,
             transforms=transforms,
@@ -474,7 +474,7 @@ def resample_series(
     )
 
 
-def resample_bold(
+def resample_image(
     source: nb.Nifti1Image,
     target: nb.Nifti1Image,
     transforms: nt.TransformChain,
@@ -487,13 +487,13 @@ def resample_bold(
     cval: float = 0.0,
     prefilter: bool = True,
 ) -> nb.Nifti1Image:
-    """Resample a 4D bold series into a target space, applying head-motion
+    """Resample a 3- or 4D image into a target space, applying head-motion
     and susceptibility-distortion correction simultaneously.
 
     Parameters
     ----------
     source
-        The 4D bold series to resample.
+        The 3D bold image or 4D bold series to resample.
     target
         An image sampled in the target space.
     transforms
