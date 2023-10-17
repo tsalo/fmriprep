@@ -194,7 +194,7 @@ The BOLD time-series were resampled onto the following surfaces
             ("source_file", "reference"),
             ("fsnative2t1w_xfm", "in_xfms"),
         ]),
-        (get_fsnative, itk2lta, [("T1", "dst_file")]),
+        (get_fsnative, itk2lta, [("T1", "moving")]),
         (inputnode, sampler, [
             ("subjects_dir", "subjects_dir"),
             ("subject_id", "subject_id"),
@@ -663,7 +663,7 @@ The BOLD time-series were resampled onto the left/right-symmetric template
     # Line 85 thru ...
     volume_to_surface = pe.Node(
         VolumeToSurfaceMapping(
-            method="ribbon-constrained", 
+            method="ribbon-constrained",
             output_weights_text="output_weights.txt",
         ),
         name="volume_to_surface",
