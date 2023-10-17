@@ -28,7 +28,9 @@ class ResampleSeriesInputSpec(TraitedSpec):
     in_file = File(exists=True, mandatory=True, desc="3D or 4D image file to resample")
     ref_file = File(exists=True, mandatory=True, desc="File to resample in_file to")
     transforms = InputMultiObject(
-        File(exists=True), mandatory=True, desc="Transform files, from in_file to ref_file (image mode)"
+        File(exists=True),
+        mandatory=True,
+        desc="Transform files, from in_file to ref_file (image mode)",
     )
     inverse = InputMultiObject(
         traits.Bool,
@@ -120,10 +122,16 @@ class ReconstructFieldmapInputSpec(TraitedSpec):
     in_coeffs = InputMultiObject(
         File(exists=True), mandatory=True, desc="SDCflows-style spline coefficient files"
     )
-    target_ref_file = File(exists=True, mandatory=True, desc="Image to reconstruct the field in alignment with")
-    fmap_ref_file = File(exists=True, mandatory=True, desc="Reference file aligned with coefficients")
+    target_ref_file = File(
+        exists=True, mandatory=True, desc="Image to reconstruct the field in alignment with"
+    )
+    fmap_ref_file = File(
+        exists=True, mandatory=True, desc="Reference file aligned with coefficients"
+    )
     transforms = InputMultiObject(
-        File(exists=True), mandatory=True, desc="Transform files, from in_file to ref_file (image mode)"
+        File(exists=True),
+        mandatory=True,
+        desc="Transform files, from in_file to ref_file (image mode)",
     )
     inverse = InputMultiObject(
         traits.Bool,
