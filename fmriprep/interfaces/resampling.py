@@ -48,6 +48,16 @@ class ResampleSeriesInputSpec(TraitedSpec):
         desc="the phase-encoding direction corresponding to in_data",
     )
     num_threads = traits.Int(1, usedefault=True, desc="Number of threads to use for resampling")
+    output_data_type = traits.Str("float32", usedefault=True, desc="Data type of output image")
+    order = traits.Int(3, usedefault=True, desc="Order of interpolation (0=nearest, 3=cubic)")
+    mode = traits.Str(
+        'constant',
+        usedefault=True,
+        desc="How data is extended beyond its boundaries. "
+        "See scipy.ndimage.map_coordinates for more details.",
+    )
+    cval = traits.Float(0.0, usedefault=True, desc="Value to fill past edges of data")
+    prefilter = traits.Bool(True, usedefault=True, desc="Spline-prefilter data if order > 1")
 
 
 class ResampleSeriesOutputSpec(TraitedSpec):
@@ -94,6 +104,11 @@ class ResampleSeries(SimpleInterface):
             fieldmap=fieldmap,
             pe_info=pe_info,
             nthreads=self.inputs.num_threads,
+            output_dtype=self.inputs.output_data_type,
+            order=self.inputs.order,
+            mode=self.inputs.mode,
+            cval=self.inputs.cval,
+            prefilter=self.inputs.prefilter,
         )
         resampled.to_filename(out_path)
 
@@ -458,6 +473,11 @@ def resample_bold(
     fieldmap: nb.Nifti1Image | None,
     pe_info: list[tuple[int, float]] | None,
     nthreads: int = 1,
+    output_dtype: np.dtype | str | None = 'f4',
+    order: int = 3,
+    mode: str = 'constant',
+    cval: float = 0.0,
+    prefilter: bool = True,
 ) -> nb.Nifti1Image:
     """Resample a 4D bold series into a target space, applying head-motion
     and susceptibility-distortion correction simultaneously.
@@ -480,6 +500,17 @@ def resample_bold(
         of the data array in the second dimension.
     nthreads
         Number of threads to use for parallel resampling
+    output_dtype
+        The dtype of the output array.
+    order
+        Order of interpolation (default: 3 = cubic)
+    mode
+        How ``data`` is extended beyond its boundaries. See
+        :func:`scipy.ndimage.map_coordinates` for more details.
+    cval
+        Value to fill past edges of ``data`` if ``mode`` is ``'constant'``.
+    prefilter
+        Determines if ``data`` is pre-filtered before interpolation.
 
     Returns
     -------
@@ -527,8 +558,12 @@ def resample_bold(
         pe_info=pe_info,
         hmc_xfms=hmc_xfms,
         fmap_hz=fieldmap.get_fdata(dtype='f4'),
-        output_dtype='f4',
+        output_dtype=output_dtype,
         nthreads=nthreads,
+        order=order,
+        mode=mode,
+        cval=cval,
+        prefilter=prefilter,
     )
     resampled_img = nb.Nifti1Image(resampled_data, target.affine, target.header)
     resampled_img.set_data_dtype('f4')
