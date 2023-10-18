@@ -687,7 +687,6 @@ def init_ds_volumes_wf(
     *,
     bids_root: str,
     output_dir: str,
-    space: str,
     multiecho: bool,
     metadata: ty.List[dict],
     name="ds_bold_native_wf",

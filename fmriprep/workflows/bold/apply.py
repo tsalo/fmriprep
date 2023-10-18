@@ -54,6 +54,8 @@ def init_bold_volumetric_resample_wf(
         name='inputnode',
     )
 
+    outputnode = pe.Node(niu.IdentityInterface(fields=["bold_file"]), name='outputnode')
+
     boldref2target = pe.Node(niu.Merge(2), name='boldref2target')
     bold2target = pe.Node(niu.Merge(2), name='bold2target')
     resample = pe.Node(ResampleSeries(), name="resample", n_procs=omp_nthreads)
@@ -70,6 +72,7 @@ def init_bold_volumetric_resample_wf(
         ]),
         (boldref2target, bold2target, [('out', 'in2')]),
         (bold2target, resample, [('out', 'transforms')]),
+        (resample, outputnode, [('out_file', 'bold_file')]),
     ])  # fmt:skip
 
     if fieldmap_id:

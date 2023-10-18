@@ -49,7 +49,11 @@ from .apply import init_bold_volumetric_resample_wf
 from .confounds import init_bold_confs_wf, init_carpetplot_wf
 from .fit import init_bold_fit_wf, init_bold_native_wf
 from .hmc import init_bold_hmc_wf
-from .outputs import init_ds_bold_native_wf, init_func_derivatives_wf
+from .outputs import (
+    init_ds_bold_native_wf,
+    init_ds_volumes_wf,
+    init_func_derivatives_wf,
+)
 from .registration import init_bold_reg_wf, init_bold_t1_trans_wf
 from .resampling import (
     init_bold_preproc_trans_wf,
@@ -140,6 +144,7 @@ def init_bold_wf(
 
     fmriprep_dir = config.execution.fmriprep_dir
     omp_nthreads = config.nipype.omp_nthreads
+    all_metadata = [config.execution.layout.get_metadata(file) for file in bold_series]
 
     nvols, mem_gb = _create_mem_gb(bold_file)
     if nvols <= 5 - config.execution.sloppy:
@@ -282,7 +287,7 @@ def init_bold_wf(
             bold_output=boldref_out,
             echo_output=echos_out,
             multiecho=multiecho,
-            all_metadata=[config.execution.layout.get_metadata(file) for file in bold_series],
+            all_metadata=all_metadata,
         )
         ds_bold_native_wf.inputs.inputnode.source_files = bold_series
 
@@ -297,7 +302,27 @@ def init_bold_wf(
             ]),
         ])  # fmt:skip
 
-    anat_out = bool(nonstd_spaces.intersection(('anat', 'T1w')))
+    if nonstd_spaces.intersection(('anat', 'T1w')):
+        ds_bold_t1_wf = init_ds_volumes_wf(
+            bids_root=str(config.execution.bids_dir),
+            output_dir=fmriprep_dir,
+            multiecho=multiecho,
+            metadata=metadata[0],
+        )
+        ds_bold_t1_wf.inputs.inputnode.source_files = bold_series
+
+        workflow.connect([
+            (inputnode, ds_bold_t1_wf, [
+                ('t1w_preproc', 'inputnode.ref_file'),
+            ]),
+            (bold_fit_wf, ds_bold_t1_wf, [
+                ('outputnode.bold_mask', 'inputnode.bold_mask'),
+                ('outputnode.coreg_boldref', 'inputnode.bold_ref'),
+                ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
+            ]),
+            (bold_native_wf, ds_bold_t1_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
+            (bold_anat_wf, ds_bold_t1_wf, [('outputnode.bold_file', 'inputnode.bold')]),
+        ])  # fmt:skip
 
     if multiecho:
         t2s_reporting_wf = init_t2s_reporting_wf()
