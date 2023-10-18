@@ -154,6 +154,16 @@ def init_bold_wf(
         )
         return
 
+    config.loggers.workflow.debug(
+        "Creating bold processing workflow for <%s> (%.2f GB / %d TRs). "
+        "Memory resampled/largemem=%.2f/%.2f GB.",
+        bold_file,
+        mem_gb["filesize"],
+        nvols,
+        mem_gb["resampled"],
+        mem_gb["largemem"],
+    )
+
     functional_cache = {}
     if config.execution.derivatives:
         from fmriprep.utils.bids import collect_derivatives, extract_entities
@@ -524,15 +534,6 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
 
     ref_file = bold_file
     wf_name = _get_wf_name(ref_file, "func_preproc")
-    config.loggers.workflow.debug(
-        "Creating bold processing workflow for <%s> (%.2f GB / %d TRs). "
-        "Memory resampled/largemem=%.2f/%.2f GB.",
-        ref_file,
-        mem_gb["filesize"],
-        bold_tlen,
-        mem_gb["resampled"],
-        mem_gb["largemem"],
-    )
 
     # Build workflow
     workflow = Workflow(name=wf_name)
