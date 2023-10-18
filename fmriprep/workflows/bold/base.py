@@ -307,9 +307,11 @@ def init_bold_wf(
             bids_root=str(config.execution.bids_dir),
             output_dir=fmriprep_dir,
             multiecho=multiecho,
-            metadata=metadata[0],
+            metadata=all_metadata[0],
+            name='ds_bold_t1_wf',
         )
         ds_bold_t1_wf.inputs.inputnode.source_files = bold_series
+        ds_bold_t1_wf.inputs.inputnode.space = 'T1w'
 
         workflow.connect([
             (inputnode, ds_bold_t1_wf, [

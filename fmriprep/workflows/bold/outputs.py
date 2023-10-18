@@ -689,9 +689,8 @@ def init_ds_volumes_wf(
     output_dir: str,
     multiecho: bool,
     metadata: ty.List[dict],
-    name="ds_bold_native_wf",
+    name="ds_volumes_wf",
 ) -> pe.Workflow:
-    metadata = all_metadata[0]
     timing_parameters = prepare_timing_parameters(metadata)
 
     workflow = pe.Workflow(name=name)
@@ -775,7 +774,7 @@ def init_ds_volumes_wf(
             compress=True,
             dismiss_entities=("echo",),
         ),
-        name='ds_bold',
+        name='ds_ref',
         run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
@@ -787,13 +786,18 @@ def init_ds_volumes_wf(
             compress=True,
             dismiss_entities=("echo",),
         ),
-        name='ds_bold',
+        name='ds_mask',
         run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
     datasinks = [ds_ref, ds_mask]
 
     if multiecho:
+        t2star_meta = {
+            'Units': 's',
+            'EstimationReference': 'doi:10.1002/mrm.20900',
+            'EstimationAlgorithm': 'monoexponential decay model',
+        }
         resample_t2star = pe.Node(
             ApplyTransforms(
                 dimension=3,
@@ -801,7 +805,7 @@ def init_ds_volumes_wf(
                 float=True,
                 interpolation="LanczosWindowedSinc",
             ),
-            name="resample_ref",
+            name="resample_t2star",
         )
         ds_t2star = pe.Node(
             DerivativesDataSink(
