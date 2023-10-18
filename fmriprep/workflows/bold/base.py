@@ -615,16 +615,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         name="outputnode",
     )
 
-    # apply BOLD registration to T1w
-    bold_t1_trans_wf = init_bold_t1_trans_wf(
-        name="bold_t1_trans_wf",
-        freesurfer=freesurfer,
-        mem_gb=mem_gb["resampled"],
-        omp_nthreads=omp_nthreads,
-        use_compression=False,
-    )
-    bold_t1_trans_wf.inputs.inputnode.fieldwarp = "identity"
-
     # get confounds
     bold_confounds_wf = init_bold_confs_wf(
         mem_gb=mem_gb["largemem"],
@@ -636,44 +626,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         name="bold_confounds_wf",
     )
     bold_confounds_wf.get_node("inputnode").inputs.t1_transform_flags = [False]
-
-    # Map final BOLD mask into T1w space (if required)
-    nonstd_spaces = set(spaces.get_nonstandard())
-    if nonstd_spaces.intersection(("T1w", "anat")):
-        from niworkflows.interfaces.fixes import (
-            FixHeaderApplyTransforms as ApplyTransforms,
-        )
-
-        boldmask_to_t1w = pe.Node(
-            ApplyTransforms(interpolation="MultiLabel"),
-            name="boldmask_to_t1w",
-            mem_gb=0.1,
-        )
-        # fmt:off
-        workflow.connect([
-            (bold_reg_wf, boldmask_to_t1w, [("outputnode.itk_bold_to_t1", "transforms")]),
-            (bold_t1_trans_wf, boldmask_to_t1w, [("outputnode.bold_mask_t1", "reference_image")]),
-            (bold_final, boldmask_to_t1w, [("mask", "input_image")]),
-            (boldmask_to_t1w, outputnode, [("output_image", "bold_mask_t1")]),
-        ])
-        # fmt:on
-
-        if multiecho:
-            t2star_to_t1w = pe.Node(
-                ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
-                name="t2star_to_t1w",
-                mem_gb=0.1,
-            )
-            # fmt:off
-            workflow.connect([
-                (bold_reg_wf, t2star_to_t1w, [("outputnode.itk_bold_to_t1", "transforms")]),
-                (bold_t1_trans_wf, t2star_to_t1w, [
-                    ("outputnode.bold_mask_t1", "reference_image")
-                ]),
-                (bold_final, t2star_to_t1w, [("t2star", "input_image")]),
-                (t2star_to_t1w, outputnode, [("output_image", "t2star_t1")]),
-            ])
-            # fmt:on
 
     if spaces.get_spaces(nonstandard=False, dim=(3,)):
         # Apply transforms in 1 shot
