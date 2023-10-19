@@ -292,6 +292,7 @@ def init_bold_wf(
     ])  # fmt:skip
 
     boldref_out = bool(nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref')))
+    boldref_out |= config.workflow.level == 'full'
     echos_out = multiecho and config.execution.me_output_echos
 
     if boldref_out or echos_out:
@@ -314,30 +315,6 @@ def init_bold_wf(
                 ('outputnode.bold_echos', 'inputnode.bold_echos'),
                 ('outputnode.t2star_map', 'inputnode.t2star'),
             ]),
-        ])  # fmt:skip
-
-    if nonstd_spaces.intersection(('anat', 'T1w')):
-        ds_bold_t1_wf = init_ds_volumes_wf(
-            bids_root=str(config.execution.bids_dir),
-            output_dir=fmriprep_dir,
-            multiecho=multiecho,
-            metadata=all_metadata[0],
-            name='ds_bold_t1_wf',
-        )
-        ds_bold_t1_wf.inputs.inputnode.source_files = bold_series
-        ds_bold_t1_wf.inputs.inputnode.space = 'T1w'
-
-        workflow.connect([
-            (inputnode, ds_bold_t1_wf, [
-                ('t1w_preproc', 'inputnode.ref_file'),
-            ]),
-            (bold_fit_wf, ds_bold_t1_wf, [
-                ('outputnode.bold_mask', 'inputnode.bold_mask'),
-                ('outputnode.coreg_boldref', 'inputnode.bold_ref'),
-                ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
-            ]),
-            (bold_native_wf, ds_bold_t1_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
-            (bold_anat_wf, ds_bold_t1_wf, [('outputnode.bold_file', 'inputnode.bold')]),
         ])  # fmt:skip
 
     if multiecho:
@@ -378,6 +355,31 @@ def init_bold_wf(
 
     if config.workflow.level == "resampling":
         return workflow
+
+    # Full derivatives, including resampled BOLD series
+    if nonstd_spaces.intersection(('anat', 'T1w')):
+        ds_bold_t1_wf = init_ds_volumes_wf(
+            bids_root=str(config.execution.bids_dir),
+            output_dir=fmriprep_dir,
+            multiecho=multiecho,
+            metadata=all_metadata[0],
+            name='ds_bold_t1_wf',
+        )
+        ds_bold_t1_wf.inputs.inputnode.source_files = bold_series
+        ds_bold_t1_wf.inputs.inputnode.space = 'T1w'
+
+        workflow.connect([
+            (inputnode, ds_bold_t1_wf, [
+                ('t1w_preproc', 'inputnode.ref_file'),
+            ]),
+            (bold_fit_wf, ds_bold_t1_wf, [
+                ('outputnode.bold_mask', 'inputnode.bold_mask'),
+                ('outputnode.coreg_boldref', 'inputnode.bold_ref'),
+                ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
+            ]),
+            (bold_native_wf, ds_bold_t1_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
+            (bold_anat_wf, ds_bold_t1_wf, [('outputnode.bold_file', 'inputnode.bold')]),
+        ])  # fmt:skip
 
     # Fill-in datasinks of reportlets seen so far
     for node in workflow.list_node_names():

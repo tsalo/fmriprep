@@ -587,6 +587,27 @@ def init_ds_bold_native_wf(
     raw_sources.inputs.bids_root = bids_root
     workflow.connect(inputnode, 'source_files', raw_sources, 'in_files')
 
+    # Masks should be output if any other derivatives are output
+    ds_bold_mask = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc='brain',
+            suffix='mask',
+            compress=True,
+            dismiss_entities=("echo",),
+        ),
+        name='ds_bold_mask',
+        run_without_submitting=True,
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    )
+    workflow.connect([
+        (inputnode, ds_bold_mask, [
+            ('source_files', 'source_file'),
+            ('bold_mask', 'in_file'),
+        ]),
+        (raw_sources, ds_bold_mask, [('out', 'RawSources')]),
+    ])  # fmt:skip
+
     if bold_output:
         ds_bold = pe.Node(
             DerivativesDataSink(
@@ -607,27 +628,6 @@ def init_ds_bold_native_wf(
                 ('source_files', 'source_file'),
                 ('bold', 'in_file'),
             ]),
-        ])  # fmt:skip
-
-    if bold_output or echo_output:
-        ds_bold_mask = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                desc='brain',
-                suffix='mask',
-                compress=True,
-                dismiss_entities=("echo",),
-            ),
-            name='ds_bold_mask',
-            run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB,
-        )
-        workflow.connect([
-            (inputnode, ds_bold_mask, [
-                ('source_files', 'source_file'),
-                ('bold_mask', 'in_file'),
-            ]),
-            (raw_sources, ds_bold_mask, [('out', 'RawSources')]),
         ])  # fmt:skip
 
     if bold_output and multiecho:
