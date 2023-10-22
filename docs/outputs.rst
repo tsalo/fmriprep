@@ -173,8 +173,11 @@ Additionally, the following transforms are saved::
 
   sub-<subject_label>/
     func/
-      sub-<subject_label>_[specifiers]_from-scanner_to-T1w_mode-image_xfm.txt
-      sub-<subject_label>_[specifiers]_from-T1w_to-scanner_mode-image_xfm.txt
+      # Head motion transforms
+      sub-<subject_label>_[specifiers]_from-scanner_to-boldref_mode-image_xfm.txt
+      # Transforms between BOLD reference image and T1w space
+      sub-<subject_label>_[specifiers]_from-boldref_to-T1w_mode-image_xfm.txt
+      sub-<subject_label>_[specifiers]_from-T1w_to-boldref_mode-image_xfm.txt
 
 **Regularly gridded outputs (images)**.
 Volumetric output spaces labels (``<space_label>`` above, and in the following) include

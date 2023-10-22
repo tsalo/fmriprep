@@ -268,7 +268,7 @@ def init_func_derivatives_wf(
             suffix='xfm',
             extension='.txt',
             dismiss_entities=('echo',),
-            **{'from': 'scanner'},
+            **{'from': 'boldref'},
         ),
         name='ds_ref_t1w_xfm',
         run_without_submitting=True,
@@ -276,7 +276,7 @@ def init_func_derivatives_wf(
     ds_ref_t1w_inv_xfm = pe.Node(
         DerivativesDataSink(
             base_directory=output_dir,
-            to='scanner',
+            to='boldref',
             mode='image',
             suffix='xfm',
             extension='.txt',

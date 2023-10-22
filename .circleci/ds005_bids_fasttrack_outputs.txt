@@ -14,8 +14,8 @@ sub-01/func/sub-01_task-mixedgamblestask_run-01_boldref.nii.gz
 sub-01/func/sub-01_task-mixedgamblestask_run-01_desc-confounds_timeseries.json
 sub-01/func/sub-01_task-mixedgamblestask_run-01_desc-confounds_timeseries.tsv
 sub-01/func/sub-01_task-mixedgamblestask_run-01_from-scanner_to-boldref_mode-image_xfm.txt
-sub-01/func/sub-01_task-mixedgamblestask_run-01_from-scanner_to-T1w_mode-image_xfm.txt
-sub-01/func/sub-01_task-mixedgamblestask_run-01_from-T1w_to-scanner_mode-image_xfm.txt
+sub-01/func/sub-01_task-mixedgamblestask_run-01_from-boldref_to-T1w_mode-image_xfm.txt
+sub-01/func/sub-01_task-mixedgamblestask_run-01_from-T1w_to-boldref_mode-image_xfm.txt
 sub-01/func/sub-01_task-mixedgamblestask_run-01_hemi-L_space-fsaverage5_bold.func.gii
 sub-01/func/sub-01_task-mixedgamblestask_run-01_hemi-L_space-fsaverage5_bold.json
 sub-01/func/sub-01_task-mixedgamblestask_run-01_hemi-R_space-fsaverage5_bold.func.gii
@@ -24,8 +24,8 @@ sub-01/func/sub-01_task-mixedgamblestask_run-02_boldref.nii.gz
 sub-01/func/sub-01_task-mixedgamblestask_run-02_desc-confounds_timeseries.json
 sub-01/func/sub-01_task-mixedgamblestask_run-02_desc-confounds_timeseries.tsv
 sub-01/func/sub-01_task-mixedgamblestask_run-02_from-scanner_to-boldref_mode-image_xfm.txt
-sub-01/func/sub-01_task-mixedgamblestask_run-02_from-scanner_to-T1w_mode-image_xfm.txt
-sub-01/func/sub-01_task-mixedgamblestask_run-02_from-T1w_to-scanner_mode-image_xfm.txt
+sub-01/func/sub-01_task-mixedgamblestask_run-02_from-boldref_to-T1w_mode-image_xfm.txt
+sub-01/func/sub-01_task-mixedgamblestask_run-02_from-T1w_to-boldref_mode-image_xfm.txt
 sub-01/func/sub-01_task-mixedgamblestask_run-02_hemi-L_space-fsaverage5_bold.func.gii
 sub-01/func/sub-01_task-mixedgamblestask_run-02_hemi-L_space-fsaverage5_bold.json
 sub-01/func/sub-01_task-mixedgamblestask_run-02_hemi-R_space-fsaverage5_bold.func.gii
