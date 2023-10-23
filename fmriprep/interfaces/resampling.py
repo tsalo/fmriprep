@@ -372,7 +372,7 @@ async def resample_series_async(
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
-    out_array = np.zeros(coordinates.shape[1:] + data.shape[-1:], dtype=output_dtype)
+    out_array = np.zeros(coordinates.shape[1:] + data.shape[-1:], dtype=output_dtype, order='F')
 
     tasks = [
         asyncio.create_task(
