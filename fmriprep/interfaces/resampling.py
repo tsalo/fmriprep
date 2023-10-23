@@ -275,6 +275,9 @@ def resample_vol(
         coordinates = nb.affines.apply_affine(
             hmc_xfm, coordinates.reshape(coords_shape[0], -1).T
         ).T.reshape(coords_shape)
+    else:
+        # Copy coordinates to avoid interfering with other calls
+        coordinates = coordinates.copy()
 
     vsm = fmap_hz * pe_info[1]
     coordinates[pe_info[0], ...] += vsm
@@ -377,7 +380,7 @@ async def resample_series_async(
                 partial(
                     resample_vol,
                     data=volume,
-                    coordinates=coordinates.copy(),
+                    coordinates=coordinates,
                     pe_info=pe_info[volid],
                     hmc_xfm=hmc_xfms[volid] if hmc_xfms else None,
                     fmap_hz=fmap_hz,
