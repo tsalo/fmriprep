@@ -99,7 +99,7 @@ def init_bold_volumetric_resample_wf(
                 ("fmap_id", "keys"),
             ]),
             (inputnode, distortion_params, [('bold_file', 'in_file')]),
-            (inputnode, fmap2target, [('fmapreg_xfm', 'in1')]),
+            (inputnode, fmap2target, [('boldref2fmap_xfm', 'in1')]),
             (boldref2target, fmap2target, [('out', 'in2')]),
             (boldref2target, inverses, [('out', 'inlist')]),
             (fmap_select, fmap_recon, [
