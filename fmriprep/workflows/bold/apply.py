@@ -27,6 +27,7 @@ if ty.TYPE_CHECKING:
 
 def init_bold_volumetric_resample_wf(
     *,
+    metadata: dict,
     fieldmap_id: ty.Optional[str] = None,
     omp_nthreads: int = 1,
     name: str = 'bold_volumetric_resample_wf',

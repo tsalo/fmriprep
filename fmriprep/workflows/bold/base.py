@@ -51,6 +51,7 @@ from .fit import init_bold_fit_wf, init_bold_native_wf
 from .hmc import init_bold_hmc_wf
 from .outputs import (
     init_ds_bold_native_wf,
+    init_ds_registration_wf,
     init_ds_volumes_wf,
     init_func_derivatives_wf,
 )
@@ -243,6 +244,7 @@ def init_bold_wf(
         omp_nthreads=omp_nthreads,
     )
     bold_anat_wf = init_bold_volumetric_resample_wf(
+        metadata=all_metadata[0],
         fieldmap_id=fieldmap_id if not multiecho else None,
         omp_nthreads=omp_nthreads,
         name='bold_anat_wf',
