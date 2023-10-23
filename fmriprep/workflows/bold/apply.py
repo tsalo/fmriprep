@@ -7,6 +7,7 @@ import nibabel as nb
 import nipype.interfaces.utility as niu
 import nipype.pipeline.engine as pe
 from niworkflows.interfaces.header import ValidateImage
+from niworkflows.interfaces.nibabel import GenerateSamplingReference
 from niworkflows.interfaces.utility import KeySelect
 from niworkflows.utils.connections import listify
 
@@ -38,7 +39,9 @@ def init_bold_volumetric_resample_wf(
         niu.IdentityInterface(
             fields=[
                 "bold_file",
-                "ref_file",
+                "bold_ref_file",
+                "target_ref_file",
+                "target_mask",
                 # HMC
                 "motion_xfm",
                 # SDC
@@ -57,20 +60,25 @@ def init_bold_volumetric_resample_wf(
 
     outputnode = pe.Node(niu.IdentityInterface(fields=["bold_file"]), name='outputnode')
 
+    gen_ref = pe.Node(GenerateSamplingReference(), name='gen_ref', mem_gb=0.3)
+
     boldref2target = pe.Node(niu.Merge(2), name='boldref2target')
     bold2target = pe.Node(niu.Merge(2), name='bold2target')
     resample = pe.Node(ResampleSeries(), name="resample", n_procs=omp_nthreads)
 
     workflow.connect([
+        (inputnode, gen_ref, [
+            ('bold_ref_file', 'moving_image'),
+            ('target_ref_file', 'fixed_image'),
+            ('target_mask', 'fov_mask'),
+        ]),
         (inputnode, boldref2target, [
             ('boldref2anat_xfm', 'in1'),
             ('anat2std_xfm', 'in2'),
         ]),
         (inputnode, bold2target, [('motion_xfm', 'in1')]),
-        (inputnode, resample, [
-            ('bold_file', 'in_file'),
-            ('ref_file', 'ref_file'),
-        ]),
+        (inputnode, resample, [('bold_file', 'in_file')]),
+        (gen_ref, resample, [('out_file', 'ref_file')]),
         (boldref2target, bold2target, [('out', 'in2')]),
         (bold2target, resample, [('out', 'transforms')]),
         (resample, outputnode, [('out_file', 'bold_file')]),
@@ -100,7 +108,7 @@ def init_bold_volumetric_resample_wf(
             ]),
             (inputnode, distortion_params, [('bold_file', 'in_file')]),
             (inputnode, fmap2target, [('boldref2fmap_xfm', 'in1')]),
-            (inputnode, fmap_recon, [('ref_file', 'target_ref_file')]),
+            (gen_ref, fmap_recon, [('out_file', 'target_ref_file')]),
             (boldref2target, fmap2target, [('out', 'in2')]),
             (boldref2target, inverses, [('out', 'inlist')]),
             (fmap_select, fmap_recon, [

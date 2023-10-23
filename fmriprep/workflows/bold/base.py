@@ -257,7 +257,8 @@ def init_bold_wf(
             ("fmap_id", "inputnode.fmap_id"),
         ]),
         (inputnode, bold_anat_wf, [
-            ("t1w_preproc", "inputnode.ref_file"),
+            ("t1w_preproc", "inputnode.target_ref_file"),
+            ("t1w_mask", "inputnode.target_mask"),
             ("fmap_ref", "inputnode.fmap_ref"),
             ("fmap_coeff", "inputnode.fmap_coeff"),
             ("fmap_id", "inputnode.fmap_id"),
@@ -270,6 +271,7 @@ def init_bold_wf(
             ("outputnode.dummy_scans", "inputnode.dummy_scans"),
         ]),
         (bold_fit_wf, bold_anat_wf, [
+            ("outputnode.coreg_boldref", "inputnode.bold_ref_file"),
             ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
             ("outputnode.boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
         ]),
