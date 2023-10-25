@@ -121,7 +121,7 @@ def init_bold_confs_wf(
     movpar_file
         SPM-formatted motion parameters file
     rmsd_file
-        Framewise displacement as measured by ``fsl_motion_outliers``.
+        Root mean squared deviation as measured by ``fsl_motion_outliers`` [Jenkinson2002]_.
     skip_vols
         number of non steady state volumes
     t1w_mask

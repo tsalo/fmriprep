@@ -503,6 +503,7 @@ tasks and sessions), the following preprocessing was performed.
                 ('outputnode.t1w_preproc', 'inputnode.t1w_preproc'),
                 ('outputnode.t1w_mask', 'inputnode.t1w_mask'),
                 ('outputnode.t1w_dseg', 'inputnode.t1w_dseg'),
+                ('outputnode.t1w_tpms', 'inputnode.t1w_tpms'),
                 ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
                 ('outputnode.subject_id', 'inputnode.subject_id'),
                 ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm'),

@@ -177,6 +177,12 @@ def init_bold_fit_wf(
     boldref2fmap_xfm
         Affine transform mapping from BOLD reference space to the fieldmap
         space, if applicable.
+    movpar_file
+        MCFLIRT motion parameters, normalized to SPM format (X, Y, Z, Rx, Ry, Rz)
+    rmsd_file
+        Root mean squared deviation as measured by ``fsl_motion_outliers`` [Jenkinson2002]_.
+    dummy_scans
+        The number of dummy scans declared or detected at the beginning of the series.
 
     See Also
     --------
@@ -267,6 +273,8 @@ def init_bold_fit_wf(
                 "motion_xfm",
                 "boldref2anat_xfm",
                 "boldref2fmap_xfm",
+                "movpar_file",
+                "rmsd_file",
             ],
         ),
         name="outputnode",
@@ -276,7 +284,8 @@ def init_bold_fit_wf(
     workflow.add_nodes([inputnode])
 
     hmcref_buffer = pe.Node(
-        niu.IdentityInterface(fields=["boldref", "bold_file"]), name="hmcref_buffer"
+        niu.IdentityInterface(fields=["boldref", "bold_file", "dummy_scans"]),
+        name="hmcref_buffer",
     )
     fmapref_buffer = pe.Node(niu.Function(function=_select_ref), name="fmapref_buffer")
     hmc_buffer = pe.Node(niu.IdentityInterface(fields=["hmc_xforms"]), name="hmc_buffer")
@@ -313,13 +322,20 @@ def init_bold_fit_wf(
 
     # fmt:off
     workflow.connect([
-        (hmcref_buffer, outputnode, [("boldref", "hmc_boldref")]),
+        (hmcref_buffer, outputnode, [
+            ("boldref", "hmc_boldref"),
+            ("dummy_scans", "dummy_scans"),
+        ]),
         (regref_buffer, outputnode, [
             ("boldref", "coreg_boldref"),
             ("boldmask", "bold_mask"),
         ]),
         (fmapreg_buffer, outputnode, [("boldref2fmap_xfm", "boldref2fmap_xfm")]),
-        (hmc_buffer, outputnode, [("hmc_xforms", "motion_xfm")]),
+        (hmc_buffer, outputnode, [
+            ("hmc_xforms", "motion_xfm"),
+            ("movpar_file", "movpar_file"),
+            ("rmsd_file", "rmsd_file"),
+        ]),
         (inputnode, func_fit_reports_wf, [
             ("bold_file", "inputnode.source_file"),
             ("t1w_preproc", "inputnode.t1w_preproc"),
@@ -360,6 +376,7 @@ def init_bold_fit_wf(
             (hmc_boldref_wf, hmcref_buffer, [
                 ("outputnode.bold_file", "bold_file"),
                 ("outputnode.boldref", "boldref"),
+                ("outputnode.skip_vols", "dummy_scans"),
             ]),
             (hmcref_buffer, ds_hmc_boldref_wf, [("boldref", "inputnode.boldref")]),
             (hmc_boldref_wf, summary, [("outputnode.algo_dummy_scans", "algo_dummy_scans")]),
@@ -403,7 +420,11 @@ def init_bold_fit_wf(
                 ("bold_file", "inputnode.bold_file"),
             ]),
             (bold_hmc_wf, ds_hmc_wf, [("outputnode.xforms", "inputnode.xforms")]),
-            (ds_hmc_wf, hmc_buffer, [("outputnode.xforms", "hmc_xforms")]),
+            (bold_hmc_wf, hmc_buffer, [
+                ("outputnode.xforms", "hmc_xforms"),
+                ("outputnode.movpar_file", "movpar_file"),
+                ("outputnode.rmsd_file", "rmsd_file"),
+            ]),
         ])
         # fmt:on
     else:

@@ -75,8 +75,8 @@ def init_bold_hmc_wf(mem_gb: float, omp_nthreads: int, name: str = 'bold_hmc_wf'
         ITKTransform file aligning each volume to ``ref_image``
     movpar_file
         MCFLIRT motion parameters, normalized to SPM format (X, Y, Z, Rx, Ry, Rz)
-    rms_file
-        Framewise displacement as measured by ``fsl_motion_outliers`` [Jenkinson2002]_.
+    rmsd_file
+        Root mean squared deviation as measured by ``fsl_motion_outliers`` [Jenkinson2002]_.
 
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow

@@ -188,6 +188,7 @@ def init_bold_wf(
                 "t1w_preproc",
                 "t1w_mask",
                 "t1w_dseg",
+                "t1w_tpms",
                 "subjects_dir",
                 "subject_id",
                 "fsnative2t1w_xfm",
@@ -441,6 +442,33 @@ def init_bold_wf(
             (bold_std_wf, ds_bold_std_wf, [('outputnode.bold_file', 'inputnode.bold')]),
         ])  # fmt:skip
 
+    bold_confounds_wf = init_bold_confs_wf(
+        mem_gb=mem_gb["largemem"],
+        metadata=all_metadata[0],
+        freesurfer=config.workflow.run_reconall,
+        regressors_all_comps=config.workflow.regressors_all_comps,
+        regressors_fd_th=config.workflow.regressors_fd_th,
+        regressors_dvars_th=config.workflow.regressors_dvars_th,
+        name="bold_confounds_wf",
+    )
+
+    workflow.connect([
+        (inputnode, bold_confounds_wf, [
+            ('t1w_tpms', 'inputnode.t1w_tpms'),
+            ('t1w_mask', 'inputnode.t1w_mask'),
+        ]),
+        (bold_fit_wf, bold_confounds_wf, [
+            ('outputnode.bold_mask', 'inputnode.bold_mask'),
+            ('outputnode.movpar_file', 'inputnode.movpar_file'),
+            ('outputnode.rmsd_file', 'inputnode.rmsd_file'),
+            ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
+            ('outputnode.dummy_scans', 'inputnode.skip_vols'),
+        ]),
+        (bold_native_wf, bold_confounds_wf, [
+            ('outputnode.bold_native', 'inputnode.bold'),
+        ]),
+    ])  # fmt:skip
+
     # Fill-in datasinks of reportlets seen so far
     for node in workflow.list_node_names():
         if node.split(".")[-1].startswith("ds_report"):
@@ -676,18 +704,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ),
         name="outputnode",
     )
-
-    # get confounds
-    bold_confounds_wf = init_bold_confs_wf(
-        mem_gb=mem_gb["largemem"],
-        metadata=metadata,
-        freesurfer=freesurfer,
-        regressors_all_comps=config.workflow.regressors_all_comps,
-        regressors_fd_th=config.workflow.regressors_fd_th,
-        regressors_dvars_th=config.workflow.regressors_dvars_th,
-        name="bold_confounds_wf",
-    )
-    bold_confounds_wf.get_node("inputnode").inputs.t1_transform_flags = [False]
 
     # SURFACES ##################################################################################
     # Freesurfer
