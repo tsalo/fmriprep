@@ -151,6 +151,7 @@ def init_single_subject_wf(subject_id: str):
     from niworkflows.utils.misc import fix_multi_T1w_source_name
     from niworkflows.utils.spaces import Reference
     from smriprep.workflows.anatomical import init_anat_fit_wf
+    from smriprep.workflows.outputs import init_template_iterator_wf
 
     from fmriprep.workflows.bold.base import init_bold_wf
 
@@ -310,7 +311,6 @@ It is released under the [CC0]\
         skull_strip_fixed_seed=config.workflow.skull_strip_fixed_seed,
     )
 
-    # fmt:off
     workflow.connect([
         (inputnode, anat_fit_wf, [('subjects_dir', 'inputnode.subjects_dir')]),
         (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
@@ -329,8 +329,18 @@ It is released under the [CC0]\
         (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
         (summary, ds_report_summary, [('out_report', 'in_file')]),
         (about, ds_report_about, [('out_report', 'in_file')]),
-    ])
-    # fmt:on
+    ])  # fmt:skip
+
+    # Set up the template iterator once, if used
+    if config.workflow.level == "full":
+        if spaces.get_spaces(nonstandard=False, dim=(3,)):
+            template_iterator_wf = init_template_iterator_wf(spaces=spaces)
+            workflow.connect([
+                (anat_fit_wf, template_iterator_wf, [
+                    ('outputnode.template', 'inputnode.template'),
+                    ('outputnode.anat2std_xfm', 'inputnode.anat2std_xfm'),
+                ]),
+            ])  # fmt:skip
 
     if config.workflow.anat_only:
         return clean_datasinks(workflow)
@@ -507,6 +517,18 @@ tasks and sessions), the following preprocessing was performed.
                     ("outputnode.fmap_mask", "inputnode.fmap_mask"),
                     ("outputnode.fmap_id", "inputnode.fmap_id"),
                     ("outputnode.method", "inputnode.sdc_method"),
+                ]),
+            ])  # fmt:skip
+
+        if config.workflow.level == "full":
+            workflow.connect([
+                (template_iterator_wf, bold_wf, [
+                    ("outputnode.anat2std_xfm", "inputnode.anat2std_xfm"),
+                    ("outputnode.space", "inputnode.std_space"),
+                    ("outputnode.resolution", "inputnode.std_resolution"),
+                    ("outputnode.cohort", "inputnode.std_cohort"),
+                    ("outputnode.std_t1w", "inputnode.std_t1w"),
+                    ("outputnode.std_mask", "inputnode.std_mask"),
                 ]),
             ])  # fmt:skip
 

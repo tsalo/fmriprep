@@ -198,6 +198,13 @@ def init_bold_wf(
                 "fmap_mask",
                 "fmap_id",
                 "sdc_method",
+                # Volumetric templates
+                "anat2std_xfm",
+                "std_space",
+                "std_resolution",
+                "std_cohort",
+                "std_t1w",
+                "std_mask",
             ],
         ),
         name="inputnode",
@@ -379,6 +386,59 @@ def init_bold_wf(
             ]),
             (bold_native_wf, ds_bold_t1_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
             (bold_anat_wf, ds_bold_t1_wf, [('outputnode.bold_file', 'inputnode.bold')]),
+        ])  # fmt:skip
+
+    if spaces.get_spaces(nonstandard=False, dim=(3,)):
+        # Missing:
+        #  * Clipping BOLD after resampling
+        #  * Resampling parcellations
+        bold_std_wf = init_bold_volumetric_resample_wf(
+            metadata=all_metadata[0],
+            fieldmap_id=fieldmap_id if not multiecho else None,
+            omp_nthreads=omp_nthreads,
+            name='bold_std_wf',
+        )
+        ds_bold_std_wf = init_ds_volumes_wf(
+            bids_root=str(config.execution.bids_dir),
+            output_dir=fmriprep_dir,
+            multiecho=multiecho,
+            metadata=all_metadata[0],
+            name='ds_bold_std_wf',
+        )
+        ds_bold_std_wf.inputs.inputnode.source_files = bold_series
+
+        workflow.connect([
+            (inputnode, bold_std_wf, [
+                ("std_t1w", "inputnode.target_ref_file"),
+                ("std_mask", "inputnode.target_mask"),
+                ("anat2std_xfm", "inputnode.anat2std_xfm"),
+                ("fmap_ref", "inputnode.fmap_ref"),
+                ("fmap_coeff", "inputnode.fmap_coeff"),
+                ("fmap_id", "inputnode.fmap_id"),
+            ]),
+            (bold_fit_wf, bold_std_wf, [
+                ("outputnode.coreg_boldref", "inputnode.bold_ref_file"),
+                ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
+                ("outputnode.boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
+            ]),
+            (bold_native_wf, bold_std_wf, [
+                ("outputnode.bold_minimal", "inputnode.bold_file"),
+                ("outputnode.motion_xfm", "inputnode.motion_xfm"),
+            ]),
+            (inputnode, ds_bold_std_wf, [
+                ('std_t1w', 'inputnode.ref_file'),
+                ('anat2std_xfm', 'inputnode.anat2std_xfm'),
+                ('std_space', 'inputnode.space'),
+                ('std_resolution', 'inputnode.resolution'),
+                ('std_cohort', 'inputnode.cohort'),
+            ]),
+            (bold_fit_wf, ds_bold_std_wf, [
+                ('outputnode.bold_mask', 'inputnode.bold_mask'),
+                ('outputnode.coreg_boldref', 'inputnode.bold_ref'),
+                ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
+            ]),
+            (bold_native_wf, ds_bold_std_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
+            (bold_std_wf, ds_bold_std_wf, [('outputnode.bold_file', 'inputnode.bold')]),
         ])  # fmt:skip
 
     # Fill-in datasinks of reportlets seen so far
@@ -628,90 +688,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         name="bold_confounds_wf",
     )
     bold_confounds_wf.get_node("inputnode").inputs.t1_transform_flags = [False]
-
-    if spaces.get_spaces(nonstandard=False, dim=(3,)):
-        # Apply transforms in 1 shot
-        bold_std_trans_wf = init_bold_std_trans_wf(
-            freesurfer=freesurfer,
-            mem_gb=mem_gb["resampled"],
-            omp_nthreads=omp_nthreads,
-            spaces=spaces,
-            multiecho=multiecho,
-            name="bold_std_trans_wf",
-            use_compression=not config.execution.low_mem,
-        )
-        bold_std_trans_wf.inputs.inputnode.fieldwarp = "identity"
-
-        # fmt:off
-        workflow.connect([
-            (inputnode, bold_std_trans_wf, [
-                ("template", "inputnode.templates"),
-                ("anat2std_xfm", "inputnode.anat2std_xfm"),
-                ("bold_file", "inputnode.name_source"),
-                ("t1w_aseg", "inputnode.bold_aseg"),
-                ("t1w_aparc", "inputnode.bold_aparc"),
-            ]),
-            (bold_final, bold_std_trans_wf, [
-                ("mask", "inputnode.bold_mask"),
-                ("t2star", "inputnode.t2star"),
-            ]),
-            (bold_reg_wf, bold_std_trans_wf, [
-                ("outputnode.itk_bold_to_t1", "inputnode.itk_bold_to_t1"),
-            ]),
-            (bold_std_trans_wf, outputnode, [
-                ("outputnode.bold_std", "bold_std"),
-                ("outputnode.bold_std_ref", "bold_std_ref"),
-                ("outputnode.bold_mask_std", "bold_mask_std"),
-            ]),
-        ])
-        # fmt:on
-
-        if freesurfer:
-            # fmt:off
-            workflow.connect([
-                (bold_std_trans_wf, func_derivatives_wf, [
-                    ("outputnode.bold_aseg_std", "inputnode.bold_aseg_std"),
-                    ("outputnode.bold_aparc_std", "inputnode.bold_aparc_std"),
-                ]),
-                (bold_std_trans_wf, outputnode, [
-                    ("outputnode.bold_aseg_std", "bold_aseg_std"),
-                    ("outputnode.bold_aparc_std", "bold_aparc_std"),
-                ]),
-            ])
-            # fmt:on
-
-        if not multiecho:
-            # fmt:off
-            workflow.connect([
-                (bold_split, bold_std_trans_wf, [("out_files", "inputnode.bold_split")]),
-                (bold_hmc_wf, bold_std_trans_wf, [
-                    ("outputnode.xforms", "inputnode.hmc_xforms"),
-                ]),
-            ])
-            # fmt:on
-        else:
-            # fmt:off
-            workflow.connect([
-                (split_opt_comb, bold_std_trans_wf, [("out_files", "inputnode.bold_split")]),
-                (bold_std_trans_wf, outputnode, [("outputnode.t2star_std", "t2star_std")]),
-            ])
-            # fmt:on
-
-            # Already applied in bold_bold_trans_wf, which inputs to bold_t2s_wf
-            bold_std_trans_wf.inputs.inputnode.hmc_xforms = "identity"
-
-        # fmt:off
-        # func_derivatives_wf internally parametrizes over snapshotted spaces.
-        workflow.connect([
-            (bold_std_trans_wf, func_derivatives_wf, [
-                ("outputnode.template", "inputnode.template"),
-                ("outputnode.spatial_reference", "inputnode.spatial_reference"),
-                ("outputnode.bold_std_ref", "inputnode.bold_std_ref"),
-                ("outputnode.bold_std", "inputnode.bold_std"),
-                ("outputnode.bold_mask_std", "inputnode.bold_mask_std"),
-            ]),
-        ])
-        # fmt:on
 
     # SURFACES ##################################################################################
     # Freesurfer
