@@ -593,6 +593,7 @@ def init_bold_native_wf(
     *,
     bold_series: ty.List[str],
     fieldmap_id: ty.Optional[str] = None,
+    omp_nthreads: int = 1,
     name: str = "bold_native_wf",
 ) -> pe.Workflow:
     r"""
@@ -633,7 +634,7 @@ def init_bold_native_wf(
     motion_xfm
         Affine transforms from each BOLD volume to ``hmc_boldref``, written
         as concatenated ITK affine transforms.
-    fmapreg_xfm
+    boldref2fmap_xfm
         Affine transform mapping from BOLD reference space to the fieldmap
         space, if applicable.
     fmap_id
@@ -654,13 +655,11 @@ def init_bold_native_wf(
         head motion and susceptibility distortion correction (STC, HMC, SDC)
         will all be applied to each file. For multi-echo data, the echos
         are combined to form an `optimal combination`_.
+    metadata
+        Metadata dictionary of BOLD series with the shortest echo
     motion_xfm
         Motion correction transforms for further correcting bold_minimal.
         For multi-echo data, motion correction has already been applied, so
-        this will be undefined.
-    fieldmap_id
-        Fieldmap ID for further correcting bold_minimal. For multi-echo data,
-        susceptibility distortion correction has already been applied, so
         this will be undefined.
     bold_echos
         The individual, corrected echos, suitable for use in Tedana.
@@ -721,7 +720,7 @@ def init_bold_native_wf(
                 "boldref",
                 "bold_mask",
                 "motion_xfm",
-                "fmapreg_xfm",
+                "boldref2fmap_xfm",
                 "dummy_scans",
                 # Fieldmap fit
                 "fmap_ref",
@@ -735,10 +734,11 @@ def init_bold_native_wf(
     outputnode = pe.Node(
         niu.IdentityInterface(
             fields=[
-                "bold_minimal",  # Single echo: STC; Multi-echo: optimal combination
-                "bold_native",   # STC + HMC + SDC; Multi-echo: optimal combination
-                "motion_xfm",    # motion_xfms to apply to bold_minimal (none for ME)
-                "fieldmap_id",   # fieldmap to apply to bold_minimal (none for ME)
+                "bold_minimal",
+                "bold_native",
+                "metadata",
+                # Transforms
+                "motion_xfm",
                 # Multiecho outputs
                 "bold_echos",    # Individual corrected echos
                 "t2star_map",    # T2* map
@@ -746,6 +746,7 @@ def init_bold_native_wf(
         ),
         name="outputnode",
     )
+    outputnode.inputs.metadata = metadata
 
     boldbuffer = pe.Node(
         niu.IdentityInterface(fields=["bold_file", "ro_time", "pe_dir"]), name="boldbuffer"
@@ -804,9 +805,7 @@ def init_bold_native_wf(
         ])  # fmt:skip
 
     # Resample to boldref
-    boldref_bold = pe.Node(
-        ResampleSeries(), name="boldref_bold", n_procs=config.nipype.omp_nthreads
-    )
+    boldref_bold = pe.Node(ResampleSeries(), name="boldref_bold", n_procs=omp_nthreads)
 
     workflow.connect([
         (inputnode, boldref_bold, [
@@ -825,7 +824,7 @@ def init_bold_native_wf(
         workflow.connect([
             (inputnode, boldref_fmap, [
                 ("boldref", "target_ref_file"),
-                ("fmapreg_xfm", "transforms"),
+                ("boldref2fmap_xfm", "transforms"),
             ]),
             (fmap_select, boldref_fmap, [
                 ("fmap_coeff", "in_coeffs"),
@@ -850,7 +849,7 @@ def init_bold_native_wf(
             name="bold_t2smap_wf",
         )
 
-        # Do NOT set motion_xfm or fieldmap_id on outputnode
+        # Do NOT set motion_xfm on outputnode
         # This prevents downstream resamplers from double-dipping
         workflow.connect([
             (inputnode, bold_t2s_wf, [("bold_mask", "inputnode.bold_mask")]),
@@ -869,9 +868,6 @@ def init_bold_native_wf(
             (boldbuffer, outputnode, [("bold_file", "bold_minimal")]),
             (boldref_bold, outputnode, [("out_file", "bold_native")]),
         ])  # fmt:skip
-
-        if fieldmap_id:
-            outputnode.inputs.fieldmap_id = fieldmap_id
 
     return workflow
 

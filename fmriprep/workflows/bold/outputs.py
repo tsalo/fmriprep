@@ -587,6 +587,27 @@ def init_ds_bold_native_wf(
     raw_sources.inputs.bids_root = bids_root
     workflow.connect(inputnode, 'source_files', raw_sources, 'in_files')
 
+    # Masks should be output if any other derivatives are output
+    ds_bold_mask = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc='brain',
+            suffix='mask',
+            compress=True,
+            dismiss_entities=("echo",),
+        ),
+        name='ds_bold_mask',
+        run_without_submitting=True,
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    )
+    workflow.connect([
+        (inputnode, ds_bold_mask, [
+            ('source_files', 'source_file'),
+            ('bold_mask', 'in_file'),
+        ]),
+        (raw_sources, ds_bold_mask, [('out', 'RawSources')]),
+    ])  # fmt:skip
+
     if bold_output:
         ds_bold = pe.Node(
             DerivativesDataSink(
@@ -607,27 +628,6 @@ def init_ds_bold_native_wf(
                 ('source_files', 'source_file'),
                 ('bold', 'in_file'),
             ]),
-        ])  # fmt:skip
-
-    if bold_output or echo_output:
-        ds_bold_mask = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                desc='brain',
-                suffix='mask',
-                compress=True,
-                dismiss_entities=("echo",),
-            ),
-            name='ds_bold_mask',
-            run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB,
-        )
-        workflow.connect([
-            (inputnode, ds_bold_mask, [
-                ('source_files', 'source_file'),
-                ('bold_mask', 'in_file'),
-            ]),
-            (raw_sources, ds_bold_mask, [('out', 'RawSources')]),
         ])  # fmt:skip
 
     if bold_output and multiecho:
@@ -679,6 +679,174 @@ def init_ds_bold_native_wf(
                 ('bold_echos', 'in_file'),
             ]),
         ])  # fmt:skip
+
+    return workflow
+
+
+def init_ds_volumes_wf(
+    *,
+    bids_root: str,
+    output_dir: str,
+    multiecho: bool,
+    metadata: ty.List[dict],
+    name="ds_volumes_wf",
+) -> pe.Workflow:
+    timing_parameters = prepare_timing_parameters(metadata)
+
+    workflow = pe.Workflow(name=name)
+    inputnode = pe.Node(
+        niu.IdentityInterface(
+            fields=[
+                'source_files',
+                'ref_file',
+                'bold',  # Resampled into target space
+                'bold_mask',  # boldref space
+                'bold_ref',  # boldref space
+                't2star',  # boldref space
+                # Anatomical
+                'boldref2anat_xfm',
+                # Template
+                'anat2std_xfm',
+                # Entities
+                'space',
+                'cohort',
+                'resolution',
+            ]
+        ),
+        name='inputnode',
+    )
+
+    raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
+    raw_sources.inputs.bids_root = bids_root
+    boldref2target = pe.Node(niu.Merge(2), name='boldref2target')
+
+    # BOLD is pre-resampled
+    ds_bold = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc='preproc',
+            compress=True,
+            SkullStripped=multiecho,
+            TaskName=metadata.get('TaskName'),
+            dismiss_entities=("echo",),
+            **timing_parameters,
+        ),
+        name='ds_bold',
+        run_without_submitting=True,
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    )
+    workflow.connect([
+        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, boldref2target, [
+            ('boldref2anat_xfm', 'in1'),
+            ('anat2std_xfm', 'in2'),
+        ]),
+        (inputnode, ds_bold, [
+            ('source_files', 'source_file'),
+            ('bold', 'in_file'),
+            ('space', 'space'),
+            ('cohort', 'cohort'),
+            ('resolution', 'resolution'),
+        ]),
+    ])  # fmt:skip
+
+    resample_ref = pe.Node(
+        ApplyTransforms(
+            dimension=3,
+            default_value=0,
+            float=True,
+            interpolation="LanczosWindowedSinc",
+        ),
+        name="resample_ref",
+    )
+    resample_mask = pe.Node(ApplyTransforms(interpolation="MultiLabel"), name="resample_mask")
+    resamplers = [resample_ref, resample_mask]
+
+    workflow.connect([
+        (inputnode, resample_ref, [('bold_ref', 'input_image')]),
+        (inputnode, resample_mask, [('bold_mask', 'input_image')]),
+    ])  # fmt:skip
+
+    ds_ref = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            suffix='boldref',
+            compress=True,
+            dismiss_entities=("echo",),
+        ),
+        name='ds_ref',
+        run_without_submitting=True,
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    )
+    ds_mask = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc='brain',
+            suffix='mask',
+            compress=True,
+            dismiss_entities=("echo",),
+        ),
+        name='ds_mask',
+        run_without_submitting=True,
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    )
+    datasinks = [ds_ref, ds_mask]
+
+    if multiecho:
+        t2star_meta = {
+            'Units': 's',
+            'EstimationReference': 'doi:10.1002/mrm.20900',
+            'EstimationAlgorithm': 'monoexponential decay model',
+        }
+        resample_t2star = pe.Node(
+            ApplyTransforms(
+                dimension=3,
+                default_value=0,
+                float=True,
+                interpolation="LanczosWindowedSinc",
+            ),
+            name="resample_t2star",
+        )
+        ds_t2star = pe.Node(
+            DerivativesDataSink(
+                base_directory=output_dir,
+                suffix='T2starmap',
+                compress=True,
+                dismiss_entities=("echo",),
+                **t2star_meta,
+            ),
+            name='ds_t2star_std',
+            run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB,
+        )
+        resamplers.append(resample_t2star)
+        datasinks.append(ds_t2star)
+
+        workflow.connect([(inputnode, resample_t2star, [('t2star', 'input_image')])])
+
+    workflow.connect(
+        [
+            (inputnode, resampler, [('ref_file', 'reference_image')])
+            for resampler in resamplers
+        ]
+        + [
+            (boldref2target, resampler, [('out', 'transforms')])
+            for resampler in resamplers
+        ]
+        + [
+            (inputnode, datasink, [
+                ('source_files', 'source_file'),
+                ('space', 'space'),
+                ('cohort', 'cohort'),
+                ('resolution', 'resolution'),
+            ])
+            for datasink in datasinks
+        ]
+        + [
+            (resampler, datasink, [("output_image", "in_file")])
+            for resampler, datasink in zip(resamplers, datasinks)
+        ]
+    )  # fmt:skip
 
     return workflow
 

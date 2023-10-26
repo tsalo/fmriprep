@@ -28,7 +28,9 @@ class ResampleSeriesInputSpec(TraitedSpec):
     in_file = File(exists=True, mandatory=True, desc="3D or 4D image file to resample")
     ref_file = File(exists=True, mandatory=True, desc="File to resample in_file to")
     transforms = InputMultiObject(
-        File(exists=True), mandatory=True, desc="Transform files, from in_file to ref_file (image mode)"
+        File(exists=True),
+        mandatory=True,
+        desc="Transform files, from in_file to ref_file (image mode)",
     )
     inverse = InputMultiObject(
         traits.Bool,
@@ -48,6 +50,16 @@ class ResampleSeriesInputSpec(TraitedSpec):
         desc="the phase-encoding direction corresponding to in_data",
     )
     num_threads = traits.Int(1, usedefault=True, desc="Number of threads to use for resampling")
+    output_data_type = traits.Str("float32", usedefault=True, desc="Data type of output image")
+    order = traits.Int(3, usedefault=True, desc="Order of interpolation (0=nearest, 3=cubic)")
+    mode = traits.Str(
+        'constant',
+        usedefault=True,
+        desc="How data is extended beyond its boundaries. "
+        "See scipy.ndimage.map_coordinates for more details.",
+    )
+    cval = traits.Float(0.0, usedefault=True, desc="Value to fill past edges of data")
+    prefilter = traits.Bool(True, usedefault=True, desc="Spline-prefilter data if order > 1")
 
 
 class ResampleSeriesOutputSpec(TraitedSpec):
@@ -87,13 +99,18 @@ class ResampleSeries(SimpleInterface):
 
             pe_info = [(pe_axis, -ro_time if (axis_flip ^ pe_flip) else ro_time)] * nvols
 
-        resampled = resample_bold(
+        resampled = resample_image(
             source=source,
             target=target,
             transforms=transforms,
             fieldmap=fieldmap,
             pe_info=pe_info,
             nthreads=self.inputs.num_threads,
+            output_dtype=self.inputs.output_data_type,
+            order=self.inputs.order,
+            mode=self.inputs.mode,
+            cval=self.inputs.cval,
+            prefilter=self.inputs.prefilter,
         )
         resampled.to_filename(out_path)
 
@@ -105,10 +122,16 @@ class ReconstructFieldmapInputSpec(TraitedSpec):
     in_coeffs = InputMultiObject(
         File(exists=True), mandatory=True, desc="SDCflows-style spline coefficient files"
     )
-    target_ref_file = File(exists=True, mandatory=True, desc="Image to reconstruct the field in alignment with")
-    fmap_ref_file = File(exists=True, mandatory=True, desc="Reference file aligned with coefficients")
+    target_ref_file = File(
+        exists=True, mandatory=True, desc="Image to reconstruct the field in alignment with"
+    )
+    fmap_ref_file = File(
+        exists=True, mandatory=True, desc="Reference file aligned with coefficients"
+    )
     transforms = InputMultiObject(
-        File(exists=True), mandatory=True, desc="Transform files, from in_file to ref_file (image mode)"
+        File(exists=True),
+        mandatory=True,
+        desc="Transform files, from in_file to ref_file (image mode)",
     )
     inverse = InputMultiObject(
         traits.Bool,
@@ -252,6 +275,9 @@ def resample_vol(
         coordinates = nb.affines.apply_affine(
             hmc_xfm, coordinates.reshape(coords_shape[0], -1).T
         ).T.reshape(coords_shape)
+    else:
+        # Copy coordinates to avoid interfering with other calls
+        coordinates = coordinates.copy()
 
     vsm = fmap_hz * pe_info[1]
     coordinates[pe_info[0], ...] += vsm
@@ -346,7 +372,9 @@ async def resample_series_async(
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
-    out_array = np.zeros(coordinates.shape[1:] + data.shape[-1:], dtype=output_dtype)
+    # Order F ensures individual volumes are contiguous in memory
+    # Also matches NIfTI, making final save more efficient
+    out_array = np.zeros(coordinates.shape[1:] + data.shape[-1:], dtype=output_dtype, order='F')
 
     tasks = [
         asyncio.create_task(
@@ -354,7 +382,7 @@ async def resample_series_async(
                 partial(
                     resample_vol,
                     data=volume,
-                    coordinates=coordinates.copy(),
+                    coordinates=coordinates,
                     pe_info=pe_info[volid],
                     hmc_xfm=hmc_xfms[volid] if hmc_xfms else None,
                     fmap_hz=fmap_hz,
@@ -451,21 +479,26 @@ def resample_series(
     )
 
 
-def resample_bold(
+def resample_image(
     source: nb.Nifti1Image,
     target: nb.Nifti1Image,
     transforms: nt.TransformChain,
     fieldmap: nb.Nifti1Image | None,
     pe_info: list[tuple[int, float]] | None,
     nthreads: int = 1,
+    output_dtype: np.dtype | str | None = 'f4',
+    order: int = 3,
+    mode: str = 'constant',
+    cval: float = 0.0,
+    prefilter: bool = True,
 ) -> nb.Nifti1Image:
-    """Resample a 4D bold series into a target space, applying head-motion
+    """Resample a 3- or 4D image into a target space, applying head-motion
     and susceptibility-distortion correction simultaneously.
 
     Parameters
     ----------
     source
-        The 4D bold series to resample.
+        The 3D bold image or 4D bold series to resample.
     target
         An image sampled in the target space.
     transforms
@@ -480,6 +513,17 @@ def resample_bold(
         of the data array in the second dimension.
     nthreads
         Number of threads to use for parallel resampling
+    output_dtype
+        The dtype of the output array.
+    order
+        Order of interpolation (default: 3 = cubic)
+    mode
+        How ``data`` is extended beyond its boundaries. See
+        :func:`scipy.ndimage.map_coordinates` for more details.
+    cval
+        Value to fill past edges of ``data`` if ``mode`` is ``'constant'``.
+    prefilter
+        Determines if ``data`` is pre-filtered before interpolation.
 
     Returns
     -------
@@ -527,8 +571,12 @@ def resample_bold(
         pe_info=pe_info,
         hmc_xfms=hmc_xfms,
         fmap_hz=fieldmap.get_fdata(dtype='f4'),
-        output_dtype='f4',
+        output_dtype=output_dtype,
         nthreads=nthreads,
+        order=order,
+        mode=mode,
+        cval=cval,
+        prefilter=prefilter,
     )
     resampled_img = nb.Nifti1Image(resampled_data, target.affine, target.header)
     resampled_img.set_data_dtype('f4')
