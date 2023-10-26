@@ -29,7 +29,7 @@ if ty.TYPE_CHECKING:
 def init_bold_volumetric_resample_wf(
     *,
     metadata: dict,
-    fieldmap_id: ty.Optional[str] = None,
+    fieldmap_id: str | None = None,
     omp_nthreads: int = 1,
     name: str = 'bold_volumetric_resample_wf',
 ) -> pe.Workflow:
@@ -84,46 +84,48 @@ def init_bold_volumetric_resample_wf(
         (resample, outputnode, [('out_file', 'bold_file')]),
     ])  # fmt:skip
 
-    if fieldmap_id:
-        fmap_select = pe.Node(
-            KeySelect(fields=["fmap_ref", "fmap_coeff"], key=fieldmap_id),
-            name="fmap_select",
-            run_without_submitting=True,
-        )
-        distortion_params = pe.Node(
-            DistortionParameters(metadata=metadata),
-            name="distortion_params",
-            run_without_submitting=True,
-        )
-        fmap2target = pe.Node(niu.Merge(2), name='fmap2target')
-        inverses = pe.Node(niu.Function(function=_gen_inverses), name='inverses')
+    if not fieldmap_id:
+        return workflow
 
-        fmap_recon = pe.Node(ReconstructFieldmap(), name="fmap_recon")
+    fmap_select = pe.Node(
+        KeySelect(fields=["fmap_ref", "fmap_coeff"], key=fieldmap_id),
+        name="fmap_select",
+        run_without_submitting=True,
+    )
+    distortion_params = pe.Node(
+        DistortionParameters(metadata=metadata),
+        name="distortion_params",
+        run_without_submitting=True,
+    )
+    fmap2target = pe.Node(niu.Merge(2), name='fmap2target')
+    inverses = pe.Node(niu.Function(function=_gen_inverses), name='inverses')
 
-        workflow.connect([
-            (inputnode, fmap_select, [
-                ("fmap_ref", "fmap_ref"),
-                ("fmap_coeff", "fmap_coeff"),
-                ("fmap_id", "keys"),
-            ]),
-            (inputnode, distortion_params, [('bold_file', 'in_file')]),
-            (inputnode, fmap2target, [('boldref2fmap_xfm', 'in1')]),
-            (gen_ref, fmap_recon, [('out_file', 'target_ref_file')]),
-            (boldref2target, fmap2target, [('out', 'in2')]),
-            (boldref2target, inverses, [('out', 'inlist')]),
-            (fmap_select, fmap_recon, [
-                ("fmap_coeff", "in_coeffs"),
-                ("fmap_ref", "fmap_ref_file"),
-            ]),
-            (fmap2target, fmap_recon, [('out', 'transforms')]),
-            (inverses, fmap_recon, [('out', 'inverse')]),
-            # Inject fieldmap correction into resample node
-            (distortion_params, resample, [
-                ("readout_time", "ro_time"),
-                ("pe_direction", "pe_dir"),
-            ]),
-            (fmap_recon, resample, [('out_file', 'fieldmap')]),
-        ])  # fmt:skip
+    fmap_recon = pe.Node(ReconstructFieldmap(), name="fmap_recon")
+
+    workflow.connect([
+        (inputnode, fmap_select, [
+            ("fmap_ref", "fmap_ref"),
+            ("fmap_coeff", "fmap_coeff"),
+            ("fmap_id", "keys"),
+        ]),
+        (inputnode, distortion_params, [('bold_file', 'in_file')]),
+        (inputnode, fmap2target, [('boldref2fmap_xfm', 'in1')]),
+        (gen_ref, fmap_recon, [('out_file', 'target_ref_file')]),
+        (boldref2target, fmap2target, [('out', 'in2')]),
+        (boldref2target, inverses, [('out', 'inlist')]),
+        (fmap_select, fmap_recon, [
+            ("fmap_coeff", "in_coeffs"),
+            ("fmap_ref", "fmap_ref_file"),
+        ]),
+        (fmap2target, fmap_recon, [('out', 'transforms')]),
+        (inverses, fmap_recon, [('out', 'inverse')]),
+        # Inject fieldmap correction into resample node
+        (distortion_params, resample, [
+            ("readout_time", "ro_time"),
+            ("pe_direction", "pe_dir"),
+        ]),
+        (fmap_recon, resample, [('out_file', 'fieldmap')]),
+    ])  # fmt:skip
 
     return workflow
 

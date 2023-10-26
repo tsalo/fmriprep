@@ -372,6 +372,8 @@ async def resample_series_async(
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
+    # Order F ensures individual volumes are contiguous in memory
+    # Also matches NIfTI, making final save more efficient
     out_array = np.zeros(coordinates.shape[1:] + data.shape[-1:], dtype=output_dtype, order='F')
 
     tasks = [
