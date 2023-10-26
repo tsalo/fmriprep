@@ -43,41 +43,34 @@ def load_ants_h5(filename: Path) -> nt.TransformChain:
     return nt.TransformChain([warp_transform, nt.Affine(affine)])
 
 
+FIXED_PARAMS = np.array([
+    193.0, 229.0, 193.0,
+    96.0, 132.0, -78.0,
+    1.0, 1.0, 1.0,
+    -1.0, 0.0, 0.0,
+    0.0, -1.0, 0.0,
+    0.0, 0.0, 1.0,
+])  # fmt:skip
+
+
 def parse_combined_hdf5(h5_fn, to_ras=True):
     # Borrowed from https://github.com/feilong/process
     # process.resample.parse_combined_hdf5()
     h = h5py.File(h5_fn)
     xform = ITKCompositeH5.from_h5obj(h)
     affine = xform[0].to_ras()
+    transform2 = h['TransformGroup']['2']
     # Confirm these transformations are applicable
-    assert (
-        h['TransformGroup']['2']['TransformType'][:][0] == b'DisplacementFieldTransform_float_3_3'
-    )
-    assert np.array_equal(
-        h['TransformGroup']['2']['TransformFixedParameters'][:],
-        np.array(
-            [
-                193.0,
-                229.0,
-                193.0,
-                96.0,
-                132.0,
-                -78.0,
-                1.0,
-                1.0,
-                1.0,
-                -1.0,
-                0.0,
-                0.0,
-                0.0,
-                -1.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-            ]
-        ),
-    )
+    if transform2['TransformType'][:][0] != b'DisplacementFieldTransform_float_3_3':
+        msg = 'Unknown transform type [2]\n'
+        for i in h['TransformGroup'].keys():
+            msg += f'[{i}]: {h["TransformGroup"][i]["TransformType"][:][0]}\n'
+        raise ValueError(msg)
+    if not np.array_equal(transform2['TransformFixedParameters'], FIXED_PARAMS):
+        msg = 'Unexpected fixed parameters\n'
+        msg += f'Expected: {FIXED_PARAMS}\n'
+        msg += f'Found: {transform2["TransformFixedParameters"][:]}'
+        raise ValueError(msg)
     warp = h['TransformGroup']['2']['TransformParameters'][:]
     warp = warp.reshape((193, 229, 193, 3)).transpose(2, 1, 0, 3)
     warp *= np.array([-1, -1, 1])
