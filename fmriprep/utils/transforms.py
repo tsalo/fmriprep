@@ -1,4 +1,5 @@
 """Utilities for loading transforms for resampling"""
+import warnings
 from pathlib import Path
 
 import h5py
@@ -44,42 +45,59 @@ def load_ants_h5(filename: Path) -> nt.TransformChain:
 
 
 FIXED_PARAMS = np.array([
-    193.0, 229.0, 193.0,
-    96.0, 132.0, -78.0,
-    1.0, 1.0, 1.0,
-    -1.0, 0.0, 0.0,
+    193.0, 229.0, 193.0,  # Size
+    96.0, 132.0, -78.0,   # Origin
+    1.0, 1.0, 1.0,        # Spacing
+    -1.0, 0.0, 0.0,       # Directions
     0.0, -1.0, 0.0,
     0.0, 0.0, 1.0,
 ])  # fmt:skip
 
 
-def parse_combined_hdf5(h5_fn, to_ras=True):
+def parse_combined_hdf5(h5_fn):
     # Borrowed from https://github.com/feilong/process
     # process.resample.parse_combined_hdf5()
     h = h5py.File(h5_fn)
     xform = ITKCompositeH5.from_h5obj(h)
     affine = xform[0].to_ras()
     transform2 = h['TransformGroup']['2']
+
     # Confirm these transformations are applicable
     if transform2['TransformType'][:][0] != b'DisplacementFieldTransform_float_3_3':
         msg = 'Unknown transform type [2]\n'
         for i in h['TransformGroup'].keys():
             msg += f'[{i}]: {h["TransformGroup"][i]["TransformType"][:][0]}\n'
         raise ValueError(msg)
-    if not np.array_equal(transform2['TransformFixedParameters'], FIXED_PARAMS):
+    fixed_params = transform2['TransformFixedParameters'][:]
+    if not np.array_equal(fixed_params, FIXED_PARAMS):
         msg = 'Unexpected fixed parameters\n'
         msg += f'Expected: {FIXED_PARAMS}\n'
-        msg += f'Found: {transform2["TransformFixedParameters"][:]}'
-        raise ValueError(msg)
+        msg += f'Found: {fixed_params}'
+        if not np.array_equal(fixed_params[6:], FIXED_PARAMS[6:]):
+            raise ValueError(msg)
+        warnings.warn(msg)
+
+    shape = tuple(fixed_params[:3].astype(int))
     warp = h['TransformGroup']['2']['TransformParameters'][:]
-    warp = warp.reshape((193, 229, 193, 3)).transpose(2, 1, 0, 3)
+    warp = warp.reshape((*shape, 3)).transpose(2, 1, 0, 3)
     warp *= np.array([-1, -1, 1])
-    warp_affine = np.array(
-        [
-            [1.0, 0.0, 0.0, -96.0],
-            [0.0, 1.0, 0.0, -132.0],
-            [0.0, 0.0, 1.0, -78.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ]
-    )
+
+    warp_affine = np.eye(4)
+    warp_affine[:3, :3] = fixed_params[9:].reshape((3, 3))
+    warp_affine[:3, 3] = fixed_params[3:6]
+    lps_to_ras = np.eye(4) * np.array([-1, -1, 1, 1])
+    warp_affine = lps_to_ras @ warp_affine
+    if np.array_equal(fixed_params, FIXED_PARAMS):
+        # Confirm that we construct the right affine when fixed parameters are known
+        assert np.array_equal(
+            warp_affine,
+            np.array(
+                [
+                    [1.0, 0.0, 0.0, -96.0],
+                    [0.0, 1.0, 0.0, -132.0],
+                    [0.0, 0.0, 1.0, -78.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ]
+            ),
+        )
     return affine, warp, warp_affine
