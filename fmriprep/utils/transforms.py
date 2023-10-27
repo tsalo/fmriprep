@@ -37,13 +37,6 @@ def load_transforms(xfm_paths: list[Path], inverse: list[bool]) -> nt.base.Trans
     return chain
 
 
-def load_ants_h5(filename: Path) -> nt.TransformChain:
-    """Load ANTs H5 files as a nitransforms TransformChain"""
-    affine, warp, warp_affine = parse_combined_hdf5(filename)
-    warp_transform = nt.DenseFieldTransform(nb.Nifti1Image(warp, warp_affine))
-    return nt.TransformChain([warp_transform, nt.Affine(affine)])
-
-
 FIXED_PARAMS = np.array([
     193.0, 229.0, 193.0,  # Size
     96.0, 132.0, -78.0,   # Origin
@@ -54,12 +47,26 @@ FIXED_PARAMS = np.array([
 ])  # fmt:skip
 
 
-def parse_combined_hdf5(h5_fn):
+def load_ants_h5(filename: Path) -> nt.TransformChain:
+    """Load ANTs H5 files as a nitransforms TransformChain"""
     # Borrowed from https://github.com/feilong/process
     # process.resample.parse_combined_hdf5()
-    h = h5py.File(h5_fn)
+    #
+    # Changes:
+    #   * Tolerate a missing displacement field
+    #   * Return the original affine without a round-trip
+    #   * Always return a nitransforms TransformChain
+    #
+    # This should be upstreamed into nitransforms
+    h = h5py.File(filename)
     xform = ITKCompositeH5.from_h5obj(h)
-    affine = xform[0].to_ras()
+
+    # nt.Affine
+    transforms = [nt.Affine(xform[0].to_ras())]
+
+    if '2' not in h['TransformGroup']:
+        return transforms[0]
+
     transform2 = h['TransformGroup']['2']
 
     # Confirm these transformations are applicable
@@ -68,6 +75,7 @@ def parse_combined_hdf5(h5_fn):
         for i in h['TransformGroup'].keys():
             msg += f'[{i}]: {h["TransformGroup"][i]["TransformType"][:][0]}\n'
         raise ValueError(msg)
+
     fixed_params = transform2['TransformFixedParameters'][:]
     if not np.array_equal(fixed_params, FIXED_PARAMS):
         msg = 'Unexpected fixed parameters\n'
@@ -100,4 +108,5 @@ def parse_combined_hdf5(h5_fn):
                 ]
             ),
         )
-    return affine, warp, warp_affine
+    transforms.insert(0, nt.DenseFieldTransform(nb.Nifti1Image(warp, warp_affine)))
+    return nt.TransformChain(transforms)
