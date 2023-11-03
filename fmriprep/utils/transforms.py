@@ -1,4 +1,5 @@
 """Utilities for loading transforms for resampling"""
+import warnings
 from pathlib import Path
 
 import h5py
@@ -36,57 +37,76 @@ def load_transforms(xfm_paths: list[Path], inverse: list[bool]) -> nt.base.Trans
     return chain
 
 
-def load_ants_h5(filename: Path) -> nt.TransformChain:
+FIXED_PARAMS = np.array([
+    193.0, 229.0, 193.0,  # Size
+    96.0, 132.0, -78.0,   # Origin
+    1.0, 1.0, 1.0,        # Spacing
+    -1.0, 0.0, 0.0,       # Directions
+    0.0, -1.0, 0.0,
+    0.0, 0.0, 1.0,
+])  # fmt:skip
+
+
+def load_ants_h5(filename: Path) -> nt.base.TransformBase:
     """Load ANTs H5 files as a nitransforms TransformChain"""
-    affine, warp, warp_affine = parse_combined_hdf5(filename)
-    warp_transform = nt.DenseFieldTransform(nb.Nifti1Image(warp, warp_affine))
-    return nt.TransformChain([warp_transform, nt.Affine(affine)])
-
-
-def parse_combined_hdf5(h5_fn, to_ras=True):
     # Borrowed from https://github.com/feilong/process
     # process.resample.parse_combined_hdf5()
-    h = h5py.File(h5_fn)
+    #
+    # Changes:
+    #   * Tolerate a missing displacement field
+    #   * Return the original affine without a round-trip
+    #   * Always return a nitransforms TransformChain
+    #
+    # This should be upstreamed into nitransforms
+    h = h5py.File(filename)
     xform = ITKCompositeH5.from_h5obj(h)
-    affine = xform[0].to_ras()
+
+    # nt.Affine
+    transforms = [nt.Affine(xform[0].to_ras())]
+
+    if '2' not in h['TransformGroup']:
+        return transforms[0]
+
+    transform2 = h['TransformGroup']['2']
+
     # Confirm these transformations are applicable
-    assert (
-        h['TransformGroup']['2']['TransformType'][:][0] == b'DisplacementFieldTransform_float_3_3'
-    )
-    assert np.array_equal(
-        h['TransformGroup']['2']['TransformFixedParameters'][:],
-        np.array(
-            [
-                193.0,
-                229.0,
-                193.0,
-                96.0,
-                132.0,
-                -78.0,
-                1.0,
-                1.0,
-                1.0,
-                -1.0,
-                0.0,
-                0.0,
-                0.0,
-                -1.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-            ]
-        ),
-    )
+    if transform2['TransformType'][:][0] != b'DisplacementFieldTransform_float_3_3':
+        msg = 'Unknown transform type [2]\n'
+        for i in h['TransformGroup'].keys():
+            msg += f'[{i}]: {h["TransformGroup"][i]["TransformType"][:][0]}\n'
+        raise ValueError(msg)
+
+    fixed_params = transform2['TransformFixedParameters'][:]
+    if not np.array_equal(fixed_params, FIXED_PARAMS):
+        msg = 'Unexpected fixed parameters\n'
+        msg += f'Expected: {FIXED_PARAMS}\n'
+        msg += f'Found: {fixed_params}'
+        if not np.array_equal(fixed_params[6:], FIXED_PARAMS[6:]):
+            raise ValueError(msg)
+        warnings.warn(msg)
+
+    shape = tuple(fixed_params[:3].astype(int))
     warp = h['TransformGroup']['2']['TransformParameters'][:]
-    warp = warp.reshape((193, 229, 193, 3)).transpose(2, 1, 0, 3)
+    warp = warp.reshape((*shape, 3)).transpose(2, 1, 0, 3)
     warp *= np.array([-1, -1, 1])
-    warp_affine = np.array(
-        [
-            [1.0, 0.0, 0.0, -96.0],
-            [0.0, 1.0, 0.0, -132.0],
-            [0.0, 0.0, 1.0, -78.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ]
-    )
-    return affine, warp, warp_affine
+
+    warp_affine = np.eye(4)
+    warp_affine[:3, :3] = fixed_params[9:].reshape((3, 3))
+    warp_affine[:3, 3] = fixed_params[3:6]
+    lps_to_ras = np.eye(4) * np.array([-1, -1, 1, 1])
+    warp_affine = lps_to_ras @ warp_affine
+    if np.array_equal(fixed_params, FIXED_PARAMS):
+        # Confirm that we construct the right affine when fixed parameters are known
+        assert np.array_equal(
+            warp_affine,
+            np.array(
+                [
+                    [1.0, 0.0, 0.0, -96.0],
+                    [0.0, 1.0, 0.0, -132.0],
+                    [0.0, 0.0, 1.0, -78.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ]
+            ),
+        )
+    transforms.insert(0, nt.DenseFieldTransform(nb.Nifti1Image(warp, warp_affine)))
+    return nt.TransformChain(transforms)
