@@ -452,6 +452,19 @@ def init_bold_wf(
         name="bold_confounds_wf",
     )
 
+    ds_confounds = pe.Node(
+        DerivativesDataSink(
+            base_directory=fmriprep_dir,
+            desc='confounds',
+            suffix='timeseries',
+            dismiss_entities=("echo",),
+        ),
+        name="ds_confounds",
+        run_without_submitting=True,
+        mem_gb=config.DEFAULT_MEMORY_MIN_GB,
+    )
+    ds_confounds.inputs.source_file = bold_file
+
     workflow.connect([
         (inputnode, bold_confounds_wf, [
             ('t1w_tpms', 'inputnode.t1w_tpms'),
@@ -466,6 +479,10 @@ def init_bold_wf(
         ]),
         (bold_native_wf, bold_confounds_wf, [
             ('outputnode.bold_native', 'inputnode.bold'),
+        ]),
+        (bold_confounds_wf, ds_confounds, [
+            ('outputnode.confounds_file', 'in_file'),
+            ('outputnode.confounds_metadata', 'meta_dict'),
         ]),
     ])  # fmt:skip
 
