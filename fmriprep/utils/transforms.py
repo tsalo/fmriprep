@@ -47,7 +47,7 @@ FIXED_PARAMS = np.array([
 ])  # fmt:skip
 
 
-def load_ants_h5(filename: Path) -> nt.TransformChain:
+def load_ants_h5(filename: Path) -> nt.base.TransformBase:
     """Load ANTs H5 files as a nitransforms TransformChain"""
     # Borrowed from https://github.com/feilong/process
     # process.resample.parse_combined_hdf5()
