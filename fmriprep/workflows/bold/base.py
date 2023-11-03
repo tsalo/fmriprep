@@ -442,6 +442,26 @@ def init_bold_wf(
             (bold_std_wf, ds_bold_std_wf, [('outputnode.bold_file', 'inputnode.bold')]),
         ])  # fmt:skip
 
+    if config.workflow.run_reconall and freesurfer_spaces:
+        config.loggers.workflow.debug("Creating BOLD surface-sampling workflow.")
+        bold_surf_wf = init_bold_surf_wf(
+            mem_gb=mem_gb["resampled"],
+            surface_spaces=freesurfer_spaces,
+            medial_surface_nan=config.workflow.medial_surface_nan,
+            metadata=all_metadata[0],
+            output_dir=fmriprep_dir,
+            name="bold_surf_wf",
+        )
+        bold_surf_wf.inputs.inputnode.source_file = bold_file
+        workflow.connect([
+            (inputnode, bold_surf_wf, [
+                ("subjects_dir", "inputnode.subjects_dir"),
+                ("subject_id", "inputnode.subject_id"),
+                ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
+            ]),
+            (bold_anat_wf, bold_surf_wf, [("outputnode.bold_file", "inputnode.bold_t1w")]),
+        ])  # fmt:skip
+
     bold_confounds_wf = init_bold_confs_wf(
         mem_gb=mem_gb["largemem"],
         metadata=all_metadata[0],
@@ -723,27 +743,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     )
 
     # SURFACES ##################################################################################
-    # Freesurfer
-    if freesurfer and freesurfer_spaces:
-        config.loggers.workflow.debug("Creating BOLD surface-sampling workflow.")
-        bold_surf_wf = init_bold_surf_wf(
-            mem_gb=mem_gb["resampled"],
-            surface_spaces=freesurfer_spaces,
-            medial_surface_nan=config.workflow.medial_surface_nan,
-            name="bold_surf_wf",
-        )
-        # fmt:off
-        workflow.connect([
-            (inputnode, bold_surf_wf, [
-                ("subjects_dir", "inputnode.subjects_dir"),
-                ("subject_id", "inputnode.subject_id"),
-                ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
-            ]),
-            (bold_t1_trans_wf, bold_surf_wf, [("outputnode.bold_t1", "inputnode.source_file")]),
-            (bold_surf_wf, outputnode, [("outputnode.surfaces", "surfaces")]),
-            (bold_surf_wf, func_derivatives_wf, [("outputnode.target", "inputnode.surf_refs")]),
-        ])
-        # fmt:on
 
     # CIFTI output
     if config.workflow.cifti_output:

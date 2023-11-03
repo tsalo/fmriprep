@@ -46,6 +46,7 @@ from niworkflows.interfaces.freesurfer import MedialNaNs
 
 from ...config import DEFAULT_MEMORY_MIN_GB
 from ...interfaces.workbench import MetricDilate, MetricMask, MetricResample
+from .outputs import prepare_timing_parameters
 
 if ty.TYPE_CHECKING:
     from niworkflows.utils.spaces import SpatialReferences
@@ -56,6 +57,8 @@ def init_bold_surf_wf(
     mem_gb: float,
     surface_spaces: ty.List[str],
     medial_surface_nan: bool,
+    metadata: dict,
+    output_dir: str,
     name: str = "bold_surf_wf",
 ):
     """
@@ -90,6 +93,8 @@ def init_bold_surf_wf(
     Inputs
     ------
     source_file
+        Original BOLD series
+    bold_t1w
         Motion-corrected BOLD series in T1 space
     subjects_dir
         FreeSurfer SUBJECTS_DIR
@@ -109,6 +114,10 @@ def init_bold_surf_wf(
     from niworkflows.interfaces.nitransforms import ConcatenateXFMs
     from niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
 
+    from fmriprep.interfaces import DerivativesDataSink
+
+    timing_parameters = prepare_timing_parameters(metadata)
+
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
 The BOLD time-series were resampled onto the following surfaces
@@ -120,7 +129,13 @@ The BOLD time-series were resampled onto the following surfaces
 
     inputnode = pe.Node(
         niu.IdentityInterface(
-            fields=["source_file", "subject_id", "subjects_dir", "fsnative2t1w_xfm"]
+            fields=[
+                "source_file",
+                "bold_t1w",
+                "subject_id",
+                "subjects_dir",
+                "fsnative2t1w_xfm",
+            ]
         ),
         name="inputnode",
     )
@@ -140,13 +155,6 @@ The BOLD time-series were resampled onto the following surfaces
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
-    # Rename the source file to the output space to simplify naming later
-    rename_src = pe.Node(
-        niu.Rename(format_string="%(subject)s", keep_ext=True),
-        name="rename_src",
-        run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
     itk2lta = pe.Node(
         ConcatenateXFMs(out_fmt="fs", inverse=True), name="itk2lta", run_without_submitting=True
     )
@@ -172,18 +180,20 @@ The BOLD time-series were resampled onto the following surfaces
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
-    joinnode = pe.JoinNode(
-        niu.IdentityInterface(fields=["surfaces", "target"]),
-        joinsource="itersource",
-        name="joinnode",
+    ds_bold_surfs = pe.MapNode(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            extension=".func.gii",
+            TaskName=metadata.get('TaskName'),
+            **timing_parameters,
+        ),
+        iterfield=['in_file', 'hemi'],
+        name='ds_bold_surfs',
+        run_without_submitting=True,
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
+    ds_bold_surfs.inputs.hemi = ["L", "R"]
 
-    outputnode = pe.Node(
-        niu.IdentityInterface(fields=["surfaces", "target"]),
-        name="outputnode",
-    )
-
-    # fmt: off
     workflow.connect([
         (inputnode, get_fsnative, [
             ("subject_id", "subject_id"),
@@ -191,28 +201,22 @@ The BOLD time-series were resampled onto the following surfaces
         ]),
         (inputnode, targets, [("subject_id", "subject_id")]),
         (inputnode, itk2lta, [
-            ("source_file", "reference"),
+            ("bold_t1w", "reference"),
             ("fsnative2t1w_xfm", "in_xfms"),
         ]),
         (get_fsnative, itk2lta, [("T1", "moving")]),
         (inputnode, sampler, [
             ("subjects_dir", "subjects_dir"),
             ("subject_id", "subject_id"),
+            ("bold_t1w", "source_file"),
         ]),
         (itersource, targets, [("target", "space")]),
-        (inputnode, rename_src, [("source_file", "in_file")]),
-        (itersource, rename_src, [("target", "subject")]),
-        (rename_src, sampler, [("out_file", "source_file")]),
         (itk2lta, sampler, [("out_inv", "reg_file")]),
         (targets, sampler, [("out", "target_subject")]),
-        (update_metadata, joinnode, [("out_file", "surfaces")]),
-        (itersource, joinnode, [("target", "target")]),
-        (joinnode, outputnode, [
-            ("surfaces", "surfaces"),
-            ("target", "target"),
-        ]),
-    ])
-    # fmt: on
+        (inputnode, ds_bold_surfs, [("source_file", "source_file")]),
+        (itersource, ds_bold_surfs, [("target", "space")]),
+        (update_metadata, ds_bold_surfs, [("out_file", "in_file")]),
+    ])  # fmt:skip
 
     # Refine if medial vertices should be NaNs
     medial_nans = pe.MapNode(

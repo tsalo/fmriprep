@@ -907,15 +907,6 @@ def init_func_derivatives_wf(
     nonstd_spaces = set(spaces.get_nonstandard())
     workflow = Workflow(name=name)
 
-    # BOLD series will generally be unmasked unless multiecho,
-    # as the optimal combination is undefined outside a bounded mask
-    masked = multiecho
-    t2star_meta = {
-        'Units': 's',
-        'EstimationReference': 'doi:10.1002/mrm.20900',
-        'EstimationAlgorithm': 'monoexponential decay model',
-    }
-
     inputnode = pe.Node(
         niu.IdentityInterface(
             fields=[
@@ -966,51 +957,6 @@ def init_func_derivatives_wf(
         (inputnode, raw_sources, [('all_source_files', 'in_files')]),
     ])
     # fmt:on
-
-    fs_outputs = spaces.cached.get_fs_spaces()
-    if freesurfer and fs_outputs:
-        from niworkflows.interfaces.surf import Path2BIDS
-
-        select_fs_surf = pe.Node(
-            KeySelect(fields=['surfaces', 'surf_kwargs']),
-            name='select_fs_surf',
-            run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB,
-        )
-        select_fs_surf.iterables = [('key', fs_outputs)]
-        select_fs_surf.inputs.surf_kwargs = [{'space': s} for s in fs_outputs]
-
-        name_surfs = pe.MapNode(
-            Path2BIDS(pattern=r'(?P<hemi>[lr])h.\w+'),
-            iterfield='in_file',
-            name='name_surfs',
-            run_without_submitting=True,
-        )
-
-        ds_bold_surfs = pe.MapNode(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                extension=".func.gii",
-                TaskName=metadata.get('TaskName'),
-                **timing_parameters,
-            ),
-            iterfield=['in_file', 'hemi'],
-            name='ds_bold_surfs',
-            run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB,
-        )
-        # fmt:off
-        workflow.connect([
-            (inputnode, select_fs_surf, [
-                ('surf_files', 'surfaces'),
-                ('surf_refs', 'keys')]),
-            (select_fs_surf, name_surfs, [('surfaces', 'in_file')]),
-            (inputnode, ds_bold_surfs, [('source_file', 'source_file')]),
-            (select_fs_surf, ds_bold_surfs, [('surfaces', 'in_file'),
-                                             ('key', 'space')]),
-            (name_surfs, ds_bold_surfs, [('hemi', 'hemi')]),
-        ])
-        # fmt:on
 
     if freesurfer and project_goodvoxels:
         ds_goodvoxels_mask = pe.Node(
