@@ -961,17 +961,6 @@ def init_func_derivatives_wf(
     raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
     raw_sources.inputs.bids_root = bids_root
 
-    ds_confounds = pe.Node(
-        DerivativesDataSink(
-            base_directory=output_dir,
-            desc='confounds',
-            suffix='timeseries',
-            dismiss_entities=("echo",),
-        ),
-        name="ds_confounds",
-        run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
     ds_ref_t1w_xfm = pe.Node(
         DerivativesDataSink(
             base_directory=output_dir,
@@ -1001,9 +990,6 @@ def init_func_derivatives_wf(
     # fmt:off
     workflow.connect([
         (inputnode, raw_sources, [('all_source_files', 'in_files')]),
-        (inputnode, ds_confounds, [('source_file', 'source_file'),
-                                   ('confounds', 'in_file'),
-                                   ('confounds_metadata', 'meta_dict')]),
         (inputnode, ds_ref_t1w_xfm, [('source_file', 'source_file'),
                                      ('bold2anat_xfm', 'in_file')]),
         (inputnode, ds_ref_t1w_inv_xfm, [('source_file', 'source_file'),
