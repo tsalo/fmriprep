@@ -189,9 +189,16 @@ def init_bold_wf(
                 "t1w_mask",
                 "t1w_dseg",
                 "t1w_tpms",
+                # FreeSurfer outputs
                 "subjects_dir",
                 "subject_id",
                 "fsnative2t1w_xfm",
+                "white",
+                "midthickness",
+                "pial",
+                "thickness",
+                "sphere_reg_fsLR",
+                "anat_ribbon",
                 # Fieldmap registration
                 "fmap",
                 "fmap_ref",

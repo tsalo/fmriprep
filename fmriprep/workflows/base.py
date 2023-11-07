@@ -507,6 +507,12 @@ tasks and sessions), the following preprocessing was performed.
                 ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
                 ('outputnode.subject_id', 'inputnode.subject_id'),
                 ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm'),
+                ('outputnode.white', 'inputnode.white'),
+                ('outputnode.pial', 'inputnode.pial'),
+                ('outputnode.midthickness', 'inputnode.midthickness'),
+                ('outputnode.thickness', 'inputnode.thickness'),
+                ('outputnode.sphere_reg_fsLR', 'inputnode.sphere_reg_fsLR'),
+                ('outputnode.anat_ribbon', 'inputnode.anat_ribbon'),
             ]),
         ])  # fmt:skip
         if fieldmap_id:
