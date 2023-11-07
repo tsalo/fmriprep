@@ -201,10 +201,10 @@ The BOLD time-series were resampled onto the following surfaces
         ]),
         (inputnode, targets, [("subject_id", "subject_id")]),
         (inputnode, itk2lta, [
-            ("bold_t1w", "reference"),
+            ("bold_t1w", "moving"),
             ("fsnative2t1w_xfm", "in_xfms"),
         ]),
-        (get_fsnative, itk2lta, [("T1", "moving")]),
+        (get_fsnative, itk2lta, [("T1", "reference")]),
         (inputnode, sampler, [
             ("subjects_dir", "subjects_dir"),
             ("subject_id", "subject_id"),
