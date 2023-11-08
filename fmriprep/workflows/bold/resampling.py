@@ -566,6 +566,7 @@ def init_bold_fsLR_resampling_wf(
     """
     import templateflow.api as tf
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+    from niworkflows.interfaces.utility import KeySelect
     from smriprep import data as smriprep_data
     from smriprep.interfaces.workbench import SurfaceResample
 
@@ -589,8 +590,10 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         niu.IdentityInterface(
             fields=[
                 'bold_file',
-                'surfaces',
-                'morphometrics',
+                'white',
+                'pial',
+                'midthickness',
+                'thickness',
                 'sphere_reg_fsLR',
                 'anat_ribbon',
             ]
@@ -619,21 +622,22 @@ The BOLD time-series were resampled onto the left/right-symmetric template
 
     # select white, midthickness and pial surfaces based on hemi
     select_surfaces = pe.Node(
-        niu.Function(
-            function=_select_surfaces,
-            output_names=[
-                'white',
-                'pial',
-                'midthickness',
-                'thickness',
-                'sphere_reg',
-                'template_sphere',
-                'template_roi',
+        KeySelect(
+            fields=[
+                "white",
+                "pial",
+                "midthickness",
+                "thickness",
+                "sphere_reg",
+                "template_sphere",
+                "template_roi",
             ],
+            keys=["L", "R"],
         ),
-        name='select_surfaces',
+        name="select_surfaces",
+        run_without_submitting=True,
     )
-    select_surfaces.inputs.template_spheres = [
+    select_surfaces.inputs.template_sphere = [
         str(sphere)
         for sphere in tf.get(
             template='fsLR',
@@ -644,7 +648,7 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         )
     ]
     atlases = smriprep_data.load_resource('atlases')
-    select_surfaces.inputs.template_rois = [
+    select_surfaces.inputs.template_roi = [
         str(atlases / 'L.atlasroi.32k_fs_LR.shape.gii'),
         str(atlases / 'R.atlasroi.32k_fs_LR.shape.gii'),
     ]
@@ -688,14 +692,15 @@ The BOLD time-series were resampled onto the left/right-symmetric template
     # ... line 89
     mask_fsLR = pe.Node(MetricMask(), name="mask_fsLR")
 
-    # fmt: off
     workflow.connect([
         (inputnode, select_surfaces, [
-            ('surfaces', 'surfaces'),
-            ('morphometrics', 'morphometrics'),
-            ('sphere_reg_fsLR', 'spherical_registrations'),
+            ('white', 'white'),
+            ('pial', 'pial'),
+            ('midthickness', 'midthickness'),
+            ('thickness', 'thickness'),
+            ('sphere_reg_fsLR', 'sphere_reg'),
         ]),
-        (itersource, select_surfaces, [('hemi', 'hemi')]),
+        (itersource, select_surfaces, [('hemi', 'key')]),
         # Native ROI file from thickness
         (itersource, initial_roi, [('hemi', 'hemisphere')]),
         (select_surfaces, initial_roi, [('thickness', 'thickness_file')]),
@@ -738,8 +743,7 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         (joinnode, outputnode, [('bold_fsLR', 'bold_fsLR')]),
         (volume_to_surface, joinnode, [('weights_text_file', 'weights_text')]),
         (joinnode, outputnode, [('weights_text', 'weights_text')]),
-    ])
-    # fmt: on
+    ])  # fmt:skip
 
     if estimate_goodvoxels:
         workflow.__desc__ += """\
@@ -749,7 +753,6 @@ excluding voxels whose time-series have a locally high coefficient of variation.
 
         goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb)
 
-        # fmt: off
         workflow.connect([
             (inputnode, goodvoxels_bold_mask_wf, [
                 ("bold_file", "inputnode.bold_file"),
@@ -761,8 +764,7 @@ excluding voxels whose time-series have a locally high coefficient of variation.
             (goodvoxels_bold_mask_wf, outputnode, [
                 ("outputnode.goodvoxels_mask", "goodvoxels_mask"),
             ]),
-        ])
-        # fmt: on
+        ])  # fmt:skip
 
     return workflow
 
@@ -1275,28 +1277,19 @@ def init_bold_grayords_wf(
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.cifti import GenerateCifti
-    from niworkflows.interfaces.utility import KeySelect
 
     workflow = Workflow(name=name)
 
     mni_density = "2" if grayord_density == "91k" else "1"
 
-    workflow.__desc__ = """\
-*Grayordinates* files [@hcppipelines] containing {density} samples were also
+    workflow.__desc__ = f"""\
+*Grayordinates* files [@hcppipelines] containing {grayord_density} samples were also
 generated with surface data transformed directly to fsLR space and subcortical
 data transformed to {mni_density} mm resolution MNI152NLin6Asym space.
-""".format(
-        density=grayord_density, mni_density=mni_density
-    )
+"""
 
     inputnode = pe.Node(
-        niu.IdentityInterface(
-            fields=[
-                "bold_std",
-                "bold_fsLR",
-                "spatial_reference",
-            ]
-        ),
+        niu.IdentityInterface(fields=["bold_std", "bold_fsLR"]),
         name="inputnode",
     )
 
@@ -1304,15 +1297,6 @@ data transformed to {mni_density} mm resolution MNI152NLin6Asym space.
         niu.IdentityInterface(fields=["cifti_bold", "cifti_metadata"]),
         name="outputnode",
     )
-
-    # extract out to BOLD base
-    select_std = pe.Node(
-        KeySelect(fields=["bold_std"]),
-        name="select_std",
-        run_without_submitting=True,
-        nohash=True,
-    )
-    select_std.inputs.key = "MNI152NLin6Asym_res-%s" % mni_density
 
     gen_cifti = pe.Node(
         GenerateCifti(
@@ -1322,16 +1306,16 @@ data transformed to {mni_density} mm resolution MNI152NLin6Asym space.
         name="gen_cifti",
     )
 
-    # fmt:off
     workflow.connect([
-        (inputnode, select_std, [("bold_std", "bold_std"),
-                                 ("spatial_reference", "keys")]),
-        (inputnode, gen_cifti, [("bold_fsLR", "surface_bolds")]),
-        (select_std, gen_cifti, [("bold_std", "bold_file")]),
-        (gen_cifti, outputnode, [("out_file", "cifti_bold"),
-                                 ("out_metadata", "cifti_metadata")]),
-    ])
-    # fmt:on
+        (inputnode, gen_cifti, [
+            ("bold_fsLR", "surface_bolds"),
+            ("bold_std", "bold_file"),
+        ]),
+        (gen_cifti, outputnode, [
+            ("out_file", "cifti_bold"),
+            ("out_metadata", "cifti_metadata"),
+        ]),
+    ])  # fmt:skip
     return workflow
 
 
@@ -1378,34 +1362,3 @@ def _aslist(in_value):
 
 def _is_native(in_value):
     return in_value.get("resolution") == "native" or in_value.get("res") == "native"
-
-
-def _select_surfaces(
-    hemi,
-    surfaces,
-    morphometrics,
-    spherical_registrations,
-    template_spheres,
-    template_rois,
-):
-    # This function relies on the basenames of the files to differ by L/R or l/r
-    # so that the sorting correctly identifies left or right.
-    import os
-    import re
-
-    idx = 0 if hemi == "L" else 1
-    container = {
-        'white': [],
-        'pial': [],
-        'midthickness': [],
-        'thickness': [],
-        'sphere': sorted(spherical_registrations),
-        'template_sphere': sorted(template_spheres),
-        'template_roi': sorted(template_rois),
-    }
-    find_name = re.compile(r'(?:^|[^d])(?P<name>white|pial|midthickness|thickness)')
-    for surface in surfaces + morphometrics:
-        match = find_name.search(os.path.basename(surface))
-        if match:
-            container[match.group('name')].append(surface)
-    return tuple(sorted(surflist, key=os.path.basename)[idx] for surflist in container.values())

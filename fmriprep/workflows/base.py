@@ -147,6 +147,7 @@ def init_single_subject_wf(subject_id: str):
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.bids import BIDSDataGrabber, BIDSInfo
     from niworkflows.interfaces.nilearn import NILEARN_VERSION
+    from niworkflows.interfaces.utility import KeySelect
     from niworkflows.utils.bids import collect_data
     from niworkflows.utils.misc import fix_multi_T1w_source_name
     from niworkflows.utils.spaces import Reference
@@ -333,12 +334,40 @@ It is released under the [CC0]\
 
     # Set up the template iterator once, if used
     if config.workflow.level == "full":
-        if spaces.get_spaces(nonstandard=False, dim=(3,)):
+        if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
             template_iterator_wf = init_template_iterator_wf(spaces=spaces)
             workflow.connect([
                 (anat_fit_wf, template_iterator_wf, [
                     ('outputnode.template', 'inputnode.template'),
                     ('outputnode.anat2std_xfm', 'inputnode.anat2std_xfm'),
+                ]),
+            ])  # fmt:skip
+
+        # Thread MNI152NLin6Asym standard outputs to CIFTI subworkflow, skipping
+        # the iterator, which targets only output spaces.
+        # This can lead to duplication in the working directory if people actually
+        # want MNI152NLin6Asym outputs, but we'll live with it.
+        if config.workflow.cifti_output:
+            from smriprep.interfaces.templateflow import TemplateFlowSelect
+
+            ref = Reference(
+                "MNI152NLin6Asym",
+                {"res": 2 if config.workflow.cifti_output == "91k" else 1},
+            )
+
+            select_MNI6_xfm = pe.Node(
+                KeySelect(fields=["anat2std_xfm"], key=ref.fullname),
+                name="select_MNI6",
+                run_without_submitting=True,
+            )
+            select_MNI6_tpl = pe.Node(
+                TemplateFlowSelect(template=ref.fullname, resolution=ref.spec['res']),
+                name="select_MNI6_tpl",
+            )
+            workflow.connect([
+                (anat_fit_wf, select_MNI6_xfm, [
+                    ("outputnode.anat2std_xfm", "anat2std_xfm"),
+                    ("outputnode.template", "keys"),
                 ]),
             ])  # fmt:skip
 
@@ -362,7 +391,6 @@ It is released under the [CC0]\
             f"{[e.method for e in fmap_estimators]}."
         )
 
-        from niworkflows.interfaces.utility import KeySelect
         from sdcflows import fieldmaps as fm
         from sdcflows.workflows.base import init_fmap_preproc_wf
 
@@ -538,6 +566,16 @@ tasks and sessions), the following preprocessing was performed.
                     ("outputnode.std_mask", "inputnode.std_mask"),
                 ]),
             ])  # fmt:skip
+
+            # Thread MNI152NLin6Asym standard outputs to CIFTI subworkflow, skipping
+            # the iterator, which targets only output spaces.
+            # This can lead to duplication in the working directory if people actually
+            # want MNI152NLin6Asym outputs, but we'll live with it.
+            if config.workflow.cifti_output:
+                workflow.connect([
+                    (select_MNI6_xfm, bold_wf, [("anat2std_xfm", "inputnode.anat2mni6_xfm")]),
+                    (select_MNI6_tpl, bold_wf, [("brain_mask", "inputnode.mni6_mask")]),
+                ])  # fmt:skip
 
     return clean_datasinks(workflow)
 
