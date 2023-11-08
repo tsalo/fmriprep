@@ -54,6 +54,7 @@ from .outputs import (
     init_ds_registration_wf,
     init_ds_volumes_wf,
     init_func_derivatives_wf,
+    prepare_timing_parameters,
 )
 from .registration import init_bold_reg_wf, init_bold_t1_trans_wf
 from .resampling import (
@@ -399,7 +400,7 @@ def init_bold_wf(
             (bold_anat_wf, ds_bold_t1_wf, [('outputnode.bold_file', 'inputnode.bold')]),
         ])  # fmt:skip
 
-    if spaces.get_spaces(nonstandard=False, dim=(3,)):
+    if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
         # Missing:
         #  * Clipping BOLD after resampling
         #  * Resampling parcellations
@@ -495,6 +496,21 @@ def init_bold_wf(
             repetition_time=all_metadata[0]["RepetitionTime"],
         )
 
+        ds_bold_cifti = pe.Node(
+            DerivativesDataSink(
+                base_directory=fmriprep_dir,
+                space='fsLR',
+                density=config.workflow.cifti_output,
+                suffix='bold',
+                compress=False,
+                TaskName=all_metadata[0].get('TaskName'),
+                **prepare_timing_parameters(all_metadata[0]),
+            ),
+            name='ds_bold_cifti',
+            run_without_submitting=True,
+        )
+        ds_bold_cifti.inputs.source_file = bold_file
+
         workflow.connect([
             # Resample BOLD to MNI152NLin6Asym, may duplicate bold_std_wf above
             (inputnode, bold_MNI6_wf, [
@@ -531,6 +547,10 @@ def init_bold_wf(
             ]),
             (bold_fsLR_resampling_wf, bold_grayords_wf, [
                 ("outputnode.bold_fsLR", "inputnode.bold_fsLR"),
+            ]),
+            (bold_grayords_wf, ds_bold_cifti, [
+                ('outputnode.cifti_bold', 'in_file'),
+                (('outputnode.cifti_metadata', _read_json), 'meta_dict'),
             ]),
         ])  # fmt:skip
 
@@ -975,3 +995,10 @@ def get_img_orientation(imgf):
     """Return the image orientation as a string"""
     img = nb.load(imgf)
     return "".join(nb.aff2axcodes(img.affine))
+
+
+def _read_json(in_file):
+    from json import loads
+    from pathlib import Path
+
+    return loads(Path(in_file).read_text())

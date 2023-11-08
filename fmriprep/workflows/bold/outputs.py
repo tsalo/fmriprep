@@ -982,30 +982,6 @@ def init_func_derivatives_wf(
         ])
         # fmt:on
 
-    # CIFTI output
-    if cifti_output:
-        ds_bold_cifti = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                suffix='bold',
-                compress=False,
-                TaskName=metadata.get('TaskName'),
-                space='fsLR',
-                **timing_parameters,
-            ),
-            name='ds_bold_cifti',
-            run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB,
-        )
-        # fmt:off
-        workflow.connect([
-            (inputnode, ds_bold_cifti, [(('bold_cifti', _unlist), 'in_file'),
-                                        ('source_file', 'source_file'),
-                                        ('cifti_density', 'density'),
-                                        (('cifti_metadata', _read_json), 'meta_dict')])
-        ])
-        # fmt:on
-
     if "compcor" in config.execution.debug:
         ds_acompcor_masks = pe.Node(
             DerivativesDataSink(
@@ -1120,10 +1096,3 @@ def _unlist(in_file):
     while isinstance(in_file, (list, tuple)) and len(in_file) == 1:
         in_file = in_file[0]
     return in_file
-
-
-def _read_json(in_file):
-    from json import loads
-    from pathlib import Path
-
-    return loads(Path(in_file).read_text())

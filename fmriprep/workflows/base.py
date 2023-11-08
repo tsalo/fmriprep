@@ -333,6 +333,7 @@ It is released under the [CC0]\
     ])  # fmt:skip
 
     # Set up the template iterator once, if used
+    template_iterator_wf = None
     if config.workflow.level == "full":
         if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
             template_iterator_wf = init_template_iterator_wf(spaces=spaces)
@@ -556,16 +557,17 @@ tasks and sessions), the following preprocessing was performed.
             ])  # fmt:skip
 
         if config.workflow.level == "full":
-            workflow.connect([
-                (template_iterator_wf, bold_wf, [
-                    ("outputnode.anat2std_xfm", "inputnode.anat2std_xfm"),
-                    ("outputnode.space", "inputnode.std_space"),
-                    ("outputnode.resolution", "inputnode.std_resolution"),
-                    ("outputnode.cohort", "inputnode.std_cohort"),
-                    ("outputnode.std_t1w", "inputnode.std_t1w"),
-                    ("outputnode.std_mask", "inputnode.std_mask"),
-                ]),
-            ])  # fmt:skip
+            if template_iterator_wf is not None:
+                workflow.connect([
+                    (template_iterator_wf, bold_wf, [
+                        ("outputnode.anat2std_xfm", "inputnode.anat2std_xfm"),
+                        ("outputnode.space", "inputnode.std_space"),
+                        ("outputnode.resolution", "inputnode.std_resolution"),
+                        ("outputnode.cohort", "inputnode.std_cohort"),
+                        ("outputnode.std_t1w", "inputnode.std_t1w"),
+                        ("outputnode.std_mask", "inputnode.std_mask"),
+                    ]),
+                ])  # fmt:skip
 
             # Thread MNI152NLin6Asym standard outputs to CIFTI subworkflow, skipping
             # the iterator, which targets only output spaces.
