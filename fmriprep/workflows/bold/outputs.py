@@ -620,7 +620,6 @@ def init_ds_bold_native_wf(
                 **timing_parameters,
             ),
             name='ds_bold',
-            run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB,
         )
         workflow.connect([
@@ -732,7 +731,6 @@ def init_ds_volumes_wf(
             **timing_parameters,
         ),
         name='ds_bold',
-        run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
     workflow.connect([
