@@ -24,7 +24,7 @@ class CreateROIOutputSpec(TraitedSpec):
 
 
 class CreateROI(SimpleInterface):
-    """Prepare GIFTI shape file for use in"""
+    """Prepare GIFTI thickness file for use as a cortical ROI"""
 
     input_spec = CreateROIInputSpec
     output_spec = CreateROIOutputSpec
