@@ -54,6 +54,7 @@ from .outputs import (
     init_ds_registration_wf,
     init_ds_volumes_wf,
     init_func_derivatives_wf,
+    prepare_timing_parameters,
 )
 from .registration import init_bold_reg_wf, init_bold_t1_trans_wf
 from .resampling import (
@@ -189,9 +190,16 @@ def init_bold_wf(
                 "t1w_mask",
                 "t1w_dseg",
                 "t1w_tpms",
+                # FreeSurfer outputs
                 "subjects_dir",
                 "subject_id",
                 "fsnative2t1w_xfm",
+                "white",
+                "midthickness",
+                "pial",
+                "thickness",
+                "sphere_reg_fsLR",
+                "anat_ribbon",
                 # Fieldmap registration
                 "fmap",
                 "fmap_ref",
@@ -206,6 +214,9 @@ def init_bold_wf(
                 "std_cohort",
                 "std_t1w",
                 "std_mask",
+                # MNI152NLin6Asym warp, for CIFTI use
+                "anat2mni6_xfm",
+                "mni6_mask",
             ],
         ),
         name="inputnode",
@@ -389,7 +400,7 @@ def init_bold_wf(
             (bold_anat_wf, ds_bold_t1_wf, [('outputnode.bold_file', 'inputnode.bold')]),
         ])  # fmt:skip
 
-    if spaces.get_spaces(nonstandard=False, dim=(3,)):
+    if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
         # Missing:
         #  * Clipping BOLD after resampling
         #  * Resampling parcellations
@@ -460,6 +471,87 @@ def init_bold_wf(
                 ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
             ]),
             (bold_anat_wf, bold_surf_wf, [("outputnode.bold_file", "inputnode.bold_t1w")]),
+        ])  # fmt:skip
+
+    if config.workflow.cifti_output:
+        from .resampling import init_bold_fsLR_resampling_wf, init_bold_grayords_wf
+
+        bold_MNI6_wf = init_bold_volumetric_resample_wf(
+            metadata=all_metadata[0],
+            fieldmap_id=fieldmap_id if not multiecho else None,
+            omp_nthreads=omp_nthreads,
+            name='bold_MNI6_wf',
+        )
+
+        bold_fsLR_resampling_wf = init_bold_fsLR_resampling_wf(
+            estimate_goodvoxels=config.workflow.project_goodvoxels,
+            grayord_density=config.workflow.cifti_output,
+            omp_nthreads=omp_nthreads,
+            mem_gb=mem_gb["resampled"],
+        )
+
+        bold_grayords_wf = init_bold_grayords_wf(
+            grayord_density=config.workflow.cifti_output,
+            mem_gb=mem_gb["resampled"],
+            repetition_time=all_metadata[0]["RepetitionTime"],
+        )
+
+        ds_bold_cifti = pe.Node(
+            DerivativesDataSink(
+                base_directory=fmriprep_dir,
+                space='fsLR',
+                density=config.workflow.cifti_output,
+                suffix='bold',
+                compress=False,
+                TaskName=all_metadata[0].get('TaskName'),
+                **prepare_timing_parameters(all_metadata[0]),
+            ),
+            name='ds_bold_cifti',
+            run_without_submitting=True,
+        )
+        ds_bold_cifti.inputs.source_file = bold_file
+
+        workflow.connect([
+            # Resample BOLD to MNI152NLin6Asym, may duplicate bold_std_wf above
+            (inputnode, bold_MNI6_wf, [
+                ("mni6_mask", "inputnode.target_ref_file"),
+                ("mni6_mask", "inputnode.target_mask"),
+                ("anat2mni6_xfm", "inputnode.anat2std_xfm"),
+                ("fmap_ref", "inputnode.fmap_ref"),
+                ("fmap_coeff", "inputnode.fmap_coeff"),
+                ("fmap_id", "inputnode.fmap_id"),
+            ]),
+            (bold_fit_wf, bold_MNI6_wf, [
+                ("outputnode.coreg_boldref", "inputnode.bold_ref_file"),
+                ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
+                ("outputnode.boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
+            ]),
+            (bold_native_wf, bold_MNI6_wf, [
+                ("outputnode.bold_minimal", "inputnode.bold_file"),
+                ("outputnode.motion_xfm", "inputnode.motion_xfm"),
+            ]),
+            # Resample T1w-space BOLD to fsLR surfaces
+            (inputnode, bold_fsLR_resampling_wf, [
+                ("white", "inputnode.white"),
+                ("pial", "inputnode.pial"),
+                ("midthickness", "inputnode.midthickness"),
+                ("thickness", "inputnode.thickness"),
+                ("sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
+                ("anat_ribbon", "inputnode.anat_ribbon"),
+            ]),
+            (bold_anat_wf, bold_fsLR_resampling_wf, [
+                ("outputnode.bold_file", "inputnode.bold_file"),
+            ]),
+            (bold_MNI6_wf, bold_grayords_wf, [
+                ("outputnode.bold_file", "inputnode.bold_std"),
+            ]),
+            (bold_fsLR_resampling_wf, bold_grayords_wf, [
+                ("outputnode.bold_fsLR", "inputnode.bold_fsLR"),
+            ]),
+            (bold_grayords_wf, ds_bold_cifti, [
+                ('outputnode.cifti_bold', 'in_file'),
+                (('outputnode.cifti_metadata', _read_json), 'meta_dict'),
+            ]),
         ])  # fmt:skip
 
     bold_confounds_wf = init_bold_confs_wf(
@@ -657,7 +749,6 @@ def init_func_preproc_wf(bold_file, has_fieldmap=False):
     spaces = config.workflow.spaces
     fmriprep_dir = str(config.execution.fmriprep_dir)
     freesurfer_spaces = spaces.get_fs_spaces()
-    project_goodvoxels = config.workflow.project_goodvoxels and config.workflow.cifti_output
 
     ref_file = bold_file
     wf_name = _get_wf_name(ref_file, "func_preproc")
@@ -745,52 +836,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     # SURFACES ##################################################################################
 
     # CIFTI output
-    if config.workflow.cifti_output:
-        from .resampling import init_bold_fsLR_resampling_wf, init_bold_grayords_wf
-
-        bold_fsLR_resampling_wf = init_bold_fsLR_resampling_wf(
-            estimate_goodvoxels=project_goodvoxels,
-            grayord_density=config.workflow.cifti_output,
-            omp_nthreads=omp_nthreads,
-            mem_gb=mem_gb["resampled"],
-        )
-
-        bold_grayords_wf = init_bold_grayords_wf(
-            grayord_density=config.workflow.cifti_output,
-            mem_gb=mem_gb["resampled"],
-            repetition_time=metadata["RepetitionTime"],
-        )
-
-        # fmt:off
-        workflow.connect([
-            (inputnode, bold_fsLR_resampling_wf, [
-                ("surfaces", "inputnode.surfaces"),
-                ("morphometrics", "inputnode.morphometrics"),
-                ("sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
-                ("anat_ribbon", "inputnode.anat_ribbon"),
-            ]),
-            (bold_t1_trans_wf, bold_fsLR_resampling_wf, [
-                ("outputnode.bold_t1", "inputnode.bold_file"),
-            ]),
-            (bold_std_trans_wf, bold_grayords_wf, [
-                ("outputnode.bold_std", "inputnode.bold_std"),
-                ("outputnode.spatial_reference", "inputnode.spatial_reference"),
-            ]),
-            (bold_fsLR_resampling_wf, bold_grayords_wf, [
-                ("outputnode.bold_fsLR", "inputnode.bold_fsLR"),
-            ]),
-            (bold_fsLR_resampling_wf, func_derivatives_wf, [
-                ("outputnode.goodvoxels_mask", "inputnode.goodvoxels_mask"),
-            ]),
-            (bold_fsLR_resampling_wf, outputnode, [
-                ("outputnode.weights_text", "weights_text"),
-            ]),
-            (bold_grayords_wf, outputnode, [
-                ("outputnode.cifti_bold", "bold_cifti"),
-                ("outputnode.cifti_metadata", "cifti_metadata"),
-            ]),
-        ])
-        # fmt:on
 
     if spaces.get_spaces(nonstandard=False, dim=(3,)):
         carpetplot_wf = init_carpetplot_wf(
@@ -950,3 +995,10 @@ def get_img_orientation(imgf):
     """Return the image orientation as a string"""
     img = nb.load(imgf)
     return "".join(nb.aff2axcodes(img.affine))
+
+
+def _read_json(in_file):
+    from json import loads
+    from pathlib import Path
+
+    return loads(Path(in_file).read_text())
