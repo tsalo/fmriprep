@@ -25,8 +25,6 @@ Resampling workflows
 ++++++++++++++++++++
 
 .. autofunction:: init_bold_surf_wf
-.. autofunction:: init_bold_std_trans_wf
-.. autofunction:: init_bold_preproc_trans_wf
 .. autofunction:: init_bold_fsLR_resampling_wf
 .. autofunction:: init_bold_grayords_wf
 .. autofunction:: init_goodvoxels_bold_mask_wf
@@ -75,6 +73,8 @@ def init_bold_surf_wf(
             wf = init_bold_surf_wf(mem_gb=0.1,
                                    surface_spaces=["fsnative", "fsaverage5"],
                                    medial_surface_nan=False,
+                                   metadata={},
+                                   output_dir='.',
                                    )
 
     Parameters
