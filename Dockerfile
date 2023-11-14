@@ -109,7 +109,7 @@ RUN micromamba create -y -f /tmp/env.yml && \
     micromamba clean -y -a
 
 ENV PATH="/opt/conda/envs/fmriprep/bin:$PATH"
-RUN /opt/conda/envs/fmriprep/bin/npm install -g svgo@^2.8 bids-validator@1.11.0 && \
+RUN /opt/conda/envs/fmriprep/bin/npm install -g svgo@^3.0 bids-validator@1.13 && \
     rm -r ~/.npm
 
 #
