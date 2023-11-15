@@ -567,14 +567,11 @@ def init_bold_fit_wf(
         bold_reg_wf = init_bold_reg_wf(
             bold2t1w_dof=config.workflow.bold2t1w_dof,
             bold2t1w_init=config.workflow.bold2t1w_init,
-            freesurfer=config.workflow.run_reconall,
-            mem_gb=mem_gb["resampled"],
-            name="bold_reg_wf",
-            omp_nthreads=omp_nthreads,
-            sloppy=config.execution.sloppy,
             use_bbr=config.workflow.use_bbr,
-            use_compression=False,
-            write_report=False,
+            freesurfer=config.workflow.run_reconall,
+            omp_nthreads=omp_nthreads,
+            mem_gb=mem_gb["resampled"],
+            sloppy=config.execution.sloppy,
         )
 
         ds_boldreg_wf = init_ds_registration_wf(
