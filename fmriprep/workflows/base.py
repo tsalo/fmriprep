@@ -225,6 +225,7 @@ It is released under the [CC0]\
         )
 
     spaces = config.workflow.spaces
+    msm_sulc = config.workflow.run_msmsulc
 
     anatomical_cache = {}
     if config.execution.derivatives:
@@ -300,7 +301,7 @@ It is released under the [CC0]\
         freesurfer=config.workflow.run_reconall,
         hires=config.workflow.hires,
         longitudinal=config.workflow.longitudinal,
-        msm_sulc=config.workflow.run_msmsulc,
+        msm_sulc=msm_sulc,
         t1w=subject_data['t1w'],
         t2w=subject_data['t2w'],
         skull_strip_mode=config.workflow.skull_strip_t1w,
@@ -554,8 +555,11 @@ tasks and sessions), the following preprocessing was performed.
                 ('outputnode.pial', 'inputnode.pial'),
                 ('outputnode.midthickness', 'inputnode.midthickness'),
                 ('outputnode.thickness', 'inputnode.thickness'),
-                ('outputnode.sphere_reg_fsLR', 'inputnode.sphere_reg_fsLR'),
                 ('outputnode.anat_ribbon', 'inputnode.anat_ribbon'),
+                (
+                    f'outputnode.sphere_reg_{"msm" if msm_sulc else "fsLR"}',
+                    'inputnode.sphere_reg_fsLR',
+                ),
             ]),
         ])  # fmt:skip
         if fieldmap_id:
