@@ -19,6 +19,69 @@ def init_bold_volumetric_resample_wf(
     omp_nthreads: int = 1,
     name: str = 'bold_volumetric_resample_wf',
 ) -> pe.Workflow:
+    """Resample a BOLD series to a volumetric target space.
+
+    This workflow collates a sequence of transforms to resample a BOLD series
+    in a single shot, including motion correction and fieldmap correction, if
+    requested.
+
+    .. workflow::
+
+        from fmriprep.workflows.bold.resampling import init_bold_volumetric_resample_wf
+        wf = init_bold_volumetric_resample_wf(
+            metadata={
+                'RepetitionTime': 2.0,
+                'PhaseEncodingDirection': 'j-',
+                'TotalReadoutTime': 0.03
+            },
+            fieldmap_id='my_fieldmap',
+        )
+
+    Parameters
+    ----------
+    metadata
+        BIDS metadata for BOLD file.
+    fieldmap_id
+        Fieldmap identifier, if fieldmap correction is to be applied.
+    omp_nthreads
+        Maximum number of threads an individual process may use.
+    name
+        Name of workflow (default: ``bold_volumetric_resample_wf``)
+
+    Inputs
+    ------
+    bold_file
+        BOLD series to resample.
+    bold_ref_file
+        Reference image to which BOLD series is aligned.
+    target_ref_file
+        Reference image defining the target space.
+    target_mask
+        Brain mask corresponding to ``target_ref_file``.
+        This is used to define the field of view for the resampled BOLD series.
+    motion_xfm
+        List of affine transforms aligning each volume to ``bold_ref_file``.
+        If undefined, no motion correction is performed.
+    boldref2fmap_xfm
+        Affine transform from ``bold_ref_file`` to the fieldmap reference image.
+    fmap_ref
+        Fieldmap reference image defining the valid field of view for the fieldmap.
+    fmap_coeff
+        B-Spline coefficients for the fieldmap.
+    fmap_id
+        Fieldmap identifier, to select correct fieldmap in case there are multiple.
+    boldref2anat_xfm
+        Affine transform from ``bold_ref_file`` to the anatomical reference image.
+    anat2std_xfm
+        Affine transform from the anatomical reference image to standard space.
+        Leave undefined to resample to anatomical reference space.
+
+    Outputs
+    -------
+    bold_file
+        The ``bold_file`` input, resampled to ``target_ref_file`` space.
+
+    """
     workflow = pe.Workflow(name=name)
 
     inputnode = pe.Node(
