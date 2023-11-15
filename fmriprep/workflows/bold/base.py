@@ -39,6 +39,7 @@ from niworkflows.utils.connections import listify
 
 from ... import config
 from ...interfaces import DerivativesDataSink
+from ...utils.misc import estimate_bold_mem_usage
 
 # BOLD workflows
 from .apply import init_bold_volumetric_resample_wf
@@ -176,7 +177,7 @@ def init_bold_wf(
     omp_nthreads = config.nipype.omp_nthreads
     all_metadata = [config.execution.layout.get_metadata(file) for file in bold_series]
 
-    nvols, mem_gb = _create_mem_gb(bold_file)
+    nvols, mem_gb = estimate_bold_mem_usage(bold_file)
     if nvols <= 5 - config.execution.sloppy:
         config.loggers.workflow.warning(
             f"Too short BOLD series (<= 5 timepoints). Skipping processing of <{bold_file}>."
@@ -681,21 +682,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             workflow.get_node(node).inputs.source_file = bold_file
 
     return workflow
-
-
-def _create_mem_gb(bold_fname):
-    img = nb.load(bold_fname)
-    nvox = int(np.prod(img.shape, dtype='u8'))
-    # Assume tools will coerce to 8-byte floats to be safe
-    bold_size_gb = 8 * nvox / (1024**3)
-    bold_tlen = 1 if img.ndim < 4 else img.shape[3]
-    mem_gb = {
-        "filesize": bold_size_gb,
-        "resampled": bold_size_gb * 4,
-        "largemem": bold_size_gb * (max(bold_tlen / 100, 1.0) + 4),
-    }
-
-    return bold_tlen, mem_gb
 
 
 def _get_wf_name(bold_fname, prefix):

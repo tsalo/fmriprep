@@ -22,6 +22,7 @@
 #
 """Miscellaneous utilities."""
 import typing as ty
+from functools import cache
 
 
 def check_deps(workflow):
@@ -48,6 +49,7 @@ def fips_enabled():
     return fips.exists() and fips.read_text()[0] != "0"
 
 
+@cache
 def estimate_bold_mem_usage(bold_fname: str) -> ty.Tuple[int, dict]:
     import nibabel as nb
     import numpy as np
