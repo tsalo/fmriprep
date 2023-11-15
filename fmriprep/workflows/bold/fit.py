@@ -484,6 +484,7 @@ def init_bold_fit_wf(
                     dest=fieldmap_id.replace('_', ''),
                     name="ds_fmapreg_wf",
                 )
+                ds_fmapreg_wf.inputs.inputnode.source_files = [bold_file]
 
                 # fmt:off
                 workflow.connect([
@@ -497,7 +498,6 @@ def init_bold_fit_wf(
                     ]),
                     (fmapreg_wf, itk_mat2txt, [('outputnode.target2fmap_xfm', 'in_xfms')]),
                     (itk_mat2txt, ds_fmapreg_wf, [('out_xfm', 'inputnode.xform')]),
-                    (fmapref_buffer, ds_fmapreg_wf, [('out', 'inputnode.source_files')]),
                     (ds_fmapreg_wf, fmapreg_buffer, [('outputnode.xform', 'boldref2fmap_xfm')]),
                 ])
                 # fmt:on
