@@ -297,8 +297,8 @@ class environment(_Config):
 class nipype(_Config):
     """Nipype settings."""
 
-    crashfile_format = "pklz"
-    """The file format for crashfiles, either text or pickle."""
+    crashfile_format = "txt"
+    """The file format for crashfiles, either text (txt) or pickle (pklz)."""
     get_linked_libs = False
     """Run NiPype's tool to enlist linked libraries for every interface."""
     memory_gb = None
@@ -314,7 +314,7 @@ class nipype(_Config):
         "raise_insufficient": False,
     }
     """Settings for NiPype's execution plugin."""
-    remove_unnecessary_outputs = False
+    remove_unnecessary_outputs = True
     """Clean up unused outputs after running"""
     resource_monitor = False
     """Enable resource monitor."""

@@ -258,7 +258,7 @@ def _build_parser(**kwargs):
         "--level",
         action="store",
         default="full",
-        # choices=["minimal", "resampling", "full"],
+        choices=["minimal", "resampling", "full"],
         help="Processing level; may be 'minimal' (nothing that can be recomputed), "
         "'resampling' (recomputable targets that aid in resampling) "
         "or 'full' (all target outputs).",
