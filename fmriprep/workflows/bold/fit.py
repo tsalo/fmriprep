@@ -118,7 +118,7 @@ def init_bold_fit_wf(
     Parameters
     ----------
     bold_series
-        List of paths to NIfTI files.
+        List of paths to NIfTI files, sorted by echo time.
     precomputed
         Dictionary containing precomputed derivatives to reuse, if possible.
     fieldmap_id
@@ -204,27 +204,26 @@ def init_bold_fit_wf(
 
     layout = config.execution.layout
 
-    # Collect bold and sbref files, sorted by EchoTime
-    bold_files = sorted(bold_series, key=lambda fname: layout.get_metadata(fname).get("EchoTime"))
+    # Collect sbref files, sorted by EchoTime
     sbref_files = get_sbrefs(
-        bold_files,
+        bold_series,
         entity_overrides=config.execution.get().get('bids_filters', {}).get('sbref', {}),
         layout=layout,
     )
 
     # Fitting operates on the shortest echo
     # This could become more complicated in the future
-    bold_file = bold_files[0]
+    bold_file = bold_series[0]
 
     # Get metadata from BOLD file(s)
-    entities = extract_entities(bold_files)
+    entities = extract_entities(bold_series)
     metadata = layout.get_metadata(bold_file)
     orientation = "".join(nb.aff2axcodes(nb.load(bold_file).affine))
 
     bold_tlen, mem_gb = estimate_bold_mem_usage(bold_file)
 
     # Boolean used to update workflow self-descriptions
-    multiecho = len(bold_files) > 1
+    multiecho = len(bold_series) > 1
 
     have_hmcref = "hmc_boldref" in precomputed
     have_coregref = "coreg_boldref" in precomputed
@@ -699,27 +698,20 @@ def init_bold_native_wf(
     layout = config.execution.layout
 
     # Shortest echo first
-    all_metadata, bold_files, echo_times = zip(
-        *sorted(
-            (
-                (md := layout.get_metadata(bold_file), bold_file, md.get("EchoTime"))
-                for bold_file in listify(bold_series)
-            ),
-            key=lambda x: x[2],
-        )
-    )
-    multiecho = len(bold_files) > 1
+    all_metadata = [layout.get_metadata(bold_file) for bold_file in bold_series]
+    echo_times = [md.get("EchoTime") for md in all_metadata]
+    multiecho = len(bold_series) > 1
 
-    bold_file = bold_files[0]
+    bold_file = bold_series[0]
     metadata = all_metadata[0]
 
     bold_tlen, mem_gb = estimate_bold_mem_usage(bold_file)
 
     if multiecho:
-        shapes = [nb.load(echo).shape for echo in bold_files]
+        shapes = [nb.load(echo).shape for echo in bold_series]
         if len(set(shapes)) != 1:
             diagnostic = "\n".join(
-                f"{os.path.basename(echo)}: {shape}" for echo, shape in zip(bold_files, shapes)
+                f"{os.path.basename(echo)}: {shape}" for echo, shape in zip(bold_series, shapes)
             )
             raise RuntimeError(f"Multi-echo images found with mismatching shapes\n{diagnostic}")
         if len(shapes) == 2:
@@ -774,12 +766,12 @@ def init_bold_native_wf(
     # almost identically
     echo_index = pe.Node(niu.IdentityInterface(fields=["echoidx"]), name="echo_index")
     if multiecho:
-        echo_index.iterables = [("echoidx", range(len(bold_files)))]
+        echo_index.iterables = [("echoidx", range(len(bold_series)))]
     else:
         echo_index.inputs.echoidx = 0
 
     # BOLD source: track original BOLD file(s)
-    bold_source = pe.Node(niu.Select(inlist=bold_files), name="bold_source")
+    bold_source = pe.Node(niu.Select(inlist=bold_series), name="bold_source")
     validate_bold = pe.Node(ValidateImage(), name="validate_bold")
     workflow.connect([
         (echo_index, bold_source, [("echoidx", "index")]),

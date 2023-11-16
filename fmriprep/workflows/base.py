@@ -216,6 +216,14 @@ It is released under the [CC0]\
             )
         )
 
+    bold_runs = [
+        sorted(
+            listify(run),
+            key=lambda file: config.execution.layout.get_metadata(file).get('EchoTime', 0),
+        )
+        for run in subject_data['bold']
+    ]
+
     if subject_data['roi']:
         warnings.warn(
             f"Lesion mask {subject_data['roi']} found. "
@@ -393,7 +401,7 @@ It is released under the [CC0]\
     fmap_estimators, estimator_map = map_fieldmap_estimation(
         layout=config.execution.layout,
         subject_id=subject_id,
-        bold_data=subject_data['bold'],
+        bold_data=bold_runs,
         ignore_fieldmaps="fieldmaps" in config.workflow.ignore,
         use_syn=config.workflow.use_syn_sdc,
         force_syn=config.workflow.force_syn,
@@ -509,11 +517,10 @@ Functional data preprocessing
 : For each of the {num_bold} BOLD runs found per subject (across all
 tasks and sessions), the following preprocessing was performed.
 """.format(
-        num_bold=len(subject_data['bold'])
+        num_bold=len(bold_runs)
     )
 
-    for bold_series in subject_data['bold']:
-        bold_series = sorted(listify(bold_series))
+    for bold_series in bold_runs:
         bold_file = bold_series[0]
         fieldmap_id = estimator_map.get(bold_file)
 
@@ -610,7 +617,7 @@ tasks and sessions), the following preprocessing was performed.
 def map_fieldmap_estimation(
     layout: bids.BIDSLayout,
     subject_id: str,
-    bold_data: list,
+    bold_data: list[list[str]],
     ignore_fieldmaps: bool,
     use_syn: bool | str,
     force_syn: bool,
@@ -656,7 +663,7 @@ def map_fieldmap_estimation(
     # Pare down estimators to those that are actually used
     # If fmap_estimators == [], all loops/comprehensions terminate immediately
     all_ids = {fmap.bids_id for fmap in fmap_estimators}
-    bold_files = (sorted(listify(bold_file))[0] for bold_file in bold_data)
+    bold_files = (bold_series[0] for bold_series in bold_data)
 
     all_estimators = {
         bold_file: [fmap_id for fmap_id in get_estimator(layout, bold_file) if fmap_id in all_ids]
