@@ -305,7 +305,7 @@ It is released under the [CC0]\
     # Build the workflow
     anat_fit_wf = init_anat_fit_wf(
         bids_root=str(config.execution.bids_dir),
-        output_dir=str(config.execution.output_dir),
+        output_dir=str(config.execution.fmriprep_dir),
         freesurfer=config.workflow.run_reconall,
         hires=config.workflow.hires,
         longitudinal=config.workflow.longitudinal,
