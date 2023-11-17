@@ -311,6 +311,14 @@ def init_bold_fit_wf(
         run_without_submitting=True,
     )
     summary.inputs.dummy_scans = config.workflow.dummy_scans
+    if config.workflow.level == "full":
+        # Hack. More pain than it's worth to connect this up at a higher level.
+        # We can consider separating out fit and transform summaries,
+        # or connect a bunch a bunch of summary parameters to outputnodes
+        # to make available to the base workflow.
+        summary.inputs.slice_timing = (
+            bool(metadata.get("SliceTiming")) and "slicetiming" not in config.workflow.ignore
+        )
 
     func_fit_reports_wf = init_func_fit_reports_wf(
         # TODO: Enable sdc report even if we find coregref

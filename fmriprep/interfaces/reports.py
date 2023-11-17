@@ -64,6 +64,7 @@ FUNCTIONAL_TEMPLATE = """\
 \t\t\t<li>Repetition time (TR): {tr:.03g}s</li>
 \t\t\t<li>Phase-encoding (PE) direction: {pedir}</li>
 \t\t\t<li>{multiecho}</li>
+\t\t\t<li>Slice timing correction: {stc}</li>
 \t\t\t<li>Susceptibility distortion correction: {sdc}</li>
 \t\t\t<li>Registration: {registration}</li>
 \t\t\t<li>Non-steady-state volumes: {dummy_scan_desc}</li>
@@ -189,6 +190,7 @@ class SubjectSummary(SummaryInterface):
 
 
 class FunctionalSummaryInputSpec(TraitedSpec):
+    slice_timing = traits.Enum(False, True, 'TooShort', desc='Slice timing correction used')
     distortion_correction = traits.Str(
         desc='Susceptibility distortion correction method', mandatory=True
     )
@@ -229,7 +231,15 @@ class FunctionalSummary(SummaryInterface):
 
     def _generate_segment(self):
         dof = self.inputs.registration_dof
-        # #TODO: Add a note about registration_init below?
+        if isdefined(self.inputs.slice_timing):
+            stc = {
+                True: 'Applied',
+                False: 'Not applied',
+                'TooShort': 'Skipped (too few volumes)',
+            }[self.inputs.slice_timing]
+        else:
+            stc = 'n/a'
+        # TODO: Add a note about registration_init below?
         reg = {
             'FSL': [
                 'FSL <code>flirt</code> with boundary-based registration'
@@ -272,6 +282,7 @@ class FunctionalSummary(SummaryInterface):
 
         return FUNCTIONAL_TEMPLATE.format(
             pedir=pedir,
+            stc=stc,
             sdc=self.inputs.distortion_correction,
             registration=reg,
             tr=self.inputs.tr,
