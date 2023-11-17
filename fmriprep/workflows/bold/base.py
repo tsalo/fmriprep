@@ -426,16 +426,16 @@ configured with cubic B-spline interpolation.
         ds_bold_t1_wf.inputs.inputnode.space = 'T1w'
 
         workflow.connect([
-            (inputnode, ds_bold_t1_wf, [
-                ('t1w_preproc', 'inputnode.ref_file'),
-            ]),
             (bold_fit_wf, ds_bold_t1_wf, [
                 ('outputnode.bold_mask', 'inputnode.bold_mask'),
                 ('outputnode.coreg_boldref', 'inputnode.bold_ref'),
                 ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
             ]),
             (bold_native_wf, ds_bold_t1_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
-            (bold_anat_wf, ds_bold_t1_wf, [('outputnode.bold_file', 'inputnode.bold')]),
+            (bold_anat_wf, ds_bold_t1_wf, [
+                ('outputnode.bold_file', 'inputnode.bold'),
+                ('outputnode.resampling_reference', 'inputnode.ref_file'),
+            ]),
         ])  # fmt:skip
 
     if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
@@ -462,6 +462,7 @@ configured with cubic B-spline interpolation.
                 ("std_t1w", "inputnode.target_ref_file"),
                 ("std_mask", "inputnode.target_mask"),
                 ("anat2std_xfm", "inputnode.anat2std_xfm"),
+                ('std_resolution', 'inputnode.resolution'),
                 ("fmap_ref", "inputnode.fmap_ref"),
                 ("fmap_coeff", "inputnode.fmap_coeff"),
                 ("fmap_id", "inputnode.fmap_id"),
@@ -476,7 +477,6 @@ configured with cubic B-spline interpolation.
                 ("outputnode.motion_xfm", "inputnode.motion_xfm"),
             ]),
             (inputnode, ds_bold_std_wf, [
-                ('std_t1w', 'inputnode.ref_file'),
                 ('anat2std_xfm', 'inputnode.anat2std_xfm'),
                 ('std_space', 'inputnode.space'),
                 ('std_resolution', 'inputnode.resolution'),
@@ -488,7 +488,10 @@ configured with cubic B-spline interpolation.
                 ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
             ]),
             (bold_native_wf, ds_bold_std_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
-            (bold_std_wf, ds_bold_std_wf, [('outputnode.bold_file', 'inputnode.bold')]),
+            (bold_std_wf, ds_bold_std_wf, [
+                ('outputnode.bold_file', 'inputnode.bold'),
+                ('outputnode.resampling_reference', 'inputnode.ref_file'),
+            ]),
         ])  # fmt:skip
 
     if config.workflow.run_reconall and freesurfer_spaces:

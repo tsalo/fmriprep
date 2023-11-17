@@ -80,6 +80,9 @@ def init_bold_volumetric_resample_wf(
     -------
     bold_file
         The ``bold_file`` input, resampled to ``target_ref_file`` space.
+    resampling_reference
+        An empty reference image with the correct affine and header for resampling
+        further images into the BOLD series' space.
 
     """
     workflow = pe.Workflow(name=name)
@@ -102,12 +105,17 @@ def init_bold_volumetric_resample_wf(
                 "boldref2anat_xfm",
                 # Template
                 "anat2std_xfm",
+                # Entity for selecting target resolution
+                "resolution",
             ],
         ),
         name='inputnode',
     )
 
-    outputnode = pe.Node(niu.IdentityInterface(fields=["bold_file"]), name='outputnode')
+    outputnode = pe.Node(
+        niu.IdentityInterface(fields=["bold_file", "resampling_reference"]),
+        name='outputnode',
+    )
 
     gen_ref = pe.Node(GenerateSamplingReference(), name='gen_ref', mem_gb=0.3)
 
@@ -120,6 +128,7 @@ def init_bold_volumetric_resample_wf(
             ('bold_ref_file', 'moving_image'),
             ('target_ref_file', 'fixed_image'),
             ('target_mask', 'fov_mask'),
+            (('resolution', _is_native), 'keep_native'),
         ]),
         (inputnode, boldref2target, [
             ('boldref2anat_xfm', 'in1'),
@@ -130,6 +139,7 @@ def init_bold_volumetric_resample_wf(
         (gen_ref, resample, [('out_file', 'ref_file')]),
         (boldref2target, bold2target, [('out', 'in2')]),
         (bold2target, resample, [('out', 'transforms')]),
+        (gen_ref, outputnode, [('out_file', 'resampling_reference')]),
         (resample, outputnode, [('out_file', 'bold_file')]),
     ])  # fmt:skip
 
@@ -190,3 +200,7 @@ def _gen_inverses(inlist: list) -> list[bool]:
     if not inlist:
         return [True]
     return [True] + [False] * len(listify(inlist))
+
+
+def _is_native(value):
+    return value == "native"
