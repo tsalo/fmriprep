@@ -162,6 +162,7 @@ def init_single_subject_wf(subject_id: str):
         init_gifti_morphometrics_wf,
         init_hcp_morphometrics_wf,
         init_morph_grayords_wf,
+        init_resample_midthickness_wf,
     )
 
     from fmriprep.workflows.bold.base import init_bold_wf
@@ -435,6 +436,9 @@ It is released under the [CC0]\
                 grayord_density=config.workflow.cifti_output,
                 omp_nthreads=omp_nthreads,
             )
+            resample_midthickness_wf = init_resample_midthickness_wf(
+                grayord_density=config.workflow.cifti_output,
+            )
             ds_grayord_metrics_wf = init_ds_grayord_metrics_wf(
                 bids_root=bids_root,
                 output_dir=fmriprep_dir,
@@ -456,6 +460,13 @@ It is released under the [CC0]\
                 (curv_wf, hcp_morphometrics_wf, [
                     ("outputnode.curv", "inputnode.curv"),
                 ]),
+                (anat_fit_wf, resample_midthickness_wf, [
+                    ('outputnode.midthickness', 'inputnode.midthickness'),
+                    (
+                        f"outputnode.sphere_reg_{'msm' if msm_sulc else 'fsLR'}",
+                        "inputnode.sphere_reg_fsLR",
+                    ),
+                ]),
                 (anat_fit_wf, morph_grayords_wf, [
                     ("outputnode.midthickness", "inputnode.midthickness"),
                     (
@@ -468,6 +479,9 @@ It is released under the [CC0]\
                     ("outputnode.thickness", "inputnode.thickness"),
                     ("outputnode.sulc", "inputnode.sulc"),
                     ("outputnode.roi", "inputnode.roi"),
+                ]),
+                (resample_midthickness_wf, morph_grayords_wf, [
+                    ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
                 ]),
                 (anat_fit_wf, ds_grayord_metrics_wf, [
                     ('outputnode.t1w_valid_list', 'inputnode.source_files'),
@@ -648,7 +662,6 @@ tasks and sessions), the following preprocessing was performed.
                 ('outputnode.white', 'inputnode.white'),
                 ('outputnode.pial', 'inputnode.pial'),
                 ('outputnode.midthickness', 'inputnode.midthickness'),
-                ('outputnode.thickness', 'inputnode.thickness'),
                 ('outputnode.anat_ribbon', 'inputnode.anat_ribbon'),
                 (
                     f'outputnode.sphere_reg_{"msm" if msm_sulc else "fsLR"}',
@@ -696,6 +709,12 @@ tasks and sessions), the following preprocessing was performed.
                 workflow.connect([
                     (select_MNI6_xfm, bold_wf, [("anat2std_xfm", "inputnode.anat2mni6_xfm")]),
                     (select_MNI6_tpl, bold_wf, [("brain_mask", "inputnode.mni6_mask")]),
+                    (hcp_morphometrics_wf, bold_wf, [
+                        ("outputnode.roi", "inputnode.cortex_mask"),
+                    ]),
+                    (resample_midthickness_wf, bold_wf, [
+                        ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
+                    ]),
                 ])  # fmt:skip
 
     return clean_datasinks(workflow)
