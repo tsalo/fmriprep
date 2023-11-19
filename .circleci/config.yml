@@ -87,9 +87,30 @@ _setup_fmriprep_docker: &setup_fmriprep_docker
     pip install --upgrade /tmp/src/fmriprep/wrapper/
 
 _check_outputs: &check_outputs
-  name: Show outputs of fMRIPrep run
+  name: Check outputs of fMRIPrep run
   command: |
-    find /tmp/${DATASET}/${SUBDIR:-fmriprep} \( -path '*/figures' -o -path '*/log' -o -path '*/sourcedata' \) -prune -o -name "*" -print | cut -d/ -f 5- | sort
+    set +e -x
+    mkdir -p /tmp/${DATASET}/test
+    find /tmp/${DATASET}/${SUBDIR:-fmriprep} \
+      \( -path '*/figures' -o -path '*/log' -o -path '*/sourcedata' \) \
+      -prune -o -name "*" -print | cut -d/ -f 5- | sort > /tmp/${DATASET}/test/outputs.out
+
+    FASTTRACK_OUTPUTS="${DATASET}${VARIANT}_fasttrack_outputs.txt"
+    FULL_OUTPUTS="${DATASET}${VARIANT}_outputs.txt"
+    RET=1
+    if [ ! -f /tmp/.nofasttrack ]; then
+        echo "Checking fasttrack..."
+        sort /tmp/src/fmriprep/.circleci/${FASTTRACK_OUTPUTS} > /tmp/${DATASET}/test/fasttrack.out
+        diff /tmp/${DATASET}/test/{fasttrack,outputs}.out
+        RET=$?
+    fi
+    if [ $RET -ne 0 ]; then
+        echo "Checking full..."
+        sort /tmp/src/fmriprep/.circleci/${FULL_OUTPUTS} > /tmp/${DATASET}/test/full.out
+        diff /tmp/${DATASET}/test/{full,outputs}.out
+        RET=$?
+    fi
+    exit $RET
 
 version: 2.1
 aliases:

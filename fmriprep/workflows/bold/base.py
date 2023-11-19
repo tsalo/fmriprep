@@ -39,6 +39,7 @@ from niworkflows.utils.connections import listify
 
 from ... import config
 from ...interfaces import DerivativesDataSink
+from ...utils.misc import estimate_bold_mem_usage
 
 # BOLD workflows
 from .apply import init_bold_volumetric_resample_wf
@@ -176,7 +177,7 @@ def init_bold_wf(
     omp_nthreads = config.nipype.omp_nthreads
     all_metadata = [config.execution.layout.get_metadata(file) for file in bold_series]
 
-    nvols, mem_gb = _create_mem_gb(bold_file)
+    nvols, mem_gb = estimate_bold_mem_usage(bold_file)
     if nvols <= 5 - config.execution.sloppy:
         config.loggers.workflow.warning(
             f"Too short BOLD series (<= 5 timepoints). Skipping processing of <{bold_file}>."
@@ -425,16 +426,16 @@ configured with cubic B-spline interpolation.
         ds_bold_t1_wf.inputs.inputnode.space = 'T1w'
 
         workflow.connect([
-            (inputnode, ds_bold_t1_wf, [
-                ('t1w_preproc', 'inputnode.ref_file'),
-            ]),
             (bold_fit_wf, ds_bold_t1_wf, [
                 ('outputnode.bold_mask', 'inputnode.bold_mask'),
                 ('outputnode.coreg_boldref', 'inputnode.bold_ref'),
                 ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
             ]),
             (bold_native_wf, ds_bold_t1_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
-            (bold_anat_wf, ds_bold_t1_wf, [('outputnode.bold_file', 'inputnode.bold')]),
+            (bold_anat_wf, ds_bold_t1_wf, [
+                ('outputnode.bold_file', 'inputnode.bold'),
+                ('outputnode.resampling_reference', 'inputnode.ref_file'),
+            ]),
         ])  # fmt:skip
 
     if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
@@ -461,6 +462,7 @@ configured with cubic B-spline interpolation.
                 ("std_t1w", "inputnode.target_ref_file"),
                 ("std_mask", "inputnode.target_mask"),
                 ("anat2std_xfm", "inputnode.anat2std_xfm"),
+                ('std_resolution', 'inputnode.resolution'),
                 ("fmap_ref", "inputnode.fmap_ref"),
                 ("fmap_coeff", "inputnode.fmap_coeff"),
                 ("fmap_id", "inputnode.fmap_id"),
@@ -475,7 +477,6 @@ configured with cubic B-spline interpolation.
                 ("outputnode.motion_xfm", "inputnode.motion_xfm"),
             ]),
             (inputnode, ds_bold_std_wf, [
-                ('std_t1w', 'inputnode.ref_file'),
                 ('anat2std_xfm', 'inputnode.anat2std_xfm'),
                 ('std_space', 'inputnode.space'),
                 ('std_resolution', 'inputnode.resolution'),
@@ -487,7 +488,10 @@ configured with cubic B-spline interpolation.
                 ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
             ]),
             (bold_native_wf, ds_bold_std_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
-            (bold_std_wf, ds_bold_std_wf, [('outputnode.bold_file', 'inputnode.bold')]),
+            (bold_std_wf, ds_bold_std_wf, [
+                ('outputnode.bold_file', 'inputnode.bold'),
+                ('outputnode.resampling_reference', 'inputnode.ref_file'),
+            ]),
         ])  # fmt:skip
 
     if config.workflow.run_reconall and freesurfer_spaces:
@@ -681,21 +685,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             workflow.get_node(node).inputs.source_file = bold_file
 
     return workflow
-
-
-def _create_mem_gb(bold_fname):
-    img = nb.load(bold_fname)
-    nvox = int(np.prod(img.shape, dtype='u8'))
-    # Assume tools will coerce to 8-byte floats to be safe
-    bold_size_gb = 8 * nvox / (1024**3)
-    bold_tlen = 1 if img.ndim < 4 else img.shape[3]
-    mem_gb = {
-        "filesize": bold_size_gb,
-        "resampled": bold_size_gb * 4,
-        "largemem": bold_size_gb * (max(bold_tlen / 100, 1.0) + 4),
-    }
-
-    return bold_tlen, mem_gb
 
 
 def _get_wf_name(bold_fname, prefix):

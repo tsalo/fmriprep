@@ -488,7 +488,7 @@ def init_ds_registration_wf(
             mode='image',
             suffix='xfm',
             extension='.txt',
-            dismiss_entities=('echo',),
+            dismiss_entities=('echo', 'part'),
             **{'from': source, 'to': dest},
         ),
         name='ds_xform',

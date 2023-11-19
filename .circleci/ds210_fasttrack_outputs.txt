@@ -7,17 +7,6 @@ logs/CITATION.html
 logs/CITATION.md
 logs/CITATION.tex
 sub-02
-sub-02/anat
-sub-02/anat/sub-02_desc-brain_mask.json
-sub-02/anat/sub-02_desc-brain_mask.nii.gz
-sub-02/anat/sub-02_desc-preproc_T1w.json
-sub-02/anat/sub-02_desc-preproc_T1w.nii.gz
-sub-02/anat/sub-02_dseg.nii.gz
-sub-02/anat/sub-02_from-MNI152NLin2009cAsym_to-T1w_mode-image_xfm.h5
-sub-02/anat/sub-02_from-T1w_to-MNI152NLin2009cAsym_mode-image_xfm.h5
-sub-02/anat/sub-02_label-CSF_probseg.nii.gz
-sub-02/anat/sub-02_label-GM_probseg.nii.gz
-sub-02/anat/sub-02_label-WM_probseg.nii.gz
 sub-02/fmap
 sub-02/fmap/sub-02_run-01_fmapid-auto00000_desc-coeff0_fieldmap.nii.gz
 sub-02/fmap/sub-02_run-01_fmapid-auto00000_desc-coeff1_fieldmap.nii.gz
