@@ -113,8 +113,6 @@ def init_bold_wf(
         FreeSurfer pial surfaces, in T1w space, collated left, then right
     sphere_reg_fsLR
         Registration spheres from fsnative to fsLR space, collated left, then right
-    thickness
-        FreeSurfer thickness metrics, collated left, then right
     anat_ribbon
         Binary cortical ribbon mask in T1w space
     fmap_id
@@ -235,7 +233,8 @@ configured with cubic B-spline interpolation.
                 "midthickness",
                 "pial",
                 "sphere_reg_fsLR",
-                "thickness",
+                "midthickness_fsLR",
+                "cortex_mask",
                 "anat_ribbon",
                 # Fieldmap registration
                 "fmap",
@@ -316,6 +315,7 @@ configured with cubic B-spline interpolation.
         omp_nthreads=omp_nthreads,
         name='bold_anat_wf',
     )
+    bold_anat_wf.inputs.inputnode.resolution = "native"
 
     workflow.connect([
         (inputnode, bold_native_wf, [
@@ -580,8 +580,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ("white", "inputnode.white"),
                 ("pial", "inputnode.pial"),
                 ("midthickness", "inputnode.midthickness"),
-                ("thickness", "inputnode.thickness"),
+                ("midthickness_fsLR", "inputnode.midthickness_fsLR"),
                 ("sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
+                ("cortex_mask", "inputnode.cortex_mask"),
                 ("anat_ribbon", "inputnode.anat_ribbon"),
             ]),
             (bold_anat_wf, bold_fsLR_resampling_wf, [

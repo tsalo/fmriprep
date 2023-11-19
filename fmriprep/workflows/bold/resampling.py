@@ -587,27 +587,28 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         niu.IdentityInterface(
             fields=[
                 'bold_file',
+                'anat_ribbon',
                 'white',
                 'pial',
                 'midthickness',
-                'thickness',
+                'midthickness_fsLR',
                 'sphere_reg_fsLR',
-                'anat_ribbon',
+                'cortex_mask',
             ]
         ),
         name='inputnode',
     )
 
-    itersource = pe.Node(
+    hemisource = pe.Node(
         niu.IdentityInterface(fields=['hemi']),
-        name='itersource',
+        name='hemisource',
         iterables=[('hemi', ['L', 'R'])],
     )
 
     joinnode = pe.JoinNode(
         niu.IdentityInterface(fields=['bold_fsLR']),
         name='joinnode',
-        joinsource='itersource',
+        joinsource='hemisource',
     )
 
     outputnode = pe.Node(
@@ -622,9 +623,10 @@ The BOLD time-series were resampled onto the left/right-symmetric template
                 "white",
                 "pial",
                 "midthickness",
-                "thickness",
-                "sphere_reg",
+                'midthickness_fsLR',
+                "sphere_reg_fsLR",
                 "template_sphere",
+                'cortex_mask',
                 "template_roi",
             ],
             keys=["L", "R"],
@@ -647,20 +649,6 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         str(atlases / 'L.atlasroi.32k_fs_LR.shape.gii'),
         str(atlases / 'R.atlasroi.32k_fs_LR.shape.gii'),
     ]
-
-    # Reimplements lines 282-290 of FreeSurfer2CaretConvertAndRegisterNonlinear.sh
-    initial_roi = pe.Node(CreateROI(), name="initial_roi", mem_gb=DEFAULT_MEMORY_MIN_GB)
-
-    # Lines 291-292
-    fill_holes = pe.Node(MetricFillHoles(), name="fill_holes", mem_gb=DEFAULT_MEMORY_MIN_GB)
-    native_roi = pe.Node(MetricRemoveIslands(), name="native_roi", mem_gb=DEFAULT_MEMORY_MIN_GB)
-
-    # Line 393 of FreeSurfer2CaretConvertAndRegisterNonlinear.sh
-    downsampled_midthickness = pe.Node(
-        SurfaceResample(method='BARYCENTRIC'),
-        name="downsampled_midthickness",
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
 
     # RibbonVolumeToSurfaceMapping.sh
     # Line 85 thru ...
@@ -689,23 +677,11 @@ The BOLD time-series were resampled onto the left/right-symmetric template
             ('white', 'white'),
             ('pial', 'pial'),
             ('midthickness', 'midthickness'),
-            ('thickness', 'thickness'),
-            ('sphere_reg_fsLR', 'sphere_reg'),
+            ('midthickness_fsLR', 'midthickness_fsLR'),
+            ('sphere_reg_fsLR', 'sphere_reg_fsLR'),
+            ('cortex_mask', 'cortex_mask'),
         ]),
-        (itersource, select_surfaces, [('hemi', 'key')]),
-        # Native ROI file from thickness
-        (itersource, initial_roi, [('hemi', 'hemisphere')]),
-        (select_surfaces, initial_roi, [('thickness', 'thickness_file')]),
-        (select_surfaces, fill_holes, [('midthickness', 'surface_file')]),
-        (select_surfaces, native_roi, [('midthickness', 'surface_file')]),
-        (initial_roi, fill_holes, [('roi_file', 'metric_file')]),
-        (fill_holes, native_roi, [('out_file', 'metric_file')]),
-        # Downsample midthickness to fsLR density
-        (select_surfaces, downsampled_midthickness, [
-            ('midthickness', 'surface_in'),
-            ('sphere_reg', 'current_sphere'),
-            ('template_sphere', 'new_sphere'),
-        ]),
+        (hemisource, select_surfaces, [('hemi', 'key')]),
         # Resample BOLD to native surface, dilate and mask
         (inputnode, volume_to_surface, [
             ('bold_file', 'volume_file'),
@@ -716,17 +692,17 @@ The BOLD time-series were resampled onto the left/right-symmetric template
             ('pial', 'outer_surface'),
         ]),
         (select_surfaces, metric_dilate, [('midthickness', 'surf_file')]),
+        (select_surfaces, mask_native, [('cortex_mask', 'mask')]),
         (volume_to_surface, metric_dilate, [('out_file', 'in_file')]),
-        (native_roi, mask_native, [('out_file', 'mask')]),
         (metric_dilate, mask_native, [('out_file', 'in_file')]),
         # Resample BOLD to fsLR and mask
         (select_surfaces, resample_to_fsLR, [
-            ('sphere_reg', 'current_sphere'),
+            ('sphere_reg_fsLR', 'current_sphere'),
             ('template_sphere', 'new_sphere'),
             ('midthickness', 'current_area'),
+            ('midthickness_fsLR', 'new_area'),
+            ('cortex_mask', 'roi_metric'),
         ]),
-        (downsampled_midthickness, resample_to_fsLR, [('surface_out', 'new_area')]),
-        (native_roi, resample_to_fsLR, [('out_file', 'roi_metric')]),
         (mask_native, resample_to_fsLR, [('out_file', 'in_file')]),
         (select_surfaces, mask_fsLR, [('template_roi', 'mask')]),
         (resample_to_fsLR, mask_fsLR, [('out_file', 'in_file')]),

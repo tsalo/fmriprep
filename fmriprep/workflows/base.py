@@ -152,7 +152,18 @@ def init_single_subject_wf(subject_id: str):
     from niworkflows.utils.misc import fix_multi_T1w_source_name
     from niworkflows.utils.spaces import Reference
     from smriprep.workflows.anatomical import init_anat_fit_wf
-    from smriprep.workflows.outputs import init_template_iterator_wf
+    from smriprep.workflows.outputs import (
+        init_ds_anat_volumes_wf,
+        init_ds_grayord_metrics_wf,
+        init_ds_surface_metrics_wf,
+        init_template_iterator_wf,
+    )
+    from smriprep.workflows.surfaces import (
+        init_gifti_morphometrics_wf,
+        init_hcp_morphometrics_wf,
+        init_morph_grayords_wf,
+        init_resample_midthickness_wf,
+    )
 
     from fmriprep.workflows.bold.base import init_bold_wf
 
@@ -302,10 +313,14 @@ It is released under the [CC0]\
         run_without_submitting=True,
     )
 
+    bids_root = str(config.execution.bids_dir)
+    fmriprep_dir = str(config.execution.fmriprep_dir)
+    omp_nthreads = config.nipype.omp_nthreads
+
     # Build the workflow
     anat_fit_wf = init_anat_fit_wf(
-        bids_root=str(config.execution.bids_dir),
-        output_dir=str(config.execution.fmriprep_dir),
+        bids_root=bids_root,
+        output_dir=fmriprep_dir,
         freesurfer=config.workflow.run_reconall,
         hires=config.workflow.hires,
         longitudinal=config.workflow.longitudinal,
@@ -316,7 +331,7 @@ It is released under the [CC0]\
         skull_strip_template=Reference.from_string(config.workflow.skull_strip_template)[0],
         spaces=spaces,
         precomputed=anatomical_cache,
-        omp_nthreads=config.nipype.omp_nthreads,
+        omp_nthreads=omp_nthreads,
         sloppy=config.execution.sloppy,
         skull_strip_fixed_seed=config.workflow.skull_strip_fixed_seed,
     )
@@ -347,10 +362,29 @@ It is released under the [CC0]\
     if config.workflow.level == "full":
         if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
             template_iterator_wf = init_template_iterator_wf(spaces=spaces)
+            ds_std_volumes_wf = init_ds_anat_volumes_wf(
+                bids_root=bids_root,
+                output_dir=fmriprep_dir,
+                name="ds_std_volumes_wf",
+            )
             workflow.connect([
                 (anat_fit_wf, template_iterator_wf, [
                     ('outputnode.template', 'inputnode.template'),
                     ('outputnode.anat2std_xfm', 'inputnode.anat2std_xfm'),
+                ]),
+                (anat_fit_wf, ds_std_volumes_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                    ("outputnode.t1w_preproc", "inputnode.t1w_preproc"),
+                    ("outputnode.t1w_mask", "inputnode.t1w_mask"),
+                    ("outputnode.t1w_dseg", "inputnode.t1w_dseg"),
+                    ("outputnode.t1w_tpms", "inputnode.t1w_tpms"),
+                ]),
+                (template_iterator_wf, ds_std_volumes_wf, [
+                    ("outputnode.std_t1w", "inputnode.ref_file"),
+                    ("outputnode.anat2std_xfm", "inputnode.anat2std_xfm"),
+                    ("outputnode.space", "inputnode.space"),
+                    ("outputnode.cohort", "inputnode.cohort"),
+                    ("outputnode.resolution", "inputnode.resolution"),
                 ]),
             ])  # fmt:skip
 
@@ -395,6 +429,73 @@ It is released under the [CC0]\
                 ]),
             ])  # fmt:skip
 
+            # Create CIFTI morphometrics
+            curv_wf = init_gifti_morphometrics_wf(morphometrics=['curv'], name='curv_wf')
+            hcp_morphometrics_wf = init_hcp_morphometrics_wf(omp_nthreads=omp_nthreads)
+            morph_grayords_wf = init_morph_grayords_wf(
+                grayord_density=config.workflow.cifti_output,
+                omp_nthreads=omp_nthreads,
+            )
+            resample_midthickness_wf = init_resample_midthickness_wf(
+                grayord_density=config.workflow.cifti_output,
+            )
+            ds_grayord_metrics_wf = init_ds_grayord_metrics_wf(
+                bids_root=bids_root,
+                output_dir=fmriprep_dir,
+                metrics=["curv", "thickness", "sulc"],
+                cifti_output=config.workflow.cifti_output,
+            )
+
+            workflow.connect([
+                (anat_fit_wf, curv_wf, [
+                    ("outputnode.subject_id", "inputnode.subject_id"),
+                    ("outputnode.subjects_dir", "inputnode.subjects_dir"),
+                ]),
+                (anat_fit_wf, hcp_morphometrics_wf, [
+                    ("outputnode.subject_id", "inputnode.subject_id"),
+                    ("outputnode.thickness", "inputnode.thickness"),
+                    ("outputnode.sulc", "inputnode.sulc"),
+                    ("outputnode.midthickness", "inputnode.midthickness"),
+                ]),
+                (curv_wf, hcp_morphometrics_wf, [
+                    ("outputnode.curv", "inputnode.curv"),
+                ]),
+                (anat_fit_wf, resample_midthickness_wf, [
+                    ('outputnode.midthickness', 'inputnode.midthickness'),
+                    (
+                        f"outputnode.sphere_reg_{'msm' if msm_sulc else 'fsLR'}",
+                        "inputnode.sphere_reg_fsLR",
+                    ),
+                ]),
+                (anat_fit_wf, morph_grayords_wf, [
+                    ("outputnode.midthickness", "inputnode.midthickness"),
+                    (
+                        f'outputnode.sphere_reg_{"msm" if msm_sulc else "fsLR"}',
+                        'inputnode.sphere_reg_fsLR',
+                    ),
+                ]),
+                (hcp_morphometrics_wf, morph_grayords_wf, [
+                    ("outputnode.curv", "inputnode.curv"),
+                    ("outputnode.thickness", "inputnode.thickness"),
+                    ("outputnode.sulc", "inputnode.sulc"),
+                    ("outputnode.roi", "inputnode.roi"),
+                ]),
+                (resample_midthickness_wf, morph_grayords_wf, [
+                    ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
+                ]),
+                (anat_fit_wf, ds_grayord_metrics_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                ]),
+                (morph_grayords_wf, ds_grayord_metrics_wf, [
+                    ("outputnode.curv_fsLR", "inputnode.curv"),
+                    ("outputnode.curv_metadata", "inputnode.curv_metadata"),
+                    ("outputnode.thickness_fsLR", "inputnode.thickness"),
+                    ("outputnode.thickness_metadata", "inputnode.thickness_metadata"),
+                    ("outputnode.sulc_fsLR", "inputnode.sulc"),
+                    ("outputnode.sulc_metadata", "inputnode.sulc_metadata"),
+                ]),
+            ])  # fmt:skip
+
     if config.workflow.anat_only:
         return clean_datasinks(workflow)
 
@@ -421,8 +522,8 @@ It is released under the [CC0]\
         fmap_wf = init_fmap_preproc_wf(
             debug="fieldmaps" in config.execution.debug,
             estimators=fmap_estimators,
-            omp_nthreads=config.nipype.omp_nthreads,
-            output_dir=str(config.execution.fmriprep_dir),
+            omp_nthreads=omp_nthreads,
+            output_dir=fmriprep_dir,
             subject=subject_id,
         )
         fmap_wf.__desc__ = f"""
@@ -481,7 +582,7 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
                     s.metadata for s in estimator.sources if s.suffix in ("bold", "sbref")
                 ]
                 syn_preprocessing_wf = init_syn_preprocessing_wf(
-                    omp_nthreads=config.nipype.omp_nthreads,
+                    omp_nthreads=omp_nthreads,
                     debug=config.execution.sloppy,
                     auto_bold_nss=True,
                     t1w_inversion=False,
@@ -561,7 +662,6 @@ tasks and sessions), the following preprocessing was performed.
                 ('outputnode.white', 'inputnode.white'),
                 ('outputnode.pial', 'inputnode.pial'),
                 ('outputnode.midthickness', 'inputnode.midthickness'),
-                ('outputnode.thickness', 'inputnode.thickness'),
                 ('outputnode.anat_ribbon', 'inputnode.anat_ribbon'),
                 (
                     f'outputnode.sphere_reg_{"msm" if msm_sulc else "fsLR"}',
@@ -609,6 +709,12 @@ tasks and sessions), the following preprocessing was performed.
                 workflow.connect([
                     (select_MNI6_xfm, bold_wf, [("anat2std_xfm", "inputnode.anat2mni6_xfm")]),
                     (select_MNI6_tpl, bold_wf, [("brain_mask", "inputnode.mni6_mask")]),
+                    (hcp_morphometrics_wf, bold_wf, [
+                        ("outputnode.roi", "inputnode.cortex_mask"),
+                    ]),
+                    (resample_midthickness_wf, bold_wf, [
+                        ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
+                    ]),
                 ])  # fmt:skip
 
     return clean_datasinks(workflow)
