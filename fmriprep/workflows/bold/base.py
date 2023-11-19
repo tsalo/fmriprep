@@ -315,6 +315,7 @@ configured with cubic B-spline interpolation.
         omp_nthreads=omp_nthreads,
         name='bold_anat_wf',
     )
+    bold_anat_wf.inputs.inputnode.resolution = "native"
 
     workflow.connect([
         (inputnode, bold_native_wf, [
