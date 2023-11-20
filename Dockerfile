@@ -108,8 +108,10 @@ WORKDIR /tmp
 RUN micromamba create -y -f /tmp/env.yml && \
     micromamba clean -y -a
 
+# UV_USE_IO_URING for apparent race-condition (https://github.com/nodejs/node/issues/48444)
+# Check if this is still necessary when updating the base image.
 ENV PATH="/opt/conda/envs/fmriprep/bin:$PATH" \
-    UV_USE_IO_URING=0  # Apparent race-condition (https://github.com/nodejs/node/issues/48444)
+    UV_USE_IO_URING=0
 RUN npm install -g svgo@^3.0.4 bids-validator@^1.13.1 && \
     rm -r ~/.npm
 
