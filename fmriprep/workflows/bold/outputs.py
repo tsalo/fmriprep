@@ -195,6 +195,7 @@ def init_func_fit_reports_wf(
         "source_file",
         "sdc_boldref",
         "coreg_boldref",
+        "bold_mask",
         "boldref2anat_xfm",
         "boldref2fmap_xfm",
         "t1w_preproc",
@@ -368,7 +369,8 @@ def init_func_fit_reports_wf(
             ]),
             (inputnode, sdcreg_report, [
                 ('sdc_boldref', 'reference'),
-                ('fieldmap', 'fieldmap')
+                ('fieldmap', 'fieldmap'),
+                ('bold_mask', 'mask'),
             ]),
             (fmapref_boldref, sdcreg_report, [('output_image', 'moving')]),
             (inputnode, ds_sdcreg_report, [('source_file', 'source_file')]),
