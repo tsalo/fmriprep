@@ -108,7 +108,8 @@ WORKDIR /tmp
 RUN micromamba create -y -f /tmp/env.yml && \
     micromamba clean -y -a
 
-ENV PATH="/opt/conda/envs/fmriprep/bin:$PATH"
+ENV PATH="/opt/conda/envs/fmriprep/bin:$PATH" \
+    UV_USE_IO_URING=0  # Apparent race-condition (https://github.com/nodejs/node/issues/48444)
 RUN npm install -g svgo@^3.0.4 bids-validator@^1.13.1 && \
     rm -r ~/.npm
 
