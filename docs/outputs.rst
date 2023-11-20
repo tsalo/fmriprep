@@ -131,10 +131,16 @@ If FreeSurfer reconstructions are used, the following surface files are generate
 
   sub-<subject_label>/
     anat/
-      sub-<subject_label>_hemi-[LR]_smoothwm.surf.gii
-      sub-<subject_label>_hemi-[LR]_pial.surf.gii
+      sub-<subject_label>_hemi-[LR]_white.surf.gii
       sub-<subject_label>_hemi-[LR]_midthickness.surf.gii
-      sub-<subject_label>_hemi-[LR]_inflated.surf.gii
+      sub-<subject_label>_hemi-[LR]_pial.surf.gii
+      sub-<subject_label>_hemi-[LR]_desc-reg_sphere.surf.gii
+      sub-<subject_label>_hemi-[LR]_space-fsLR_desc-reg_sphere.surf.gii
+      sub-<subject_label>_hemi-[LR]_space-fsLR_desc-msmsulc_sphere.surf.gii
+
+The registration spheres target ``fsaverage`` and ``fsLR`` spaces. If MSM
+is enabled (i.e., the ``--no-msm`` flag is not passed), then the ``msmsulc``
+spheres are generated and used for creating ``space-fsLR`` derivatives.
 
 And the affine translation (and inverse) between the original T1w sampling and FreeSurfer's
 conformed space for surface reconstruction (``fsnative``) is stored in::
@@ -143,6 +149,27 @@ conformed space for surface reconstruction (``fsnative``) is stored in::
     anat/
       sub-<subject_label>_from-fsnative_to-T1w_mode-image_xfm.txt
       sub-<subject_label>_from-T1w_to-fsnative_mode-image_xfm.txt
+
+Finally, cortical thickness, curvature, and sulcal depth maps are converted to GIFTI
+and CIFTI-2::
+
+  sub-<subject_label>/
+    anat/
+      sub-<subject_label>_hemi-[LR]_thickness.shape.gii
+      sub-<subject_label>_hemi-[LR]_curv.shape.gii
+      sub-<subject_label>_hemi-[LR]_sulc.shape.gii
+      sub-<subject_label>_space-fsLR_den-32k_thickness.dscalar.nii
+      sub-<subject_label>_space-fsLR_den-32k_curv.dscalar.nii
+      sub-<subject_label>_space-fsLR_den-32k_sulc.dscalar.nii
+
+.. warning::
+
+   GIFTI metric files follow the FreeSurfer conventions and are not modified
+   by *fMRIPrep* in any way.
+
+   The Human Connectome Project (HCP) inverts the sign of the curvature and
+   sulcal depth maps. For consistency with HCP, *fMRIPrep* follows these
+   conventions and masks the medial wall of CIFTI-2 dscalar files.
 
 .. _fsderivs:
 
@@ -187,16 +214,63 @@ these will be indicated with ``[specifiers]``::
 
   sub-<subject_label>/
     func/
-      sub-<subject_label>_[specifiers]_space-<space_label>_boldref.nii.gz
       sub-<subject_label>_[specifiers]_space-<space_label>_desc-brain_mask.nii.gz
       sub-<subject_label>_[specifiers]_space-<space_label>_desc-preproc_bold.nii.gz
 
-Additionally, the following transforms are saved::
+.. note::
+
+   The mask file is part of the *minimal* processing level. The BOLD series
+   is only generated at the *full* processing level.
+
+**Motion correction outputs**.
+
+Head-motion correction (HMC) produces a reference image to which all volumes
+are aligned, and a corresponding transform that maps the original BOLD series
+to the reference image::
 
   sub-<subject_label>/
     func/
-      sub-<subject_label>_[specifiers]_from-scanner_to-T1w_mode-image_xfm.txt
-      sub-<subject_label>_[specifiers]_from-T1w_to-scanner_mode-image_xfm.txt
+      sub-<subject_label>_[specifiers]_desc-hmc_boldref.nii.gz
+      sub-<subject_label>_[specifiers]_from-orig_to_boldref_mode-image_desc-hmc_xfm.nii.gz
+
+.. note::
+
+   Motion correction outputs are part of the *minimal* processing level.
+
+**Coregistration outputs**.
+
+Registration of the BOLD series to the T1w image generates a further reference
+image and affine transform::
+
+  sub-<subject_label>/
+    func/
+      sub-<subject_label>_[specifiers]_desc-coreg_boldref.nii.gz
+      sub-<subject_label>_[specifiers]_from-boldref_to-T1w_mode-image_desc-coreg_xfm.txt
+
+.. note::
+
+   Coregistration outputs are part of the *minimal* processing level.
+
+**Fieldmap registration**.
+
+If a fieldmap is used for the correction of a BOLD series, then a registration
+is calculated between the BOLD series and the fieldmap. If, for example, the fieldmap
+is identified with ``"B0Identifier": "TOPUP"``, the generated transform will be named::
+
+  sub-<subject_label>/
+    func/
+      sub-<subject_label>_[specifiers]_from-boldref_to-TOPUP_mode-image_xfm.nii.gz
+
+If the association is discovered through the ``IntendedFor`` field of the
+fieldmap metadata, then the transform will be given an auto-generated name::
+
+  sub-<subject_label>/
+    func/
+      sub-<subject_label>_[specifiers]_from-boldref_to-auto000XX_mode-image_xfm.txt
+
+.. note::
+
+   Fieldmap registration outputs are part of the *minimal* processing level.
 
 **Regularly gridded outputs (images)**.
 Volumetric output spaces labels (``<space_label>`` above, and in the following) include
