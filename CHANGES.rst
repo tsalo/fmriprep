@@ -11,11 +11,11 @@ as previous versions. ``minimal`` will produce only the minimum necessary to
 deterministically generate the remaining derivatives. ``resampling`` will produce
 some additional derivatives, intended to simplify resampling with other tools.
 
-The ``--derivatives`` flag takes arguments of the form ``name=/path/to/dir``.
-If provided, fMRIPrep will read the specified directories for pre-computed
-derivatives. If a derivative is found, it will be used instead of computing
-it from scratch. If a derivative is not found, fMRIPrep will compute it and
-proceed as usual.
+The ``--derivatives`` flag takes arguments of the form ``name=/path/to/dir``,
+for example ``--derivatives anat=$SMRIPREP_DIR``.  If provided, fMRIPrep will
+read the specified directories for pre-computed derivatives. If a derivative is
+found, it will be used instead of computing it from scratch. If a derivative is
+not found, fMRIPrep will compute it and proceed as usual.
 
 Taken together, these features can allow a dataset provider to run a minimal
 fMRIPrep run, targeting many output spaces, while a user can then run a
@@ -24,9 +24,16 @@ spaces they need. Another use case is to provide an precomputed derivative
 to override the default fMRIPrep behavior, enabling easier workarounds for
 bugs or experimentation with alternatives.
 
-Additionally, this release includes a number of bug fixes and minor improvements.
-In particular, susceptibility distortion correction has been improved for
-PEPolar, phase difference and direct fieldmaps.
+Additionally, this release includes a number of bug fixes and improvements.
+This release adds support for MSM-Sulc, improving the alignment of subject
+surfaces to the fsLR template. This process is enabled by default, but may
+be disabled with the ``--no-msm`` flag.
+
+This release resolves a number of issues with fieldmaps inducing distortions
+during correction. Phase difference and direct fieldmaps are now masked correctly,
+preventing the overestimation of distortions outside the brain. Additionally,
+we now implement Jacobian weighting during unwarping, which corrects for compression
+and expansion effects on signal intensity.
 
 Finally, a new resampling method has been added, to better account for
 susceptibility distortion and motion in a single shot resampling to a volumetric
