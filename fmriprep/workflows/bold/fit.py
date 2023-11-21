@@ -354,6 +354,7 @@ def init_bold_fit_wf(
         ]),
         (outputnode, func_fit_reports_wf, [
             ("coreg_boldref", "inputnode.coreg_boldref"),
+            ("bold_mask", "inputnode.bold_mask"),
             ("boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
         ]),
         (summary, func_fit_reports_wf, [("out_report", "inputnode.summary_report")]),
