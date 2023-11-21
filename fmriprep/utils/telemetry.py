@@ -204,7 +204,7 @@ def setup_migas(init_ping: bool = True, exit_ping: bool = True) -> None:
         migas.track_exit(
             'nipreps/fmriprep',
             __version__,
-            {'NodeExecutionEror', node_execution_error},
+            {'NodeExecutionError': node_execution_error},
         )
 
 
