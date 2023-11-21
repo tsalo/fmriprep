@@ -38,12 +38,11 @@ def build_workflow(config_file, retval):
 
     from niworkflows.utils.bids import collect_participants
     from niworkflows.utils.misc import check_valid_fs_license
-    from pkg_resources import resource_filename as pkgrf
 
     from fmriprep.reports.core import generate_reports
     from fmriprep.utils.bids import check_pipeline_version
 
-    from .. import config
+    from .. import config, data
     from ..utils.misc import check_deps
     from ..workflows.base import init_fmriprep_wf
 
@@ -57,7 +56,7 @@ def build_workflow(config_file, retval):
     retval["workflow"] = None
 
     banner = [f"Running fMRIPrep version {version}"]
-    notice_path = Path(pkgrf("fmriprep", "data/NOTICE"))
+    notice_path = data.load.readable("NOTICE")
     if notice_path.exists():
         banner[0] += "\n"
         banner += [f"License NOTICE {'#' * 50}"]
@@ -91,7 +90,7 @@ def build_workflow(config_file, retval):
             config.execution.participant_label,
             config.execution.fmriprep_dir,
             config.execution.run_uuid,
-            config=pkgrf("fmriprep", "data/reports-spec.yml"),
+            config=data.load("reports-spec.yml"),
             packagename="fmriprep",
         )
         return retval
@@ -183,9 +182,9 @@ def build_boilerplate(config_file, workflow):
         from pathlib import Path
         from subprocess import CalledProcessError, TimeoutExpired, check_call
 
-        from pkg_resources import resource_filename as pkgrf
+        from .. import data
 
-        bib_text = Path(pkgrf("fmriprep", "data/boilerplate.bib")).read_text()
+        bib_text = data.load.readable("boilerplate.bib").read_text()
         citation_files["bib"].write_text(
             bib_text.replace("fMRIPrep <version>", f"fMRIPrep {config.environment.version}")
         )
