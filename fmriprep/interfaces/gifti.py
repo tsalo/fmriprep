@@ -24,7 +24,7 @@ class CreateROIOutputSpec(TraitedSpec):
 
 
 class CreateROI(SimpleInterface):
-    """Prepare GIFTI shape file for use in"""
+    """Prepare GIFTI thickness file for use as a cortical ROI"""
 
     input_spec = CreateROIInputSpec
     output_spec = CreateROIOutputSpec
@@ -46,16 +46,20 @@ class CreateROI(SimpleInterface):
         # wb_command -metric-math "abs(var * -1) > 0"
         roi = np.abs(darray.data) > 0
 
+        # Divergence: Set datatype to uint8, since the values are boolean
+        # wb_command sets datatype to float32
         darray = nb.gifti.GiftiDataArray(
             roi,
             intent=darray.intent,
-            datatype=darray.datatype,
+            datatype='uint8',
             encoding=darray.encoding,
             endian=darray.endian,
             coordsys=darray.coordsys,
             ordering=darray.ind_ord,
             meta=meta,
         )
+
+        img.darrays[0] = darray
 
         out_filename = os.path.join(runtime.cwd, f"{subject}.{hemi}.roi.native.shape.gii")
         img.to_filename(out_filename)

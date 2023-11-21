@@ -103,15 +103,17 @@ RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bi
 
 ENV MAMBA_ROOT_PREFIX="/opt/conda"
 COPY env.yml /tmp/env.yml
+COPY requirements.txt /tmp/requirements.txt
+WORKDIR /tmp
 RUN micromamba create -y -f /tmp/env.yml && \
     micromamba clean -y -a
 
-ENV PATH="/opt/conda/envs/fmriprep/bin:$PATH"
-RUN /opt/conda/envs/fmriprep/bin/npm install -g svgo@^2.8 bids-validator@1.11.0 && \
+# UV_USE_IO_URING for apparent race-condition (https://github.com/nodejs/node/issues/48444)
+# Check if this is still necessary when updating the base image.
+ENV PATH="/opt/conda/envs/fmriprep/bin:$PATH" \
+    UV_USE_IO_URING=0
+RUN npm install -g svgo@^3.0.4 bids-validator@^1.13.1 && \
     rm -r ~/.npm
-
-COPY requirements.txt /tmp/requirements.txt
-RUN /opt/conda/envs/fmriprep/bin/pip install --no-cache-dir -r /tmp/requirements.txt
 
 #
 # Main stage

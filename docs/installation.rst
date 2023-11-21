@@ -6,7 +6,7 @@ Installation
 There are two ways to install *fMRIPrep*:
 
 * using container technologies (RECOMMENDED); or
-* within a `Manually Prepared Environment (Python 3.8+)`_, also known as
+* within a `Manually Prepared Environment (Python 3.10+)`_, also known as
   *bare-metal installation*.
 
 The ``fmriprep`` command-line adheres to the `BIDS-Apps recommendations
@@ -42,8 +42,18 @@ or `Singularity <https://www.nipreps.org/apps/singularity/>`__ subsections.
 The *NiPreps* portal also contains
 `extended details of execution with the Docker wrapper <https://www.nipreps.org/apps/docker/#running-a-niprep-with-a-lightweight-wrapper>`__.
 
-Manually Prepared Environment (Python 3.8+)
-===========================================
+In short, install the ``fmriprep-docker`` wrapper with pip::
+
+  $ python -m pip install fmriprep-docker
+
+Then run the ``fmriprep-docker`` command-line as if you were running
+``fmriprep`` on a *bare-metal* installation::
+
+  $ fmriprep-docker <input_bids_path> <derivatives_path> <analysis_level> <named_options>
+
+
+Manually Prepared Environment (Python 3.10+)
+============================================
 
 .. warning::
 
@@ -56,7 +66,7 @@ A relatively interpretable description of how your environment can be set-up
 is found in the `Dockerfile <https://github.com/nipreps/fmriprep/blob/master/Dockerfile>`_.
 As an additional installation setting, FreeSurfer requires a license file (see :ref:`fs_license`).
 
-On a functional Python 3.8 (or above) environment with ``pip`` installed,
+On a functional Python 3.10 (or above) environment with ``pip`` installed,
 *fMRIPrep* can be installed using the habitual command ::
 
     $ python -m pip install fmriprep

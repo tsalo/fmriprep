@@ -62,6 +62,28 @@ This layout, now the default, may be explicitly specified with the
 For compatibility with versions of fMRIPrep prior to 21.0, the
 `legacy layout`_ is available via ``--output-layout legacy``.
 
+Processing level
+----------------
+As of version 23.2.0, fMRIPrep supports three levels of derivatives:
+
+* ``--level minimal``: This processing mode aims to produce the smallest
+  working directory and output dataset possible, while enabling all further
+  processing results to be deterministically generated. Most components of
+  the `visual reports`_ can be generated at this level, so the quality of
+  preprocessing can be assessed. Because no resampling is done, confounds
+  and carpetplots will be missing from the reports.
+* ``--level resampling``: This processing mode aims to produce additional
+  derivatives that enable third-party resampling, resampling BOLD series
+  in the working directory as needed, but these are not saved to the output
+  directory.
+  The ``--me-output-echos`` flag will be enabled at this level, in which
+  case the individual echos will be saved to the working directory after
+  slice-timing correction, head-motion correction, and susceptibility
+  distortion correction.
+* ``--level full``: This processing mode aims to produce all derivatives
+  that have previously been a part of the fMRIPrep output dataset.
+  This is the default processing level.
+
 Visual Reports
 --------------
 *fMRIPrep* outputs summary reports, written to ``<output dir>/fmriprep/sub-<subject_label>.html``.
@@ -109,10 +131,16 @@ If FreeSurfer reconstructions are used, the following surface files are generate
 
   sub-<subject_label>/
     anat/
-      sub-<subject_label>_hemi-[LR]_smoothwm.surf.gii
-      sub-<subject_label>_hemi-[LR]_pial.surf.gii
+      sub-<subject_label>_hemi-[LR]_white.surf.gii
       sub-<subject_label>_hemi-[LR]_midthickness.surf.gii
-      sub-<subject_label>_hemi-[LR]_inflated.surf.gii
+      sub-<subject_label>_hemi-[LR]_pial.surf.gii
+      sub-<subject_label>_hemi-[LR]_desc-reg_sphere.surf.gii
+      sub-<subject_label>_hemi-[LR]_space-fsLR_desc-reg_sphere.surf.gii
+      sub-<subject_label>_hemi-[LR]_space-fsLR_desc-msmsulc_sphere.surf.gii
+
+The registration spheres target ``fsaverage`` and ``fsLR`` spaces. If MSM
+is enabled (i.e., the ``--no-msm`` flag is not passed), then the ``msmsulc``
+spheres are generated and used for creating ``space-fsLR`` derivatives.
 
 And the affine translation (and inverse) between the original T1w sampling and FreeSurfer's
 conformed space for surface reconstruction (``fsnative``) is stored in::
@@ -121,6 +149,27 @@ conformed space for surface reconstruction (``fsnative``) is stored in::
     anat/
       sub-<subject_label>_from-fsnative_to-T1w_mode-image_xfm.txt
       sub-<subject_label>_from-T1w_to-fsnative_mode-image_xfm.txt
+
+Finally, cortical thickness, curvature, and sulcal depth maps are converted to GIFTI
+and CIFTI-2::
+
+  sub-<subject_label>/
+    anat/
+      sub-<subject_label>_hemi-[LR]_thickness.shape.gii
+      sub-<subject_label>_hemi-[LR]_curv.shape.gii
+      sub-<subject_label>_hemi-[LR]_sulc.shape.gii
+      sub-<subject_label>_space-fsLR_den-32k_thickness.dscalar.nii
+      sub-<subject_label>_space-fsLR_den-32k_curv.dscalar.nii
+      sub-<subject_label>_space-fsLR_den-32k_sulc.dscalar.nii
+
+.. warning::
+
+   GIFTI metric files follow the FreeSurfer conventions and are not modified
+   by *fMRIPrep* in any way.
+
+   The Human Connectome Project (HCP) inverts the sign of the curvature and
+   sulcal depth maps. For consistency with HCP, *fMRIPrep* follows these
+   conventions and masks the medial wall of CIFTI-2 dscalar files.
 
 .. _fsderivs:
 
@@ -165,16 +214,63 @@ these will be indicated with ``[specifiers]``::
 
   sub-<subject_label>/
     func/
-      sub-<subject_label>_[specifiers]_space-<space_label>_boldref.nii.gz
       sub-<subject_label>_[specifiers]_space-<space_label>_desc-brain_mask.nii.gz
       sub-<subject_label>_[specifiers]_space-<space_label>_desc-preproc_bold.nii.gz
 
-Additionally, the following transforms are saved::
+.. note::
+
+   The mask file is part of the *minimal* processing level. The BOLD series
+   is only generated at the *full* processing level.
+
+**Motion correction outputs**.
+
+Head-motion correction (HMC) produces a reference image to which all volumes
+are aligned, and a corresponding transform that maps the original BOLD series
+to the reference image::
 
   sub-<subject_label>/
     func/
-      sub-<subject_label>_[specifiers]_from-scanner_to-T1w_mode-image_xfm.txt
-      sub-<subject_label>_[specifiers]_from-T1w_to-scanner_mode-image_xfm.txt
+      sub-<subject_label>_[specifiers]_desc-hmc_boldref.nii.gz
+      sub-<subject_label>_[specifiers]_from-orig_to_boldref_mode-image_desc-hmc_xfm.nii.gz
+
+.. note::
+
+   Motion correction outputs are part of the *minimal* processing level.
+
+**Coregistration outputs**.
+
+Registration of the BOLD series to the T1w image generates a further reference
+image and affine transform::
+
+  sub-<subject_label>/
+    func/
+      sub-<subject_label>_[specifiers]_desc-coreg_boldref.nii.gz
+      sub-<subject_label>_[specifiers]_from-boldref_to-T1w_mode-image_desc-coreg_xfm.txt
+
+.. note::
+
+   Coregistration outputs are part of the *minimal* processing level.
+
+**Fieldmap registration**.
+
+If a fieldmap is used for the correction of a BOLD series, then a registration
+is calculated between the BOLD series and the fieldmap. If, for example, the fieldmap
+is identified with ``"B0Identifier": "TOPUP"``, the generated transform will be named::
+
+  sub-<subject_label>/
+    func/
+      sub-<subject_label>_[specifiers]_from-boldref_to-TOPUP_mode-image_xfm.nii.gz
+
+If the association is discovered through the ``IntendedFor`` field of the
+fieldmap metadata, then the transform will be given an auto-generated name::
+
+  sub-<subject_label>/
+    func/
+      sub-<subject_label>_[specifiers]_from-boldref_to-auto000XX_mode-image_xfm.txt
+
+.. note::
+
+   Fieldmap registration outputs are part of the *minimal* processing level.
 
 **Regularly gridded outputs (images)**.
 Volumetric output spaces labels (``<space_label>`` above, and in the following) include

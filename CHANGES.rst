@@ -1,3 +1,80 @@
+23.2.0 (To be determined)
+=========================
+New feature release in the 23.2.x series.
+
+This release wraps up a significant refactor of fMRIPrep. The main new features
+can be used with the ``--level`` and ``--derivatives`` flags.
+
+The ``--level`` flag can take the arguments ``minimal``, ``resampling`` or
+``full``. The default is ``full``, which should produce nearly the same results
+as previous versions. ``minimal`` will produce only the minimum necessary to
+deterministically generate the remaining derivatives. ``resampling`` will produce
+some additional derivatives, intended to simplify resampling with other tools.
+
+The ``--derivatives`` flag takes arguments of the form ``name=/path/to/dir``,
+for example ``--derivatives anat=$SMRIPREP_DIR``.  If provided, fMRIPrep will
+read the specified directories for pre-computed derivatives. If a derivative is
+found, it will be used instead of computing it from scratch. If a derivative is
+not found, fMRIPrep will compute it and proceed as usual.
+
+Taken together, these features can allow a dataset provider to run a minimal
+fMRIPrep run, targeting many output spaces, while a user can then run a
+``--derivatives`` run to generate additional derivatives in only the output
+spaces they need. Another use case is to provide an precomputed derivative
+to override the default fMRIPrep behavior, enabling easier workarounds for
+bugs or experimentation with alternatives.
+
+Additionally, this release includes a number of bug fixes and improvements.
+This release adds support for MSM-Sulc, improving the alignment of subject
+surfaces to the fsLR template. This process is enabled by default, but may
+be disabled with the ``--no-msm`` flag.
+
+This release resolves a number of issues with fieldmaps inducing distortions
+during correction. Phase difference and direct fieldmaps are now masked correctly,
+preventing the overestimation of distortions outside the brain. Additionally,
+we now implement Jacobian weighting during unwarping, which corrects for compression
+and expansion effects on signal intensity.
+
+Finally, a new resampling method has been added, to better account for
+susceptibility distortion and motion in a single shot resampling to a volumetric
+target space. We anticipate extending this to surface targets in the future.
+
+* FIX: Final revisions for next branch (#3134)
+* FIX: Minor fixes to work with MSMSulc-enabled smriprep-next (#3098)
+* FIX: Connect EPI-to-fieldmap transform (#3099)
+* FIX: Use Py2-compatible version file template for fmriprep-docker (#3101)
+* FIX: Update connections to unwarp_wf, convert ITK transforms to text (#3077)
+* ENH: Restore carpetplot and other final adjustments (#3131)
+* ENH: Restore CIFTI-2 generation (#3129)
+* ENH: Restore resampling to surface GIFTIs (#3126)
+* ENH: Restore confound generation (#3120)
+* ENH: Restore resampling BOLD to volumetric templates (#3121)
+* ENH: Restore resampling to T1w target (#3116)
+* ENH: Add MSMSulc (#3085)
+* ENH: Add reporting workflow for BOLD fit (#3082)
+* ENH: Generate anatomical derivatives useful for resampling (#3081)
+* RF: Write out anatomical template derivatives (#3136)
+* RF: Update primary bold workflow to incorporate single shot resampling (#3114)
+* RF: Update derivative cache spec, calculate per-BOLD, reuse boldref2fmap (#3078)
+* RF: Split fMRIPrep into fit and derivatives workflows (#2913)
+* DOC: Fix documentation and description for init_bold_grayords_wf (#3051)
+* STY: Fix flake8 warnings (#3044)
+* STY: Apply pyupgrade suggestions (#3043)
+* MNT: Bump environment (#3132)
+* MNT: Bump version requirements (#3107)
+* MNT: http:// → https:// (#3097)
+* MNT: Remove mritotal and dependencies from FreeSurfer ignore file (#3090)
+* MNT: Update environment (#3073)
+* MNT: Depend on newer sphinx (#3067)
+* MNT: Install ANTs from conda-forge (#3061)
+* MNT: Drop Python 3.8 and numpy 1.21 support (NEP29) (#3052)
+* MNT: update update_zenodo.py script (#3042)
+* MNT: Fix welcome message formatting and instructions (#3039)
+* MNT: Python 3.11 should be supported (#3038)
+* CI: Stop testing legacy layout (#3079)
+* CI: Improve tag detection for docker builds (#3066)
+* CI: Clean up pre-release builds (#3040)
+
 23.1.4 (August 1, 2023)
 =======================
 Patch release in the 23.1.x series.

@@ -70,10 +70,6 @@ FUNCTIONAL_TEMPLATE = """\
 \t\t\t<li>Non-steady-state volumes: {dummy_scan_desc}</li>
 \t\t</ul>
 \t\t</details>
-\t\t<details>
-\t\t\t<summary>Confounds collected</summary><br />
-\t\t\t<p>{confounds}.</p>
-\t\t</details>
 """
 
 ABOUT_TEMPLATE = """\t<ul>
@@ -193,10 +189,8 @@ class SubjectSummary(SummaryInterface):
         )
 
 
-class FunctionalSummaryInputSpec(BaseInterfaceInputSpec):
-    slice_timing = traits.Enum(
-        False, True, 'TooShort', usedefault=True, desc='Slice timing correction used'
-    )
+class FunctionalSummaryInputSpec(TraitedSpec):
+    slice_timing = traits.Enum(False, True, 'TooShort', desc='Slice timing correction used')
     distortion_correction = traits.Str(
         desc='Susceptibility distortion correction method', mandatory=True
     )
@@ -225,11 +219,10 @@ class FunctionalSummaryInputSpec(BaseInterfaceInputSpec):
         desc='Whether to initialize registration with the "header"'
         ' or by centering the volumes ("register")',
     )
-    confounds_file = File(exists=True, desc='Confounds file')
     tr = traits.Float(desc='Repetition time', mandatory=True)
     dummy_scans = traits.Either(traits.Int(), None, desc='number of dummy scans specified by user')
     algo_dummy_scans = traits.Int(desc='number of dummy scans determined by algorithm')
-    echo_idx = traits.List([], usedefault=True, desc="BIDS echo identifiers")
+    echo_idx = InputMultiObject(traits.Str, usedefault=True, desc="BIDS echo identifiers")
     orientation = traits.Str(mandatory=True, desc='Orientation of the voxel axes')
 
 
@@ -238,12 +231,15 @@ class FunctionalSummary(SummaryInterface):
 
     def _generate_segment(self):
         dof = self.inputs.registration_dof
-        stc = {
-            True: 'Applied',
-            False: 'Not applied',
-            'TooShort': 'Skipped (too few volumes)',
-        }[self.inputs.slice_timing]
-        # #TODO: Add a note about registration_init below?
+        if isdefined(self.inputs.slice_timing):
+            stc = {
+                True: 'Applied',
+                False: 'Not applied',
+                'TooShort': 'Skipped (too few volumes)',
+            }[self.inputs.slice_timing]
+        else:
+            stc = 'n/a'
+        # TODO: Add a note about registration_init below?
         reg = {
             'FSL': [
                 'FSL <code>flirt</code> with boundary-based registration'
@@ -258,10 +254,6 @@ class FunctionalSummary(SummaryInterface):
         }[self.inputs.registration][self.inputs.fallback]
 
         pedir = get_world_pedir(self.inputs.orientation, self.inputs.pe_direction)
-
-        if isdefined(self.inputs.confounds_file):
-            with open(self.inputs.confounds_file) as cfh:
-                conflist = cfh.readline().strip('\n').strip()
 
         dummy_scan_tmp = "{n_dum}"
         if self.inputs.dummy_scans == self.inputs.algo_dummy_scans:
@@ -293,7 +285,6 @@ class FunctionalSummary(SummaryInterface):
             stc=stc,
             sdc=self.inputs.distortion_correction,
             registration=reg,
-            confounds=re.sub(r'[\t ]+', ', ', conflist),
             tr=self.inputs.tr,
             dummy_scan_desc=dummy_scan_msg,
             multiecho=multiecho,

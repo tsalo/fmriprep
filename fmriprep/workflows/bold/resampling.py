@@ -25,8 +25,6 @@ Resampling workflows
 ++++++++++++++++++++
 
 .. autofunction:: init_bold_surf_wf
-.. autofunction:: init_bold_std_trans_wf
-.. autofunction:: init_bold_preproc_trans_wf
 .. autofunction:: init_bold_fsLR_resampling_wf
 .. autofunction:: init_bold_grayords_wf
 .. autofunction:: init_goodvoxels_bold_mask_wf
@@ -46,9 +44,7 @@ from niworkflows.interfaces.freesurfer import MedialNaNs
 
 from ...config import DEFAULT_MEMORY_MIN_GB
 from ...interfaces.workbench import MetricDilate, MetricMask, MetricResample
-
-if ty.TYPE_CHECKING:
-    from niworkflows.utils.spaces import SpatialReferences
+from .outputs import prepare_timing_parameters
 
 
 def init_bold_surf_wf(
@@ -56,6 +52,8 @@ def init_bold_surf_wf(
     mem_gb: float,
     surface_spaces: ty.List[str],
     medial_surface_nan: bool,
+    metadata: dict,
+    output_dir: str,
     name: str = "bold_surf_wf",
 ):
     """
@@ -75,6 +73,8 @@ def init_bold_surf_wf(
             wf = init_bold_surf_wf(mem_gb=0.1,
                                    surface_spaces=["fsnative", "fsaverage5"],
                                    medial_surface_nan=False,
+                                   metadata={},
+                                   output_dir='.',
                                    )
 
     Parameters
@@ -90,13 +90,15 @@ def init_bold_surf_wf(
     Inputs
     ------
     source_file
+        Original BOLD series
+    bold_t1w
         Motion-corrected BOLD series in T1 space
     subjects_dir
         FreeSurfer SUBJECTS_DIR
     subject_id
         FreeSurfer subject ID
-    t1w2fsnative_xfm
-        LTA-style affine matrix translating from T1w to FreeSurfer-conformed subject space
+    fsnative2t1w_xfm
+        ITK-style affine matrix translating from FreeSurfer-conformed subject space to T1w
 
     Outputs
     -------
@@ -106,7 +108,12 @@ def init_bold_surf_wf(
     """
     from nipype.interfaces.io import FreeSurferSource
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+    from niworkflows.interfaces.nitransforms import ConcatenateXFMs
     from niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
+
+    from fmriprep.interfaces import DerivativesDataSink
+
+    timing_parameters = prepare_timing_parameters(metadata)
 
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
@@ -121,9 +128,10 @@ The BOLD time-series were resampled onto the following surfaces
         niu.IdentityInterface(
             fields=[
                 "source_file",
+                "bold_t1w",
                 "subject_id",
                 "subjects_dir",
-                "t1w2fsnative_xfm",
+                "fsnative2t1w_xfm",
             ]
         ),
         name="inputnode",
@@ -144,14 +152,9 @@ The BOLD time-series were resampled onto the following surfaces
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
-    # Rename the source file to the output space to simplify naming later
-    rename_src = pe.Node(
-        niu.Rename(format_string="%(subject)s", keep_ext=True),
-        name="rename_src",
-        run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
+    itk2lta = pe.Node(
+        ConcatenateXFMs(out_fmt="fs", inverse=True), name="itk2lta", run_without_submitting=True
     )
-    itk2lta = pe.Node(niu.Function(function=_itk2lta), name="itk2lta", run_without_submitting=True)
     sampler = pe.MapNode(
         fs.SampleToSurface(
             interp_method="trilinear",
@@ -174,18 +177,20 @@ The BOLD time-series were resampled onto the following surfaces
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
-    joinnode = pe.JoinNode(
-        niu.IdentityInterface(fields=["surfaces", "target"]),
-        joinsource="itersource",
-        name="joinnode",
+    ds_bold_surfs = pe.MapNode(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            extension=".func.gii",
+            TaskName=metadata.get('TaskName'),
+            **timing_parameters,
+        ),
+        iterfield=['in_file', 'hemi'],
+        name='ds_bold_surfs',
+        run_without_submitting=True,
+        mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
+    ds_bold_surfs.inputs.hemi = ["L", "R"]
 
-    outputnode = pe.Node(
-        niu.IdentityInterface(fields=["surfaces", "target"]),
-        name="outputnode",
-    )
-
-    # fmt: off
     workflow.connect([
         (inputnode, get_fsnative, [
             ("subject_id", "subject_id"),
@@ -193,28 +198,22 @@ The BOLD time-series were resampled onto the following surfaces
         ]),
         (inputnode, targets, [("subject_id", "subject_id")]),
         (inputnode, itk2lta, [
-            ("source_file", "src_file"),
-            ("t1w2fsnative_xfm", "in_file"),
+            ("bold_t1w", "moving"),
+            ("fsnative2t1w_xfm", "in_xfms"),
         ]),
-        (get_fsnative, itk2lta, [("T1", "dst_file")]),
+        (get_fsnative, itk2lta, [("T1", "reference")]),
         (inputnode, sampler, [
             ("subjects_dir", "subjects_dir"),
             ("subject_id", "subject_id"),
+            ("bold_t1w", "source_file"),
         ]),
         (itersource, targets, [("target", "space")]),
-        (inputnode, rename_src, [("source_file", "in_file")]),
-        (itersource, rename_src, [("target", "subject")]),
-        (rename_src, sampler, [("out_file", "source_file")]),
-        (itk2lta, sampler, [("out", "reg_file")]),
+        (itk2lta, sampler, [("out_inv", "reg_file")]),
         (targets, sampler, [("out", "target_subject")]),
-        (update_metadata, joinnode, [("out_file", "surfaces")]),
-        (itersource, joinnode, [("target", "target")]),
-        (joinnode, outputnode, [
-            ("surfaces", "surfaces"),
-            ("target", "target"),
-        ]),
-    ])
-    # fmt: on
+        (inputnode, ds_bold_surfs, [("source_file", "source_file")]),
+        (itersource, ds_bold_surfs, [("target", "space")]),
+        (update_metadata, ds_bold_surfs, [("out_file", "in_file")]),
+    ])  # fmt:skip
 
     # Refine if medial vertices should be NaNs
     medial_nans = pe.MapNode(
@@ -564,6 +563,7 @@ def init_bold_fsLR_resampling_wf(
     """
     import templateflow.api as tf
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+    from niworkflows.interfaces.utility import KeySelect
     from smriprep import data as smriprep_data
     from smriprep.interfaces.workbench import SurfaceResample
 
@@ -580,32 +580,35 @@ def init_bold_fsLR_resampling_wf(
 
     workflow.__desc__ = """\
 The BOLD time-series were resampled onto the left/right-symmetric template
-"fsLR" [@hcppipelines].
+"fsLR" using the Connectome Workbench [@hcppipelines].
 """
 
     inputnode = pe.Node(
         niu.IdentityInterface(
             fields=[
                 'bold_file',
-                'surfaces',
-                'morphometrics',
-                'sphere_reg_fsLR',
                 'anat_ribbon',
+                'white',
+                'pial',
+                'midthickness',
+                'midthickness_fsLR',
+                'sphere_reg_fsLR',
+                'cortex_mask',
             ]
         ),
         name='inputnode',
     )
 
-    itersource = pe.Node(
+    hemisource = pe.Node(
         niu.IdentityInterface(fields=['hemi']),
-        name='itersource',
+        name='hemisource',
         iterables=[('hemi', ['L', 'R'])],
     )
 
     joinnode = pe.JoinNode(
         niu.IdentityInterface(fields=['bold_fsLR']),
         name='joinnode',
-        joinsource='itersource',
+        joinsource='hemisource',
     )
 
     outputnode = pe.Node(
@@ -615,21 +618,23 @@ The BOLD time-series were resampled onto the left/right-symmetric template
 
     # select white, midthickness and pial surfaces based on hemi
     select_surfaces = pe.Node(
-        niu.Function(
-            function=_select_surfaces,
-            output_names=[
-                'white',
-                'pial',
-                'midthickness',
-                'thickness',
-                'sphere_reg',
-                'template_sphere',
-                'template_roi',
+        KeySelect(
+            fields=[
+                "white",
+                "pial",
+                "midthickness",
+                'midthickness_fsLR',
+                "sphere_reg_fsLR",
+                "template_sphere",
+                'cortex_mask',
+                "template_roi",
             ],
+            keys=["L", "R"],
         ),
-        name='select_surfaces',
+        name="select_surfaces",
+        run_without_submitting=True,
     )
-    select_surfaces.inputs.template_spheres = [
+    select_surfaces.inputs.template_sphere = [
         str(sphere)
         for sphere in tf.get(
             template='fsLR',
@@ -640,24 +645,10 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         )
     ]
     atlases = smriprep_data.load_resource('atlases')
-    select_surfaces.inputs.template_rois = [
+    select_surfaces.inputs.template_roi = [
         str(atlases / 'L.atlasroi.32k_fs_LR.shape.gii'),
         str(atlases / 'R.atlasroi.32k_fs_LR.shape.gii'),
     ]
-
-    # Reimplements lines 282-290 of FreeSurfer2CaretConvertAndRegisterNonlinear.sh
-    initial_roi = pe.Node(CreateROI(), name="initial_roi", mem_gb=DEFAULT_MEMORY_MIN_GB)
-
-    # Lines 291-292
-    fill_holes = pe.Node(MetricFillHoles(), name="fill_holes", mem_gb=DEFAULT_MEMORY_MIN_GB)
-    native_roi = pe.Node(MetricRemoveIslands(), name="native_roi", mem_gb=DEFAULT_MEMORY_MIN_GB)
-
-    # Line 393 of FreeSurfer2CaretConvertAndRegisterNonlinear.sh
-    downsampled_midthickness = pe.Node(
-        SurfaceResample(method='BARYCENTRIC'),
-        name="downsampled_midthickness",
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
 
     # RibbonVolumeToSurfaceMapping.sh
     # Line 85 thru ...
@@ -681,27 +672,16 @@ The BOLD time-series were resampled onto the left/right-symmetric template
     # ... line 89
     mask_fsLR = pe.Node(MetricMask(), name="mask_fsLR")
 
-    # fmt: off
     workflow.connect([
         (inputnode, select_surfaces, [
-            ('surfaces', 'surfaces'),
-            ('morphometrics', 'morphometrics'),
-            ('sphere_reg_fsLR', 'spherical_registrations'),
+            ('white', 'white'),
+            ('pial', 'pial'),
+            ('midthickness', 'midthickness'),
+            ('midthickness_fsLR', 'midthickness_fsLR'),
+            ('sphere_reg_fsLR', 'sphere_reg_fsLR'),
+            ('cortex_mask', 'cortex_mask'),
         ]),
-        (itersource, select_surfaces, [('hemi', 'hemi')]),
-        # Native ROI file from thickness
-        (itersource, initial_roi, [('hemi', 'hemisphere')]),
-        (select_surfaces, initial_roi, [('thickness', 'thickness_file')]),
-        (select_surfaces, fill_holes, [('midthickness', 'surface_file')]),
-        (select_surfaces, native_roi, [('midthickness', 'surface_file')]),
-        (initial_roi, fill_holes, [('roi_file', 'metric_file')]),
-        (fill_holes, native_roi, [('out_file', 'metric_file')]),
-        # Downsample midthickness to fsLR density
-        (select_surfaces, downsampled_midthickness, [
-            ('midthickness', 'surface_in'),
-            ('sphere_reg', 'current_sphere'),
-            ('template_sphere', 'new_sphere'),
-        ]),
+        (hemisource, select_surfaces, [('hemi', 'key')]),
         # Resample BOLD to native surface, dilate and mask
         (inputnode, volume_to_surface, [
             ('bold_file', 'volume_file'),
@@ -712,25 +692,24 @@ The BOLD time-series were resampled onto the left/right-symmetric template
             ('pial', 'outer_surface'),
         ]),
         (select_surfaces, metric_dilate, [('midthickness', 'surf_file')]),
+        (select_surfaces, mask_native, [('cortex_mask', 'mask')]),
         (volume_to_surface, metric_dilate, [('out_file', 'in_file')]),
-        (native_roi, mask_native, [('out_file', 'mask')]),
         (metric_dilate, mask_native, [('out_file', 'in_file')]),
         # Resample BOLD to fsLR and mask
         (select_surfaces, resample_to_fsLR, [
-            ('sphere_reg', 'current_sphere'),
+            ('sphere_reg_fsLR', 'current_sphere'),
             ('template_sphere', 'new_sphere'),
             ('midthickness', 'current_area'),
+            ('midthickness_fsLR', 'new_area'),
+            ('cortex_mask', 'roi_metric'),
         ]),
-        (downsampled_midthickness, resample_to_fsLR, [('surface_out', 'new_area')]),
-        (native_roi, resample_to_fsLR, [('out_file', 'roi_metric')]),
         (mask_native, resample_to_fsLR, [('out_file', 'in_file')]),
         (select_surfaces, mask_fsLR, [('template_roi', 'mask')]),
         (resample_to_fsLR, mask_fsLR, [('out_file', 'in_file')]),
         # Output
         (mask_fsLR, joinnode, [('out_file', 'bold_fsLR')]),
         (joinnode, outputnode, [('bold_fsLR', 'bold_fsLR')]),
-    ])
-    # fmt: on
+    ])  # fmt:skip
 
     if estimate_goodvoxels:
         workflow.__desc__ += """\
@@ -740,7 +719,6 @@ excluding voxels whose time-series have a locally high coefficient of variation.
 
         goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb)
 
-        # fmt: off
         workflow.connect([
             (inputnode, goodvoxels_bold_mask_wf, [
                 ("bold_file", "inputnode.bold_file"),
@@ -752,467 +730,8 @@ excluding voxels whose time-series have a locally high coefficient of variation.
             (goodvoxels_bold_mask_wf, outputnode, [
                 ("outputnode.goodvoxels_mask", "goodvoxels_mask"),
             ]),
-        ])
-        # fmt: on
+        ])  # fmt:skip
 
-    return workflow
-
-
-def init_bold_std_trans_wf(
-    freesurfer: bool,
-    mem_gb: float,
-    omp_nthreads: int,
-    spaces: SpatialReferences,
-    multiecho: bool,
-    name: str = "bold_std_trans_wf",
-    use_compression: bool = True,
-):
-    """
-    Sample fMRI into standard space with a single-step resampling of the original BOLD series.
-
-    .. important::
-        This workflow provides two outputnodes.
-        One output node (with name ``poutputnode``) will be parameterized in a Nipype sense
-        (see `Nipype iterables
-        <https://miykael.github.io/nipype_tutorial/notebooks/basic_iteration.html>`__), and a
-        second node (``outputnode``) will collapse the parameterized outputs into synchronous
-        lists of the output fields listed below.
-
-    Workflow Graph
-        .. workflow::
-            :graph2use: colored
-            :simple_form: yes
-
-            from niworkflows.utils.spaces import SpatialReferences
-            from fmriprep.workflows.bold import init_bold_std_trans_wf
-            wf = init_bold_std_trans_wf(
-                freesurfer=True,
-                mem_gb=3,
-                omp_nthreads=1,
-                spaces=SpatialReferences(
-                    spaces=["MNI152Lin",
-                            ("MNIPediatricAsym", {"cohort": "6"})],
-                    checkpoint=True),
-                multiecho=False,
-            )
-
-    Parameters
-    ----------
-    freesurfer : :obj:`bool`
-        Whether to generate FreeSurfer's aseg/aparc segmentations on BOLD space.
-    mem_gb : :obj:`float`
-        Size of BOLD file in GB
-    omp_nthreads : :obj:`int`
-        Maximum number of threads an individual process may use
-    spaces : :py:class:`~niworkflows.utils.spaces.SpatialReferences`
-        A container for storing, organizing, and parsing spatial normalizations. Composed of
-        :py:class:`~niworkflows.utils.spaces.Reference` objects representing spatial references.
-        Each ``Reference`` contains a space, which is a string of either TemplateFlow template IDs
-        (e.g., ``MNI152Lin``, ``MNI152NLin6Asym``, ``MNIPediatricAsym``), nonstandard references
-        (e.g., ``T1w`` or ``anat``, ``sbref``, ``run``, etc.), or a custom template located in
-        the TemplateFlow root directory. Each ``Reference`` may also contain a spec, which is a
-        dictionary with template specifications (e.g., a specification of ``{"resolution": 2}``
-        would lead to resampling on a 2mm resolution of the space).
-    name : :obj:`str`
-        Name of workflow (default: ``bold_std_trans_wf``)
-    use_compression : :obj:`bool`
-        Save registered BOLD series as ``.nii.gz``
-
-    Inputs
-    ------
-    anat2std_xfm
-        List of anatomical-to-standard space transforms generated during
-        spatial normalization.
-    bold_aparc
-        FreeSurfer's ``aparc+aseg.mgz`` atlas projected into the T1w reference
-        (only if ``recon-all`` was run).
-    bold_aseg
-        FreeSurfer's ``aseg.mgz`` atlas projected into the T1w reference
-        (only if ``recon-all`` was run).
-    bold_mask
-        Skull-stripping mask of reference image
-    bold_split
-        Individual 3D volumes, not motion corrected
-    t2star
-        Estimated T2\\* map in BOLD native space
-    fieldwarp
-        a :abbr:`DFM (displacements field map)` in ITK format
-    hmc_xforms
-        List of affine transforms aligning each volume to ``ref_image`` in ITK format
-    itk_bold_to_t1
-        Affine transform from ``ref_bold_brain`` to T1 space (ITK format)
-    name_source
-        BOLD series NIfTI file
-        Used to recover original information lost during processing
-    templates
-        List of templates that were applied as targets during
-        spatial normalization.
-
-    Outputs
-    -------
-    bold_std
-        BOLD series, resampled to template space
-    bold_std_ref
-        Reference, contrast-enhanced summary of the BOLD series, resampled to template space
-    bold_mask_std
-        BOLD series mask in template space
-    bold_aseg_std
-        FreeSurfer's ``aseg.mgz`` atlas, in template space at the BOLD resolution
-        (only if ``recon-all`` was run)
-    bold_aparc_std
-        FreeSurfer's ``aparc+aseg.mgz`` atlas, in template space at the BOLD resolution
-        (only if ``recon-all`` was run)
-    t2star_std
-        Estimated T2\\* map in template space
-    template
-        Template identifiers synchronized correspondingly to previously
-        described outputs.
-
-    """
-    from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-    from niworkflows.func.util import init_bold_reference_wf
-    from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
-    from niworkflows.interfaces.itk import MultiApplyTransforms
-    from niworkflows.interfaces.nibabel import GenerateSamplingReference
-    from niworkflows.interfaces.nilearn import Merge
-    from niworkflows.interfaces.utility import KeySelect
-    from niworkflows.utils.spaces import format_reference
-
-    from fmriprep.interfaces.maths import Clip
-
-    workflow = Workflow(name=name)
-    output_references = spaces.cached.get_spaces(nonstandard=False, dim=(3,))
-    std_vol_references = [
-        (s.fullname, s.spec) for s in spaces.references if s.standard and s.dim == 3
-    ]
-
-    if len(output_references) == 1:
-        workflow.__desc__ = """\
-The BOLD time-series were resampled into standard space,
-generating a *preprocessed BOLD run in {tpl} space*.
-""".format(
-            tpl=output_references[0]
-        )
-    elif len(output_references) > 1:
-        workflow.__desc__ = """\
-The BOLD time-series were resampled into several standard spaces,
-correspondingly generating the following *spatially-normalized,
-preprocessed BOLD runs*: {tpl}.
-""".format(
-            tpl=", ".join(output_references)
-        )
-
-    inputnode = pe.Node(
-        niu.IdentityInterface(
-            fields=[
-                "anat2std_xfm",
-                "bold_aparc",
-                "bold_aseg",
-                "bold_mask",
-                "bold_split",
-                "t2star",
-                "fieldwarp",
-                "hmc_xforms",
-                "itk_bold_to_t1",
-                "name_source",
-                "templates",
-            ]
-        ),
-        name="inputnode",
-    )
-
-    iterablesource = pe.Node(niu.IdentityInterface(fields=["std_target"]), name="iterablesource")
-    # Generate conversions for every template+spec at the input
-    iterablesource.iterables = [("std_target", std_vol_references)]
-
-    split_target = pe.Node(
-        niu.Function(
-            function=_split_spec,
-            input_names=["in_target"],
-            output_names=["space", "template", "spec"],
-        ),
-        run_without_submitting=True,
-        name="split_target",
-    )
-
-    select_std = pe.Node(
-        KeySelect(fields=["anat2std_xfm"]),
-        name="select_std",
-        run_without_submitting=True,
-    )
-
-    select_tpl = pe.Node(
-        niu.Function(function=_select_template),
-        name="select_tpl",
-        run_without_submitting=True,
-    )
-
-    gen_ref = pe.Node(
-        GenerateSamplingReference(), name="gen_ref", mem_gb=0.3
-    )  # 256x256x256 * 64 / 8 ~ 150MB)
-
-    mask_std_tfm = pe.Node(
-        ApplyTransforms(interpolation="MultiLabel"), name="mask_std_tfm", mem_gb=1
-    )
-
-    # Write corrected file in the designated output dir
-    mask_merge_tfms = pe.Node(
-        niu.Merge(2),
-        name="mask_merge_tfms",
-        run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
-
-    merge_xforms = pe.Node(
-        niu.Merge(4),
-        name="merge_xforms",
-        run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
-
-    bold_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
-        name="bold_to_std_transform",
-        mem_gb=mem_gb * 3 * omp_nthreads,
-        n_procs=omp_nthreads,
-    )
-
-    # Interpolation can occasionally produce below-zero values as an artifact
-    threshold = pe.MapNode(
-        Clip(minimum=0), name="threshold", iterfield=['in_file'], mem_gb=DEFAULT_MEMORY_MIN_GB
-    )
-
-    merge = pe.Node(Merge(compress=use_compression), name="merge", mem_gb=mem_gb * 3)
-
-    # Generate a reference on the target standard space
-    gen_final_ref = init_bold_reference_wf(omp_nthreads=omp_nthreads, pre_mask=True)
-    # fmt:off
-    workflow.connect([
-        (iterablesource, split_target, [("std_target", "in_target")]),
-        (iterablesource, select_tpl, [("std_target", "template")]),
-        (inputnode, select_std, [("anat2std_xfm", "anat2std_xfm"),
-                                 ("templates", "keys")]),
-        (inputnode, mask_std_tfm, [("bold_mask", "input_image")]),
-        (inputnode, gen_ref, [(("bold_split", _first), "moving_image")]),
-        (inputnode, merge_xforms, [("hmc_xforms", "in4"),
-                                   ("fieldwarp", "in3"),
-                                   (("itk_bold_to_t1", _aslist), "in2")]),
-        (inputnode, merge, [("name_source", "header_source")]),
-        (inputnode, mask_merge_tfms, [(("itk_bold_to_t1", _aslist), "in2")]),
-        (inputnode, bold_to_std_transform, [("bold_split", "input_image")]),
-        (split_target, select_std, [("space", "key")]),
-        (select_std, merge_xforms, [("anat2std_xfm", "in1")]),
-        (select_std, mask_merge_tfms, [("anat2std_xfm", "in1")]),
-        (split_target, gen_ref, [(("spec", _is_native), "keep_native")]),
-        (select_tpl, gen_ref, [("out", "fixed_image")]),
-        (merge_xforms, bold_to_std_transform, [("out", "transforms")]),
-        (gen_ref, bold_to_std_transform, [("out_file", "reference_image")]),
-        (gen_ref, mask_std_tfm, [("out_file", "reference_image")]),
-        (mask_merge_tfms, mask_std_tfm, [("out", "transforms")]),
-        (mask_std_tfm, gen_final_ref, [("output_image", "inputnode.bold_mask")]),
-        (bold_to_std_transform, threshold, [("out_files", "in_file")]),
-        (threshold, merge, [("out_file", "in_files")]),
-        (merge, gen_final_ref, [("out_file", "inputnode.bold_file")]),
-    ])
-    # fmt:on
-
-    output_names = [
-        "bold_mask_std",
-        "bold_std",
-        "bold_std_ref",
-        "spatial_reference",
-        "template",
-    ]
-    if freesurfer:
-        output_names.extend(["bold_aseg_std", "bold_aparc_std"])
-    if multiecho:
-        output_names.append("t2star_std")
-
-    poutputnode = pe.Node(niu.IdentityInterface(fields=output_names), name="poutputnode")
-    # fmt:off
-    workflow.connect([
-        # Connecting outputnode
-        (iterablesource, poutputnode, [
-            (("std_target", format_reference), "spatial_reference")]),
-        (merge, poutputnode, [("out_file", "bold_std")]),
-        (gen_final_ref, poutputnode, [("outputnode.ref_image", "bold_std_ref")]),
-        (mask_std_tfm, poutputnode, [("output_image", "bold_mask_std")]),
-        (select_std, poutputnode, [("key", "template")]),
-    ])
-    # fmt:on
-
-    if freesurfer:
-        # Sample the parcellation files to functional space
-        aseg_std_tfm = pe.Node(
-            ApplyTransforms(interpolation="MultiLabel"), name="aseg_std_tfm", mem_gb=1
-        )
-        aparc_std_tfm = pe.Node(
-            ApplyTransforms(interpolation="MultiLabel"), name="aparc_std_tfm", mem_gb=1
-        )
-        # fmt:off
-        workflow.connect([
-            (inputnode, aseg_std_tfm, [("bold_aseg", "input_image")]),
-            (inputnode, aparc_std_tfm, [("bold_aparc", "input_image")]),
-            (select_std, aseg_std_tfm, [("anat2std_xfm", "transforms")]),
-            (select_std, aparc_std_tfm, [("anat2std_xfm", "transforms")]),
-            (gen_ref, aseg_std_tfm, [("out_file", "reference_image")]),
-            (gen_ref, aparc_std_tfm, [("out_file", "reference_image")]),
-            (aseg_std_tfm, poutputnode, [("output_image", "bold_aseg_std")]),
-            (aparc_std_tfm, poutputnode, [("output_image", "bold_aparc_std")]),
-        ])
-        # fmt:on
-
-    if multiecho:
-        t2star_std_tfm = pe.Node(
-            ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
-            name="t2star_std_tfm",
-            mem_gb=1,
-        )
-        # fmt:off
-        workflow.connect([
-            (inputnode, t2star_std_tfm, [("t2star", "input_image")]),
-            (select_std, t2star_std_tfm, [("anat2std_xfm", "transforms")]),
-            (gen_ref, t2star_std_tfm, [("out_file", "reference_image")]),
-            (t2star_std_tfm, poutputnode, [("output_image", "t2star_std")]),
-        ])
-        # fmt:on
-
-    # Connect parametric outputs to a Join outputnode
-    outputnode = pe.JoinNode(
-        niu.IdentityInterface(fields=output_names),
-        name="outputnode",
-        joinsource="iterablesource",
-    )
-    # fmt:off
-    workflow.connect([
-        (poutputnode, outputnode, [(f, f) for f in output_names]),
-    ])
-    # fmt:on
-    return workflow
-
-
-def init_bold_preproc_trans_wf(
-    mem_gb: float,
-    omp_nthreads: int,
-    name: str = "bold_preproc_trans_wf",
-    use_compression: bool = True,
-    use_fieldwarp: bool = False,
-    interpolation: str = "LanczosWindowedSinc",
-):
-    """
-    Resample in native (original) space.
-
-    This workflow resamples the input fMRI in its native (original)
-    space in a "single shot" from the original BOLD series.
-
-    Workflow Graph
-        .. workflow::
-            :graph2use: colored
-            :simple_form: yes
-
-            from fmriprep.workflows.bold import init_bold_preproc_trans_wf
-            wf = init_bold_preproc_trans_wf(mem_gb=3, omp_nthreads=1)
-
-    Parameters
-    ----------
-    mem_gb : :obj:`float`
-        Size of BOLD file in GB
-    omp_nthreads : :obj:`int`
-        Maximum number of threads an individual process may use
-    name : :obj:`str`
-        Name of workflow (default: ``bold_std_trans_wf``)
-    use_compression : :obj:`bool`
-        Save registered BOLD series as ``.nii.gz``
-    use_fieldwarp : :obj:`bool`
-        Include SDC warp in single-shot transform from BOLD to MNI
-    interpolation : :obj:`str`
-        Interpolation type to be used by ANTs' ``applyTransforms``
-        (default ``"LanczosWindowedSinc"``)
-
-    Inputs
-    ------
-    bold_file
-        Individual 3D volumes, not motion corrected
-    name_source
-        BOLD series NIfTI file
-        Used to recover original information lost during processing
-    hmc_xforms
-        List of affine transforms aligning each volume to ``ref_image`` in ITK format
-    fieldwarp
-        a :abbr:`DFM (displacements field map)` in ITK format
-
-    Outputs
-    -------
-    bold
-        BOLD series, resampled in native space, including all preprocessing
-
-    """
-    from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-    from niworkflows.interfaces.itk import MultiApplyTransforms
-    from niworkflows.interfaces.nilearn import Merge
-
-    from fmriprep.interfaces.maths import Clip
-
-    workflow = Workflow(name=name)
-    workflow.__desc__ = """\
-The BOLD time-series (including slice-timing correction when applied)
-were resampled onto their original, native space by applying
-{transforms}.
-These resampled BOLD time-series will be referred to as *preprocessed
-BOLD in original space*, or just *preprocessed BOLD*.
-""".format(
-        transforms="""\
-a single, composite transform to correct for head-motion and
-susceptibility distortions"""
-        if use_fieldwarp
-        else """\
-the transforms to correct for head-motion"""
-    )
-
-    inputnode = pe.Node(
-        niu.IdentityInterface(fields=["name_source", "bold_file", "hmc_xforms", "fieldwarp"]),
-        name="inputnode",
-    )
-
-    outputnode = pe.Node(
-        niu.IdentityInterface(fields=["bold", "bold_ref", "bold_ref_brain"]),
-        name="outputnode",
-    )
-
-    merge_xforms = pe.Node(
-        niu.Merge(2),
-        name="merge_xforms",
-        run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
-
-    bold_transform = pe.Node(
-        MultiApplyTransforms(interpolation=interpolation, copy_dtype=True),
-        name="bold_transform",
-        mem_gb=mem_gb * 3 * omp_nthreads,
-        n_procs=omp_nthreads,
-    )
-
-    # Interpolation can occasionally produce below-zero values as an artifact
-    threshold = pe.MapNode(
-        Clip(minimum=0), name="threshold", iterfield=['in_file'], mem_gb=DEFAULT_MEMORY_MIN_GB
-    )
-
-    merge = pe.Node(Merge(compress=use_compression), name="merge", mem_gb=mem_gb * 3)
-
-    # fmt:off
-    workflow.connect([
-        (inputnode, merge_xforms, [("fieldwarp", "in1"),
-                                   ("hmc_xforms", "in2")]),
-        (inputnode, bold_transform, [("bold_file", "input_image"),
-                                     (("bold_file", _first), "reference_image")]),
-        (inputnode, merge, [("name_source", "header_source")]),
-        (merge_xforms, bold_transform, [("out", "transforms")]),
-        (bold_transform, threshold, [("out_files", "in_file")]),
-        (threshold, merge, [("out_file", "in_files")]),
-        (merge, outputnode, [("out_file", "bold")]),
-    ])
-    # fmt:on
     return workflow
 
 
@@ -1266,28 +785,19 @@ def init_bold_grayords_wf(
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.cifti import GenerateCifti
-    from niworkflows.interfaces.utility import KeySelect
 
     workflow = Workflow(name=name)
 
     mni_density = "2" if grayord_density == "91k" else "1"
 
-    workflow.__desc__ = """\
-*Grayordinates* files [@hcppipelines] containing {density} samples were also
+    workflow.__desc__ = f"""\
+*Grayordinates* files [@hcppipelines] containing {grayord_density} samples were also
 generated with surface data transformed directly to fsLR space and subcortical
 data transformed to {mni_density} mm resolution MNI152NLin6Asym space.
-""".format(
-        density=grayord_density, mni_density=mni_density
-    )
+"""
 
     inputnode = pe.Node(
-        niu.IdentityInterface(
-            fields=[
-                "bold_std",
-                "bold_fsLR",
-                "spatial_reference",
-            ]
-        ),
+        niu.IdentityInterface(fields=["bold_std", "bold_fsLR"]),
         name="inputnode",
     )
 
@@ -1295,15 +805,6 @@ data transformed to {mni_density} mm resolution MNI152NLin6Asym space.
         niu.IdentityInterface(fields=["cifti_bold", "cifti_metadata"]),
         name="outputnode",
     )
-
-    # extract out to BOLD base
-    select_std = pe.Node(
-        KeySelect(fields=["bold_std"]),
-        name="select_std",
-        run_without_submitting=True,
-        nohash=True,
-    )
-    select_std.inputs.key = "MNI152NLin6Asym_res-%s" % mni_density
 
     gen_cifti = pe.Node(
         GenerateCifti(
@@ -1313,102 +814,14 @@ data transformed to {mni_density} mm resolution MNI152NLin6Asym space.
         name="gen_cifti",
     )
 
-    # fmt:off
     workflow.connect([
-        (inputnode, select_std, [("bold_std", "bold_std"),
-                                 ("spatial_reference", "keys")]),
-        (inputnode, gen_cifti, [("bold_fsLR", "surface_bolds")]),
-        (select_std, gen_cifti, [("bold_std", "bold_file")]),
-        (gen_cifti, outputnode, [("out_file", "cifti_bold"),
-                                 ("out_metadata", "cifti_metadata")]),
-    ])
-    # fmt:on
+        (inputnode, gen_cifti, [
+            ("bold_fsLR", "surface_bolds"),
+            ("bold_std", "bold_file"),
+        ]),
+        (gen_cifti, outputnode, [
+            ("out_file", "cifti_bold"),
+            ("out_metadata", "cifti_metadata"),
+        ]),
+    ])  # fmt:skip
     return workflow
-
-
-def _split_spec(in_target):
-    space, spec = in_target
-    template = space.split(":")[0]
-    return space, template, spec
-
-
-def _select_template(template):
-    from niworkflows.utils.misc import get_template_specs
-
-    template, specs = template
-    template = template.split(":")[0]  # Drop any cohort modifier if present
-    specs = specs.copy()
-    specs["suffix"] = specs.get("suffix", "T1w")
-
-    # Sanitize resolution
-    res = specs.pop("res", None) or specs.pop("resolution", None) or "native"
-    if res != "native":
-        specs["resolution"] = res
-        return get_template_specs(template, template_spec=specs)[0]
-
-    # Map nonstandard resolutions to existing resolutions
-    specs["resolution"] = 2
-    try:
-        out = get_template_specs(template, template_spec=specs)
-    except RuntimeError:
-        specs["resolution"] = 1
-        out = get_template_specs(template, template_spec=specs)
-
-    return out[0]
-
-
-def _first(inlist):
-    return inlist[0]
-
-
-def _aslist(in_value):
-    if isinstance(in_value, list):
-        return in_value
-    return [in_value]
-
-
-def _is_native(in_value):
-    return in_value.get("resolution") == "native" or in_value.get("res") == "native"
-
-
-def _itk2lta(in_file, src_file, dst_file):
-    from pathlib import Path
-
-    import nitransforms as nt
-
-    out_file = Path("out.lta").absolute()
-    nt.linear.load(
-        in_file, fmt="fs" if in_file.endswith(".lta") else "itk", reference=src_file
-    ).to_filename(out_file, moving=dst_file, fmt="fs")
-    return str(out_file)
-
-
-def _select_surfaces(
-    hemi,
-    surfaces,
-    morphometrics,
-    spherical_registrations,
-    template_spheres,
-    template_rois,
-):
-    # This function relies on the basenames of the files to differ by L/R or l/r
-    # so that the sorting correctly identifies left or right.
-    import os
-    import re
-
-    idx = 0 if hemi == "L" else 1
-    container = {
-        'white': [],
-        'pial': [],
-        'midthickness': [],
-        'thickness': [],
-        'sphere': sorted(spherical_registrations),
-        'template_sphere': sorted(template_spheres),
-        'template_roi': sorted(template_rois),
-    }
-    find_name = re.compile(r'(?:^|[^d])(?P<name>white|pial|midthickness|thickness)')
-    for surface in surfaces + morphometrics:
-        match = find_name.search(os.path.basename(surface))
-        if match:
-            container[match.group('name')].append(surface)
-    return tuple(sorted(surflist, key=os.path.basename)[idx] for surflist in container.values())

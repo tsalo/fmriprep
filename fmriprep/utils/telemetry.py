@@ -110,7 +110,7 @@ def process_crashfile(crashfile):
 
         # Extract any other possible metadata in the crash file
         for k, v in crash_info.items():
-            strv = list(_chunks(str(v)))
+            strv = _chunks(str(v))
             if len(strv) == 1:
                 scope.set_extra(k, strv[0])
             else:
@@ -129,7 +129,7 @@ def process_crashfile(crashfile):
                 break
 
         message = issue_title + '\n\n'
-        message += exception_text[-(8192 - len(message)) :]
+        message += exception_text[-8192:]
         if fingerprint:
             sentry_sdk.add_breadcrumb(message=fingerprint, level='fatal')
         else:
@@ -182,10 +182,10 @@ def _chunks(string, length=CHUNK_SIZE):
     ['som', 'e l', 'ong', 'er ', 'str', 'ing', '.']
 
     """
-    return (string[i : i + length] for i in range(0, len(string), length))
+    return [string[i : i + length] for i in range(0, len(string), length)]
 
 
-def setup_migas(init_ping: bool = True) -> None:
+def setup_migas(init_ping: bool = True, exit_ping: bool = True) -> None:
     """
     Prepare the migas python client to communicate with a migas server.
     If ``init_ping`` is ``True``, send an initial breadcrumb.
@@ -197,12 +197,19 @@ def setup_migas(init_ping: bool = True) -> None:
 
     migas.setup(session_id=session_id)
     if init_ping:
-        send_breadcrumb(status='R', status_desc='workflow start')
+        send_crumb(status='R', status_desc='workflow start')
+    if exit_ping:
+        from migas.error.nipype import node_execution_error
+
+        migas.track_exit(
+            'nipreps/fmriprep',
+            __version__,
+            {'NodeExecutionError': node_execution_error},
+        )
 
 
-def send_breadcrumb(**kwargs) -> dict:
+def send_crumb(**kwargs) -> dict:
     """
     Communicate with the migas telemetry server. This requires `migas.setup()` to be called.
     """
-    res = migas.add_project("nipreps/fmriprep", __version__, **kwargs)
-    return res
+    return migas.add_breadcrumb("nipreps/fmriprep", __version__, **kwargs)

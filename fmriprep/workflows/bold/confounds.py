@@ -121,16 +121,16 @@ def init_bold_confs_wf(
     movpar_file
         SPM-formatted motion parameters file
     rmsd_file
-        Framewise displacement as measured by ``fsl_motion_outliers``.
+        Root mean squared deviation as measured by ``fsl_motion_outliers`` [Jenkinson2002]_.
     skip_vols
         number of non steady state volumes
     t1w_mask
         Mask of the skull-stripped template image
     t1w_tpms
         List of tissue probability maps in T1w space
-    t1_bold_xform
-        Affine matrix that maps the T1w space into alignment with
-        the native BOLD space
+    boldref2anat_xfm
+        Affine matrix that maps the BOLD reference space into alignment with
+        the anatomical (T1w) space
 
     Outputs
     -------
@@ -224,7 +224,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
                 "skip_vols",
                 "t1w_mask",
                 "t1w_tpms",
-                "t1_bold_xform",
+                "boldref2anat_xfm",
             ]
         ),
         name="inputnode",
@@ -244,7 +244,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
 
     # Project T1w mask into BOLD space and merge with BOLD brainmask
     t1w_mask_tfm = pe.Node(
-        ApplyTransforms(interpolation="MultiLabel"),
+        ApplyTransforms(interpolation="MultiLabel", invert_transform_flags=[True]),
         name="t1w_mask_tfm",
     )
     union_mask = pe.Node(niu.Function(function=_binary_union), name="union_mask")
@@ -266,9 +266,9 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
     # Generate aCompCor probseg maps
     acc_masks = pe.Node(aCompCorMasks(is_aseg=freesurfer), name="acc_masks")
 
-    # Resample probseg maps in BOLD space via T1w-to-BOLD transform
+    # Resample probseg maps in BOLD space via BOLD-to-T1w transform
     acc_msk_tfm = pe.MapNode(
-        ApplyTransforms(interpolation="Gaussian"),
+        ApplyTransforms(interpolation="Gaussian", invert_transform_flags=[True]),
         iterfield=["input_image"],
         name="acc_msk_tfm",
         mem_gb=0.1,
@@ -500,7 +500,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         # Brain mask
         (inputnode, t1w_mask_tfm, [("t1w_mask", "input_image"),
                                    ("bold_mask", "reference_image"),
-                                   ("t1_bold_xform", "transforms")]),
+                                   ("boldref2anat_xfm", "transforms")]),
         (inputnode, union_mask, [("bold_mask", "mask1")]),
         (t1w_mask_tfm, union_mask, [("output_image", "mask2")]),
         (union_mask, dilated_mask, [("out", "in_mask")]),
@@ -512,7 +512,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
                                ("skip_vols", "ignore_initial_volumes")]),
         (inputnode, acc_masks, [("t1w_tpms", "in_vfs"),
                                 (("bold", _get_zooms), "bold_zooms")]),
-        (inputnode, acc_msk_tfm, [("t1_bold_xform", "transforms"),
+        (inputnode, acc_msk_tfm, [("boldref2anat_xfm", "transforms"),
                                   ("bold_mask", "reference_image")]),
         (inputnode, acc_msk_brain, [("bold_mask", "in_mask")]),
         (acc_masks, acc_msk_tfm, [("out_masks", "input_image")]),
@@ -624,9 +624,9 @@ def init_carpetplot_wf(
         BOLD series mask
     confounds_file
         TSV of all aggregated confounds
-    t1_bold_xform
-        Affine matrix that maps the T1w space into alignment with
-        the native BOLD space
+    boldref2anat_xfm
+        Affine matrix that maps the BOLD reference space into alignment with
+        the anatomical (T1w) space
     std2anat_xfm
         ANTs-compatible affine-and-warp transform file
     cifti_bold
@@ -653,7 +653,7 @@ def init_carpetplot_wf(
                 "bold",
                 "bold_mask",
                 "confounds_file",
-                "t1_bold_xform",
+                "boldref2anat_xfm",
                 "std2anat_xfm",
                 "cifti_bold",
                 "crown_mask",
@@ -708,6 +708,7 @@ def init_carpetplot_wf(
                     extension=[".nii", ".nii.gz"],
                 )
             ),
+            invert_transform_flags=[True, False],
             interpolation="MultiLabel",
             args="-u int",
         ),
@@ -718,23 +719,25 @@ def init_carpetplot_wf(
     if cifti_output:
         workflow.connect(inputnode, "cifti_bold", conf_plot, "in_cifti")
 
-    # fmt:off
     workflow.connect([
-        (inputnode, mrg_xfms, [("t1_bold_xform", "in1"),
-                               ("std2anat_xfm", "in2")]),
+        (inputnode, mrg_xfms, [
+            ("boldref2anat_xfm", "in1"),
+            ("std2anat_xfm", "in2"),
+        ]),
         (inputnode, resample_parc, [("bold_mask", "reference_image")]),
         (inputnode, parcels, [("crown_mask", "crown_mask")]),
         (inputnode, parcels, [("acompcor_mask", "acompcor_mask")]),
-        (inputnode, conf_plot, [("bold", "in_nifti"),
-                                ("confounds_file", "confounds_file"),
-                                ("dummy_scans", "drop_trs")]),
+        (inputnode, conf_plot, [
+            ("bold", "in_nifti"),
+            ("confounds_file", "confounds_file"),
+            ("dummy_scans", "drop_trs"),
+        ]),
         (mrg_xfms, resample_parc, [("out", "transforms")]),
         (resample_parc, parcels, [("output_image", "segmentation")]),
         (parcels, conf_plot, [("out", "in_segm")]),
         (conf_plot, ds_report_bold_conf, [("out_file", "in_file")]),
         (conf_plot, outputnode, [("out_file", "out_carpetplot")]),
-    ])
-    # fmt:on
+    ])  # fmt:skip
     return workflow
 
 
