@@ -313,6 +313,7 @@ configured with cubic B-spline interpolation.
         metadata=all_metadata[0],
         fieldmap_id=fieldmap_id if not multiecho else None,
         omp_nthreads=omp_nthreads,
+        mem_gb=mem_gb,
         name='bold_anat_wf',
     )
     bold_anat_wf.inputs.inputnode.resolution = "native"
@@ -446,6 +447,7 @@ configured with cubic B-spline interpolation.
             metadata=all_metadata[0],
             fieldmap_id=fieldmap_id if not multiecho else None,
             omp_nthreads=omp_nthreads,
+            mem_gb=mem_gb,
             name='bold_std_wf',
         )
         ds_bold_std_wf = init_ds_volumes_wf(
@@ -525,6 +527,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             metadata=all_metadata[0],
             fieldmap_id=fieldmap_id if not multiecho else None,
             omp_nthreads=omp_nthreads,
+            mem_gb=mem_gb,
             name='bold_MNI6_wf',
         )
 
@@ -537,7 +540,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
         bold_grayords_wf = init_bold_grayords_wf(
             grayord_density=config.workflow.cifti_output,
-            mem_gb=mem_gb["resampled"],
+            mem_gb=1,
             repetition_time=all_metadata[0]["RepetitionTime"],
         )
 
