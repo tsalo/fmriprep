@@ -23,7 +23,7 @@ attrs==23.1.0
     #   sdcflows
 bids-validator==1.13.1
     # via pybids
-bokeh==2.2.3
+bokeh==3.3.1
     # via tedana
 boto==2.49.0
     # via datalad
@@ -51,7 +51,9 @@ codecarbon==2.3.1
     #   fmriprep
     #   fmriprep (pyproject.toml)
 contourpy==1.2.0
-    # via matplotlib
+    # via
+    #   bokeh
+    #   matplotlib
 cryptography==41.0.5
     # via secretstorage
 cycler==0.12.1
@@ -116,11 +118,10 @@ jeepney==0.8.0
     # via
     #   keyring
     #   secretstorage
-jinja2==3.0.1
+jinja2==3.1.2
     # via
     #   bokeh
     #   niworkflows
-    #   tedana
 joblib==1.3.2
     # via
     #   nilearn
@@ -269,6 +270,7 @@ packaging==23.2
     #   smriprep
 pandas==2.1.3
     # via
+    #   bokeh
     #   codecarbon
     #   fmriprep
     #   fmriprep (pyproject.toml)
@@ -323,7 +325,6 @@ pyparsing==3.1.1
 python-dateutil==2.8.2
     # via
     #   arrow
-    #   bokeh
     #   matplotlib
     #   nipype
     #   pandas
@@ -403,7 +404,7 @@ six==1.16.0
     #   isodate
     #   osfclient
     #   python-dateutil
-smriprep==0.13.0
+smriprep==0.13.1
     # via
     #   fmriprep
     #   fmriprep (pyproject.toml)
@@ -413,7 +414,7 @@ svgutils==0.3.4
     # via
     #   nireports
     #   niworkflows
-tedana==23.0.1
+tedana==23.0.2
     # via
     #   fmriprep
     #   fmriprep (pyproject.toml)
@@ -453,7 +454,6 @@ types-python-dateutil==2.8.19.14
     # via arrow
 typing-extensions==4.8.0
     # via
-    #   bokeh
     #   datalad
     #   formulaic
     #   sqlalchemy
@@ -467,5 +467,7 @@ urllib3==2.1.0
     #   sentry-sdk
 wrapt==1.16.0
     # via formulaic
+xyzservices==2023.10.1
+    # via bokeh
 zipp==3.17.0
     # via importlib-metadata

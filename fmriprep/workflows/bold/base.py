@@ -192,21 +192,6 @@ def init_bold_wf(
         mem_gb["largemem"],
     )
 
-    functional_cache = {}
-    if config.execution.derivatives:
-        from fmriprep.utils.bids import collect_derivatives, extract_entities
-
-        entities = extract_entities(bold_series)
-
-        for deriv_dir in config.execution.derivatives:
-            functional_cache.update(
-                collect_derivatives(
-                    derivatives_dir=deriv_dir,
-                    entities=entities,
-                    fieldmap_id=fieldmap_id,
-                )
-            )
-
     workflow = Workflow(name=_get_wf_name(bold_file, "bold"))
     workflow.__postdesc__ = """\
 All resamplings can be performed with *a single interpolation
@@ -266,7 +251,7 @@ configured with cubic B-spline interpolation.
 
     bold_fit_wf = init_bold_fit_wf(
         bold_series=bold_series,
-        precomputed=functional_cache,
+        precomputed=precomputed,
         fieldmap_id=fieldmap_id,
         omp_nthreads=omp_nthreads,
     )
@@ -313,6 +298,7 @@ configured with cubic B-spline interpolation.
         metadata=all_metadata[0],
         fieldmap_id=fieldmap_id if not multiecho else None,
         omp_nthreads=omp_nthreads,
+        mem_gb=mem_gb,
         name='bold_anat_wf',
     )
     bold_anat_wf.inputs.inputnode.resolution = "native"
@@ -446,6 +432,7 @@ configured with cubic B-spline interpolation.
             metadata=all_metadata[0],
             fieldmap_id=fieldmap_id if not multiecho else None,
             omp_nthreads=omp_nthreads,
+            mem_gb=mem_gb,
             name='bold_std_wf',
         )
         ds_bold_std_wf = init_ds_volumes_wf(
@@ -525,6 +512,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             metadata=all_metadata[0],
             fieldmap_id=fieldmap_id if not multiecho else None,
             omp_nthreads=omp_nthreads,
+            mem_gb=mem_gb,
             name='bold_MNI6_wf',
         )
 
@@ -537,7 +525,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
         bold_grayords_wf = init_bold_grayords_wf(
             grayord_density=config.workflow.cifti_output,
-            mem_gb=mem_gb["resampled"],
+            mem_gb=1,
             repetition_time=all_metadata[0]["RepetitionTime"],
         )
 

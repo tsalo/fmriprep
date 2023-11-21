@@ -285,7 +285,7 @@ mid-thickness surface mesh::
     func/
       sub-<subject_label>_[specifiers]_space-T1w_desc-aparcaseg_dseg.nii.gz
       sub-<subject_label>_[specifiers]_space-T1w_desc-aseg_dseg.nii.gz
-      sub-<subject_label>_[specifiers]_space-<space_label>_hemi-[LR]_bold.func.gii
+      sub-<subject_label>_[specifiers]_hemi-[LR]_space-<space_label>_bold.func.gii
 
 Surface output spaces include ``fsnative`` (full density subject-specific mesh),
 ``fsaverage`` and the down-sampled meshes ``fsaverage6`` (41k vertices) and
@@ -375,6 +375,8 @@ to perform more advanced denoising or alternative combination strategies.
    slice as reference).
    Alternatively, you could manually adjust the volume onsets (e.g. as mentioned in
    the example above from [0, 2, 4] to [1, 3, 5]) or the event onsets accordingly.
+   In contrast to volume onsets, event onsets need to be shifted *backward* by half a TR,
+   for example, from [5, 10, 15] to [4, 9, 14].
 
    Further information on this issue is found at
    `this blog post (with thanks to Russell Poldrack and Jeanette Mumford)

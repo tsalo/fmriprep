@@ -14,6 +14,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 license = {file = "LICENSE"}
 requires-python = ">=3.10"
@@ -32,8 +33,8 @@ dependencies = [
     "pybids >= 0.15.2",
     "requests",
     "sdcflows >= 2.6.0",
-    "smriprep >= 0.13.0",
-    "tedana >= 0.0.9",
+    "smriprep >= 0.13.1",
+    "tedana >= 23.0.2",
     "templateflow >= 23.0.0",
     "toml",
     "codecarbon",

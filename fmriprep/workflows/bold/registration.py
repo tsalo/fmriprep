@@ -33,12 +33,11 @@ import os
 import os.path as op
 import typing as ty
 
-import pkg_resources as pkgr
 from nipype.interfaces import c3, fsl
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 
-from ... import config
+from ... import config, data
 from ...interfaces import DerivativesDataSink
 
 DEFAULT_MEMORY_MIN_GB = config.DEFAULT_MEMORY_MIN_GB
@@ -583,12 +582,12 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     )
 
     FSLDIR = os.getenv('FSLDIR')
-    if FSLDIR:
-        flt_bbr.inputs.schedule = op.join(FSLDIR, 'etc/flirtsch/bbr.sch')
+    if FSLDIR and os.path.exists(schedule := op.join(FSLDIR, 'etc/flirtsch/bbr.sch')):
+        flt_bbr.inputs.schedule = schedule
     else:
         # Should mostly be hit while building docs
         LOGGER.warning("FSLDIR unset - using packaged BBR schedule")
-        flt_bbr.inputs.schedule = pkgr.resource_filename('fmriprep', 'data/flirtsch/bbr.sch')
+        flt_bbr.inputs.schedule = data.load('flirtsch/bbr.sch')
     # fmt:off
     workflow.connect([
         (inputnode, wm_mask, [('t1w_dseg', 'in_seg')]),

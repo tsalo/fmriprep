@@ -27,12 +27,13 @@ from contextlib import contextmanager
 from pathlib import Path
 from tempfile import mkdtemp
 
-from pkg_resources import resource_filename as pkgrf
 from toml import loads
+
+from ... import data
 
 
 @contextmanager
-def mock_config():
+def mock_config(bids_dir=None):
     """Create a mock config for documentation and testing purposes."""
     from ... import config
 
@@ -40,8 +41,7 @@ def mock_config():
     if not _old_fs:
         os.environ['FREESURFER_HOME'] = mkdtemp()
 
-    filename = Path(pkgrf('fmriprep', 'data/tests/config.toml'))
-    settings = loads(filename.read_text())
+    settings = loads(data.load.readable('tests/config.toml').read_text())
     for sectionname, configs in settings.items():
         if sectionname != 'environment':
             section = getattr(config, sectionname)
@@ -51,9 +51,13 @@ def mock_config():
     config.loggers.init()
     config.init_spaces()
 
+    bids_dir = bids_dir or data.load('tests/ds000005').absolute()
+
     config.execution.work_dir = Path(mkdtemp())
-    config.execution.bids_dir = Path(pkgrf('fmriprep', 'data/tests/ds000005')).absolute()
+    config.execution.bids_dir = bids_dir
     config.execution.fmriprep_dir = Path(mkdtemp())
+    config.execution.bids_database_dir = None
+    config.execution._layout = None
     config.execution.init()
 
     yield

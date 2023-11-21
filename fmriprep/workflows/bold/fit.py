@@ -287,7 +287,9 @@ def init_bold_fit_wf(
         name="hmcref_buffer",
     )
     fmapref_buffer = pe.Node(niu.Function(function=_select_ref), name="fmapref_buffer")
-    hmc_buffer = pe.Node(niu.IdentityInterface(fields=["hmc_xforms"]), name="hmc_buffer")
+    hmc_buffer = pe.Node(
+        niu.IdentityInterface(fields=["hmc_xforms", "movpar_file", "rmsd_file"]), name="hmc_buffer"
+    )
     fmapreg_buffer = pe.Node(
         niu.IdentityInterface(fields=["boldref2fmap_xfm"]), name="fmapreg_buffer"
     )
@@ -789,7 +791,7 @@ def init_bold_native_wf(
 
     # Slice-timing correction
     if run_stc:
-        bold_stc_wf = init_bold_stc_wf(name="bold_stc_wf", metadata=metadata)
+        bold_stc_wf = init_bold_stc_wf(metadata=metadata, mem_gb=mem_gb)
         workflow.connect([
             (inputnode, bold_stc_wf, [("dummy_scans", "inputnode.skip_vols")]),
             (validate_bold, bold_stc_wf, [("out_file", "inputnode.bold_file")]),
@@ -824,7 +826,12 @@ def init_bold_native_wf(
         ])  # fmt:skip
 
     # Resample to boldref
-    boldref_bold = pe.Node(ResampleSeries(), name="boldref_bold", n_procs=omp_nthreads)
+    boldref_bold = pe.Node(
+        ResampleSeries(),
+        name="boldref_bold",
+        n_procs=omp_nthreads,
+        mem_gb=mem_gb["resampled"],
+    )
 
     workflow.connect([
         (inputnode, boldref_bold, [
@@ -839,7 +846,7 @@ def init_bold_native_wf(
     ])  # fmt:skip
 
     if fieldmap_id:
-        boldref_fmap = pe.Node(ReconstructFieldmap(inverse=[True]), name="boldref_fmap")
+        boldref_fmap = pe.Node(ReconstructFieldmap(inverse=[True]), name="boldref_fmap", mem_gb=1)
         workflow.connect([
             (inputnode, boldref_fmap, [
                 ("boldref", "target_ref_file"),
@@ -858,6 +865,7 @@ def init_bold_native_wf(
             joinsource="echo_index",
             joinfield=["bold_files"],
             name="join_echos",
+            run_without_submitting=True,
         )
 
         # create optimal combination, adaptive T2* map

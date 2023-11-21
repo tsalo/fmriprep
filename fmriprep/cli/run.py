@@ -202,7 +202,7 @@ def main():
             _copy_any(dseg_tsv, str(config.execution.fmriprep_dir / "desc-aparcaseg_dseg.tsv"))
         errno = 0
     finally:
-        from pkg_resources import resource_filename as pkgrf
+        from .. import data
 
         # Code Carbon
         if config.execution.track_carbon:
@@ -218,7 +218,7 @@ def main():
             config.execution.participant_label,
             config.execution.fmriprep_dir,
             config.execution.run_uuid,
-            config=pkgrf("fmriprep", "data/reports-spec.yml"),
+            config=data.load("reports-spec.yml"),
             packagename="fmriprep",
         )
         write_derivative_description(config.execution.bids_dir, config.execution.fmriprep_dir)
