@@ -83,7 +83,8 @@ def get_sbrefs(
     """
     entities = extract_entities(bold_files)
     entities.pop("echo", None)
-    entities.update(suffix="sbref", extension=[".nii", ".nii.gz"], **entity_overrides)
+    entities.update(suffix="sbref", extension=[".nii", ".nii.gz"])
+    entities.update(entity_overrides)
 
     return sorted(
         layout.get(return_type="file", **entities),
