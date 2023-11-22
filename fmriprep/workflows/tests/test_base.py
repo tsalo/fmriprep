@@ -186,6 +186,8 @@ def _make_params(
         # _make_params(freesurfer=False, bold2t1w_init="header"),
         # _make_params(freesurfer=False, bold2t1w_init="header", use_bbr=True),
         # _make_params(freesurfer=False, bold2t1w_init="header", use_bbr=False),
+        # Regression test for gh-3154:
+        _make_params(bids_filters={'sbref': {'suffix': 'sbref'}}),
     ],
 )
 def test_init_fmriprep_wf(
