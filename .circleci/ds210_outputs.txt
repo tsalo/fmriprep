@@ -41,8 +41,6 @@ sub-02/func/sub-02_task-cuedSGT_run-01_desc-coreg_boldref.json
 sub-02/func/sub-02_task-cuedSGT_run-01_desc-coreg_boldref.nii.gz
 sub-02/func/sub-02_task-cuedSGT_run-01_desc-hmc_boldref.json
 sub-02/func/sub-02_task-cuedSGT_run-01_desc-hmc_boldref.nii.gz
-sub-02/func/sub-02_task-cuedSGT_run-01_desc-preproc_bold.json
-sub-02/func/sub-02_task-cuedSGT_run-01_desc-preproc_bold.nii.gz
 sub-02/func/sub-02_task-cuedSGT_run-01_echo-1_desc-preproc_bold.json
 sub-02/func/sub-02_task-cuedSGT_run-01_echo-1_desc-preproc_bold.nii.gz
 sub-02/func/sub-02_task-cuedSGT_run-01_echo-2_desc-preproc_bold.json
@@ -55,8 +53,6 @@ sub-02/func/sub-02_task-cuedSGT_run-01_from-boldref_to-T1w_mode-image_desc-coreg
 sub-02/func/sub-02_task-cuedSGT_run-01_from-boldref_to-T1w_mode-image_desc-coreg_xfm.txt
 sub-02/func/sub-02_task-cuedSGT_run-01_from-orig_to-boldref_mode-image_desc-hmc_xfm.json
 sub-02/func/sub-02_task-cuedSGT_run-01_from-orig_to-boldref_mode-image_desc-hmc_xfm.txt
-sub-02/func/sub-02_task-cuedSGT_run-01_space-boldref_T2starmap.json
-sub-02/func/sub-02_task-cuedSGT_run-01_space-boldref_T2starmap.nii.gz
 sub-02/func/sub-02_task-cuedSGT_run-01_space-MNI152NLin2009cAsym_boldref.nii.gz
 sub-02/func/sub-02_task-cuedSGT_run-01_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz
 sub-02/func/sub-02_task-cuedSGT_run-01_space-MNI152NLin2009cAsym_desc-preproc_bold.json
