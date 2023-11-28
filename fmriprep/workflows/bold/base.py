@@ -335,7 +335,7 @@ configured with cubic B-spline interpolation.
     ])  # fmt:skip
 
     boldref_out = bool(nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref')))
-    boldref_out |= config.workflow.level == 'full'
+    boldref_out &= config.workflow.level == 'full'
     echos_out = multiecho and config.execution.me_output_echos
 
     if boldref_out or echos_out:
