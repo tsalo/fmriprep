@@ -773,7 +773,7 @@ jobs:
                 --fs-no-reconall --use-syn-sdc --ignore slicetiming \
                 --dummy-scans 1 --sloppy --write-graph \
                 --output-spaces MNI152NLin2009cAsym \
-                --mem-mb 14336 --nthreads 4 -vv --echo-idx 1
+                --mem-mb 14336 --nthreads 4 -vv
       - run: *check_outputs
       - run:
           name: Clean working directory
