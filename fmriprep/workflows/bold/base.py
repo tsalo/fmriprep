@@ -533,6 +533,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ds_bold_cifti = pe.Node(
             DerivativesDataSink(
                 base_directory=fmriprep_dir,
+                dismiss_entities=dismiss_echo(),
                 space='fsLR',
                 density=config.workflow.cifti_output,
                 suffix='bold',
