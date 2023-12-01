@@ -462,7 +462,9 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
     )
 
     ds_report_compcor = pe.Node(
-        DerivativesDataSink(desc="compcorvar", datatype="figures", dismiss_entities=dismiss_echo()),
+        DerivativesDataSink(
+            desc="compcorvar", datatype="figures", dismiss_entities=dismiss_echo()
+        ),
         name="ds_report_compcor",
         run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
