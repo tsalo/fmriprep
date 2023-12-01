@@ -730,7 +730,7 @@ jobs:
                     /tmp/data/${DATASET} /tmp/${DATASET}/fmriprep participant \
                     --fs-no-reconall --sloppy --write-graph \
                     --output-spaces MNI152NLin2009cAsym \
-                    --mem-mb 14336 --nthreads 4 --anat-only -vv --notrack --echo-idx 1
+                    --mem-mb 14336 --nthreads 4 --anat-only -vv --notrack
             fi
       - run:
           name: Clean-up after anatomical run
@@ -773,7 +773,7 @@ jobs:
                 --fs-no-reconall --use-syn-sdc --ignore slicetiming \
                 --dummy-scans 1 --sloppy --write-graph \
                 --output-spaces MNI152NLin2009cAsym \
-                --mem-mb 14336 --nthreads 4 -vv
+                --mem-mb 14336 --nthreads 4 -vv --echo-idx 1
       - run: *check_outputs
       - run:
           name: Clean working directory
