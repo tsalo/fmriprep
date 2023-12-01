@@ -474,7 +474,9 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         name="conf_corr_plot",
     )
     ds_report_conf_corr = pe.Node(
-        DerivativesDataSink(desc="confoundcorr", datatype="figures", dismiss_entities=dismiss_echo()),
+        DerivativesDataSink(
+            desc="confoundcorr", datatype="figures", dismiss_entities=dismiss_echo()
+        ),
         name="ds_report_conf_corr",
         run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
