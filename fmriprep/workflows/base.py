@@ -43,6 +43,7 @@ from packaging.version import Version
 from .. import config
 from ..interfaces import DerivativesDataSink
 from ..interfaces.reports import AboutSummary, SubjectSummary
+from ..utils.bids import dismiss_echo
 
 
 def init_fmriprep_wf():
@@ -296,7 +297,7 @@ It is released under the [CC0]\
             base_directory=config.execution.fmriprep_dir,
             desc='summary',
             datatype="figures",
-            dismiss_entities=("echo",),
+            dismiss_entities=dismiss_echo(),
         ),
         name='ds_report_summary',
         run_without_submitting=True,
@@ -307,7 +308,7 @@ It is released under the [CC0]\
             base_directory=config.execution.fmriprep_dir,
             desc='about',
             datatype="figures",
-            dismiss_entities=("echo",),
+            dismiss_entities=dismiss_echo(),
         ),
         name='ds_report_about',
         run_without_submitting=True,

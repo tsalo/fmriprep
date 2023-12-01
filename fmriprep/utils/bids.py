@@ -34,6 +34,7 @@ from bids.layout import BIDSLayout
 from bids.utils import listify
 from packaging.version import Version
 
+from .. import config
 from ..data import load as load_data
 
 
@@ -324,3 +325,14 @@ def extract_entities(file_list):
         return inlist
 
     return {k: _unique(v) for k, v in entities.items()}
+
+
+def dismiss_echo(entities=None):
+    """Set entities to dismiss in a DerivativesDataSink."""
+    if entities is None:
+        entities = []
+
+    if (config.execution.echo_idx is None) or (len(config.execution.echo_idx) > 2):
+        entities.append("echo")
+
+    return entities

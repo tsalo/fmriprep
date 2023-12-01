@@ -39,6 +39,7 @@ from niworkflows.utils.connections import listify
 
 from ... import config
 from ...interfaces import DerivativesDataSink
+from ...utils.bids import dismiss_echo
 from ...utils.misc import estimate_bold_mem_usage
 
 # BOLD workflows
@@ -367,7 +368,7 @@ configured with cubic B-spline interpolation.
             DerivativesDataSink(
                 desc="t2scomp",
                 datatype="figures",
-                dismiss_entities=("echo",),
+                dismiss_entities=dismiss_echo(),
             ),
             name="ds_report_t2scomp",
             run_without_submitting=True,
@@ -377,7 +378,7 @@ configured with cubic B-spline interpolation.
             DerivativesDataSink(
                 desc="t2starhist",
                 datatype="figures",
-                dismiss_entities=("echo",),
+                dismiss_entities=dismiss_echo(),
             ),
             name="ds_report_t2star_hist",
             run_without_submitting=True,
@@ -603,7 +604,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             base_directory=fmriprep_dir,
             desc='confounds',
             suffix='timeseries',
-            dismiss_entities=("echo",),
+            dismiss_entities=dismiss_echo(),
         ),
         name="ds_confounds",
         run_without_submitting=True,
