@@ -544,14 +544,22 @@ def init_bold_fsLR_resampling_wf(
     ------
     bold_file : :class:`str`
         Path to BOLD file resampled into T1 space
-    surfaces : :class:`list` of :class:`str`
-        Path to left and right hemisphere white, pial and midthickness GIFTI surfaces
-    morphometrics : :class:`list` of :class:`str`
-        Path to left and right hemisphere morphometric GIFTI surfaces, which must include thickness
-    sphere_reg_fsLR : :class:`list` of :class:`str`
-        Path to left and right hemisphere sphere.reg GIFTI surfaces, mapping from subject to fsLR
     anat_ribbon : :class:`str`
         Path to mask of cortical ribbon in T1w space, for calculating goodvoxels
+    white : :class:`list` of :class:`str`
+        Path to left and right hemisphere white matter GIFTI surfaces.
+    pial : :class:`list` of :class:`str`
+        Path to left and right hemisphere pial GIFTI surfaces.
+    midthickness : :class:`list` of :class:`str`
+        Path to left and right hemisphere midthickness GIFTI surfaces.
+    midthickness_fsLR : :class:`list` of :class:`str`
+        Path to left and right hemisphere midthickness GIFTI surfaces in fsLR space.
+    sphere_reg_fsLR : :class:`list` of :class:`str`
+        Path to left and right hemisphere sphere.reg GIFTI surfaces, mapping from subject to fsLR
+    cortex_mask : :class:`list` of :class:`str`
+        Path to left and right hemisphere cortical masks.
+    goodvoxels_mask : :class:`str` or Undefined
+        Pre-calculated goodvoxels mask. Not required.
 
     Outputs
     -------
@@ -565,14 +573,8 @@ def init_bold_fsLR_resampling_wf(
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.utility import KeySelect
     from smriprep import data as smriprep_data
-    from smriprep.interfaces.workbench import SurfaceResample
 
-    from fmriprep.interfaces.gifti import CreateROI
-    from fmriprep.interfaces.workbench import (
-        MetricFillHoles,
-        MetricRemoveIslands,
-        VolumeToSurfaceMapping,
-    )
+    from fmriprep.interfaces.workbench import VolumeToSurfaceMapping
 
     fslr_density = "32k" if grayord_density == "91k" else "59k"
 
@@ -594,6 +596,7 @@ The BOLD time-series were resampled onto the left/right-symmetric template
                 'midthickness_fsLR',
                 'sphere_reg_fsLR',
                 'cortex_mask',
+                'goodvoxels_mask',
             ]
         ),
         name='inputnode',
@@ -733,6 +736,9 @@ excluding voxels whose time-series have a locally high coefficient of variation.
                 ("outputnode.goodvoxels_mask", "goodvoxels_mask"),
             ]),
         ])  # fmt:skip
+    else:
+        # Won't have any effect if goodvoxels_mask is Undefined.
+        workflow.connect([(inputnode, volume_to_surface, ('goodvoxels_mask', 'volume_roi'))])
 
     return workflow
 
