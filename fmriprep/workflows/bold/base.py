@@ -523,6 +523,29 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             mem_gb=mem_gb["resampled"],
         )
 
+        if config.workflow.project_goodvoxels:
+            ds_goodvoxels_mask = pe.Node(
+                DerivativesDataSink(
+                    base_directory=fmriprep_dir,
+                    space="T1w",
+                    desc="goodvoxels",
+                    suffix="mask",
+                    compress=True,
+                    dismiss_entities=("echo",),
+                    # Metadata
+                    Type="ROI",
+                ),
+                name="ds_goodvoxels_mask",
+                run_without_submitting=True,
+                mem_gb=config.DEFAULT_MEMORY_MIN_GB,
+            )
+            ds_goodvoxels_mask.inputs.source_file = bold_file
+            workflow.connect([
+                (bold_fsLR_resampling_wf, ds_goodvoxels_mask, [
+                    ("outputnode.goodvoxels_mask", "in_file"),
+                ]),
+            ])  # fmt:skip
+
         bold_grayords_wf = init_bold_grayords_wf(
             grayord_density=config.workflow.cifti_output,
             mem_gb=1,
