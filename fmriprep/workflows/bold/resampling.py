@@ -738,7 +738,7 @@ excluding voxels whose time-series have a locally high coefficient of variation.
         ])  # fmt:skip
     else:
         # Won't have any effect if goodvoxels_mask is Undefined.
-        workflow.connect([(inputnode, volume_to_surface, ('goodvoxels_mask', 'volume_roi'))])
+        workflow.connect([(inputnode, volume_to_surface, [('goodvoxels_mask', 'volume_roi')])])
 
     return workflow
 
