@@ -531,10 +531,8 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb)
 
             workflow.connect([
-                (inputnode, goodvoxels_bold_mask_wf, [
-                    ("bold_file", "inputnode.bold_file"),
-                    ("anat_ribbon", "inputnode.anat_ribbon"),
-                ]),
+                (inputnode, goodvoxels_bold_mask_wf, [("anat_ribbon", "inputnode.anat_ribbon")]),
+                (bold_anat_wf, goodvoxels_bold_mask_wf, [("bold_file", "inputnode.bold_file")]),
                 (goodvoxels_bold_mask_wf, bold_fsLR_resampling_wf, [
                     ("outputnode.goodvoxels_mask", "inputnode.volume_roi"),
                 ]),
@@ -593,7 +591,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ("midthickness_fsLR", "inputnode.midthickness_fsLR"),
                 ("sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
                 ("cortex_mask", "inputnode.cortex_mask"),
-                ("anat_ribbon", "inputnode.anat_ribbon"),
             ]),
             (bold_anat_wf, bold_fsLR_resampling_wf, [
                 ("outputnode.bold_file", "inputnode.bold_file"),

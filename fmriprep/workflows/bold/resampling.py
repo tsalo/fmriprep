@@ -539,8 +539,6 @@ def init_bold_fsLR_resampling_wf(
     ------
     bold_file : :class:`str`
         Path to BOLD file resampled into T1 space
-    anat_ribbon : :class:`str`
-        Path to mask of cortical ribbon in T1w space, for calculating goodvoxels
     white : :class:`list` of :class:`str`
         Path to left and right hemisphere white matter GIFTI surfaces.
     pial : :class:`list` of :class:`str`
@@ -582,7 +580,6 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         niu.IdentityInterface(
             fields=[
                 'bold_file',
-                'anat_ribbon',
                 'white',
                 'pial',
                 'midthickness',
