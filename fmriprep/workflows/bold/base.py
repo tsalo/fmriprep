@@ -460,8 +460,6 @@ configured with cubic B-spline interpolation.
                 ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
                 ("outputnode.boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
             ]),
-            # XXX: The bold_file here is post-HMC+SDC, so should HMC + SDC be applied again?
-            # Should this take in the inputnode BOLD file instead?
             (bold_native_wf, bold_std_wf, [
                 ("outputnode.bold_minimal", "inputnode.bold_file"),
                 ("outputnode.motion_xfm", "inputnode.motion_xfm"),
