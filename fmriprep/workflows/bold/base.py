@@ -530,7 +530,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         )
 
         if config.workflow.project_goodvoxels:
-            goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb)
+            goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb["resampled"])
 
             workflow.connect([
                 (inputnode, goodvoxels_bold_mask_wf, [("anat_ribbon", "inputnode.anat_ribbon")]),
