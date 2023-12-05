@@ -509,7 +509,11 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])  # fmt:skip
 
     if config.workflow.cifti_output:
-        from .resampling import init_bold_fsLR_resampling_wf, init_bold_grayords_wf
+        from .resampling import (
+            init_bold_fsLR_resampling_wf,
+            init_bold_grayords_wf,
+            init_goodvoxels_bold_mask_wf,
+        )
 
         bold_MNI6_wf = init_bold_volumetric_resample_wf(
             metadata=all_metadata[0],
@@ -520,11 +524,28 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         )
 
         bold_fsLR_resampling_wf = init_bold_fsLR_resampling_wf(
-            estimate_goodvoxels=config.workflow.project_goodvoxels,
             grayord_density=config.workflow.cifti_output,
             omp_nthreads=omp_nthreads,
             mem_gb=mem_gb["resampled"],
         )
+
+        if config.workflow.project_goodvoxels:
+            goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb)
+
+            workflow.connect([
+                (inputnode, goodvoxels_bold_mask_wf, [
+                    ("bold_file", "inputnode.bold_file"),
+                    ("anat_ribbon", "inputnode.anat_ribbon"),
+                ]),
+                (goodvoxels_bold_mask_wf, bold_fsLR_resampling_wf, [
+                    ("outputnode.goodvoxels_mask", "inputnode.volume_roi"),
+                ]),
+            ])  # fmt:skip
+
+            bold_fsLR_resampling_wf.__desc__ += """\
+                A "goodvoxels" mask was applied during volume-to-surface sampling in fsLR space,
+                excluding voxels whose time-series have a locally high coefficient of variation.
+                """
 
         bold_grayords_wf = init_bold_grayords_wf(
             grayord_density=config.workflow.cifti_output,
