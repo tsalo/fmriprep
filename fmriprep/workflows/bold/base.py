@@ -292,25 +292,9 @@ configured with cubic B-spline interpolation.
         fieldmap_id=fieldmap_id,
         omp_nthreads=omp_nthreads,
     )
-    # NOTE: Why put this in 'resampling' and not 'full'?
-    bold_anat_wf = init_bold_volumetric_resample_wf(
-        metadata=all_metadata[0],
-        fieldmap_id=fieldmap_id if not multiecho else None,
-        omp_nthreads=omp_nthreads,
-        mem_gb=mem_gb,
-        name='bold_anat_wf',
-    )
-    bold_anat_wf.inputs.inputnode.resolution = "native"
 
     workflow.connect([
         (inputnode, bold_native_wf, [
-            ("fmap_ref", "inputnode.fmap_ref"),
-            ("fmap_coeff", "inputnode.fmap_coeff"),
-            ("fmap_id", "inputnode.fmap_id"),
-        ]),
-        (inputnode, bold_anat_wf, [
-            ("t1w_preproc", "inputnode.target_ref_file"),
-            ("t1w_mask", "inputnode.target_mask"),
             ("fmap_ref", "inputnode.fmap_ref"),
             ("fmap_coeff", "inputnode.fmap_coeff"),
             ("fmap_id", "inputnode.fmap_id"),
@@ -321,15 +305,6 @@ configured with cubic B-spline interpolation.
             ("outputnode.motion_xfm", "inputnode.motion_xfm"),
             ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
             ("outputnode.dummy_scans", "inputnode.dummy_scans"),
-        ]),
-        (bold_fit_wf, bold_anat_wf, [
-            ("outputnode.coreg_boldref", "inputnode.bold_ref_file"),
-            ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
-            ("outputnode.boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
-        ]),
-        (bold_native_wf, bold_anat_wf, [
-            ("outputnode.bold_minimal", "inputnode.bold_file"),
-            ("outputnode.motion_xfm", "inputnode.motion_xfm"),
         ]),
     ])  # fmt:skip
 
@@ -397,6 +372,35 @@ configured with cubic B-spline interpolation.
 
     if config.workflow.level == "resampling":
         return workflow
+
+    # Resample to anatomical space
+    bold_anat_wf = init_bold_volumetric_resample_wf(
+        metadata=all_metadata[0],
+        fieldmap_id=fieldmap_id if not multiecho else None,
+        omp_nthreads=omp_nthreads,
+        mem_gb=mem_gb,
+        name='bold_anat_wf',
+    )
+    bold_anat_wf.inputs.inputnode.resolution = "native"
+
+    workflow.connect([
+        (inputnode, bold_anat_wf, [
+            ("t1w_preproc", "inputnode.target_ref_file"),
+            ("t1w_mask", "inputnode.target_mask"),
+            ("fmap_ref", "inputnode.fmap_ref"),
+            ("fmap_coeff", "inputnode.fmap_coeff"),
+            ("fmap_id", "inputnode.fmap_id"),
+        ]),
+        (bold_fit_wf, bold_anat_wf, [
+            ("outputnode.coreg_boldref", "inputnode.bold_ref_file"),
+            ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
+            ("outputnode.boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
+        ]),
+        (bold_native_wf, bold_anat_wf, [
+            ("outputnode.bold_minimal", "inputnode.bold_file"),
+            ("outputnode.motion_xfm", "inputnode.motion_xfm"),
+        ]),
+    ])  # fmt:skip
 
     # Full derivatives, including resampled BOLD series
     if nonstd_spaces.intersection(('anat', 'T1w')):
