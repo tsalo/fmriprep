@@ -294,6 +294,7 @@ configured with cubic B-spline interpolation.
         fieldmap_id=fieldmap_id,
         omp_nthreads=omp_nthreads,
     )
+    # NOTE: Why put this in 'resampling' and not 'full'?
     bold_anat_wf = init_bold_volumetric_resample_wf(
         metadata=all_metadata[0],
         fieldmap_id=fieldmap_id if not multiecho else None,
