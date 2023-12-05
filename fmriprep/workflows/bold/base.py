@@ -31,8 +31,6 @@ Orchestrating the BOLD-preprocessing workflow
 """
 import typing as ty
 
-import nibabel as nb
-import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.utils.connections import listify
@@ -532,7 +530,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
             workflow.connect([
                 (inputnode, goodvoxels_bold_mask_wf, [("anat_ribbon", "inputnode.anat_ribbon")]),
-                (bold_anat_wf, goodvoxels_bold_mask_wf, [("bold_file", "inputnode.bold_file")]),
+                (bold_anat_wf, goodvoxels_bold_mask_wf, [
+                    ("outputnode.bold_file", "inputnode.bold_file"),
+                ]),
                 (goodvoxels_bold_mask_wf, bold_fsLR_resampling_wf, [
                     ("outputnode.goodvoxels_mask", "inputnode.volume_roi"),
                 ]),
