@@ -543,9 +543,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ])  # fmt:skip
 
             bold_fsLR_resampling_wf.__desc__ += """\
-                A "goodvoxels" mask was applied during volume-to-surface sampling in fsLR space,
-                excluding voxels whose time-series have a locally high coefficient of variation.
-                """
+A "goodvoxels" mask was applied during volume-to-surface sampling in fsLR space,
+excluding voxels whose time-series have a locally high coefficient of variation.
+"""
 
         bold_grayords_wf = init_bold_grayords_wf(
             grayord_density=config.workflow.cifti_output,
