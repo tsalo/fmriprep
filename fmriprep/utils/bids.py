@@ -333,7 +333,7 @@ def dismiss_echo(entities=None):
         entities = []
 
     echo_idx = config.execution.echo_idx
-    if (echo_idx is None) or (len(listify(echo_idx)) > 2):
+    if echo_idx is None or len(listify(echo_idx)) > 2:
         entities.append("echo")
 
     return entities
