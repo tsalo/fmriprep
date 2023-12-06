@@ -31,8 +31,6 @@ Orchestrating the BOLD-preprocessing workflow
 """
 import typing as ty
 
-import nibabel as nb
-import numpy as np
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.utils.connections import listify
@@ -295,24 +293,9 @@ configured with cubic B-spline interpolation.
         fieldmap_id=fieldmap_id,
         omp_nthreads=omp_nthreads,
     )
-    bold_anat_wf = init_bold_volumetric_resample_wf(
-        metadata=all_metadata[0],
-        fieldmap_id=fieldmap_id if not multiecho else None,
-        omp_nthreads=omp_nthreads,
-        mem_gb=mem_gb,
-        name='bold_anat_wf',
-    )
-    bold_anat_wf.inputs.inputnode.resolution = "native"
 
     workflow.connect([
         (inputnode, bold_native_wf, [
-            ("fmap_ref", "inputnode.fmap_ref"),
-            ("fmap_coeff", "inputnode.fmap_coeff"),
-            ("fmap_id", "inputnode.fmap_id"),
-        ]),
-        (inputnode, bold_anat_wf, [
-            ("t1w_preproc", "inputnode.target_ref_file"),
-            ("t1w_mask", "inputnode.target_mask"),
             ("fmap_ref", "inputnode.fmap_ref"),
             ("fmap_coeff", "inputnode.fmap_coeff"),
             ("fmap_id", "inputnode.fmap_id"),
@@ -323,15 +306,6 @@ configured with cubic B-spline interpolation.
             ("outputnode.motion_xfm", "inputnode.motion_xfm"),
             ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
             ("outputnode.dummy_scans", "inputnode.dummy_scans"),
-        ]),
-        (bold_fit_wf, bold_anat_wf, [
-            ("outputnode.coreg_boldref", "inputnode.bold_ref_file"),
-            ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
-            ("outputnode.boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
-        ]),
-        (bold_native_wf, bold_anat_wf, [
-            ("outputnode.bold_minimal", "inputnode.bold_file"),
-            ("outputnode.motion_xfm", "inputnode.motion_xfm"),
         ]),
     ])  # fmt:skip
 
@@ -399,6 +373,35 @@ configured with cubic B-spline interpolation.
 
     if config.workflow.level == "resampling":
         return workflow
+
+    # Resample to anatomical space
+    bold_anat_wf = init_bold_volumetric_resample_wf(
+        metadata=all_metadata[0],
+        fieldmap_id=fieldmap_id if not multiecho else None,
+        omp_nthreads=omp_nthreads,
+        mem_gb=mem_gb,
+        name='bold_anat_wf',
+    )
+    bold_anat_wf.inputs.inputnode.resolution = "native"
+
+    workflow.connect([
+        (inputnode, bold_anat_wf, [
+            ("t1w_preproc", "inputnode.target_ref_file"),
+            ("t1w_mask", "inputnode.target_mask"),
+            ("fmap_ref", "inputnode.fmap_ref"),
+            ("fmap_coeff", "inputnode.fmap_coeff"),
+            ("fmap_id", "inputnode.fmap_id"),
+        ]),
+        (bold_fit_wf, bold_anat_wf, [
+            ("outputnode.coreg_boldref", "inputnode.bold_ref_file"),
+            ("outputnode.boldref2fmap_xfm", "inputnode.boldref2fmap_xfm"),
+            ("outputnode.boldref2anat_xfm", "inputnode.boldref2anat_xfm"),
+        ]),
+        (bold_native_wf, bold_anat_wf, [
+            ("outputnode.bold_minimal", "inputnode.bold_file"),
+            ("outputnode.motion_xfm", "inputnode.motion_xfm"),
+        ]),
+    ])  # fmt:skip
 
     # Full derivatives, including resampled BOLD series
     if nonstd_spaces.intersection(('anat', 'T1w')):
@@ -507,7 +510,11 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])  # fmt:skip
 
     if config.workflow.cifti_output:
-        from .resampling import init_bold_fsLR_resampling_wf, init_bold_grayords_wf
+        from .resampling import (
+            init_bold_fsLR_resampling_wf,
+            init_bold_grayords_wf,
+            init_goodvoxels_bold_mask_wf,
+        )
 
         bold_MNI6_wf = init_bold_volumetric_resample_wf(
             metadata=all_metadata[0],
@@ -518,11 +525,28 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         )
 
         bold_fsLR_resampling_wf = init_bold_fsLR_resampling_wf(
-            estimate_goodvoxels=config.workflow.project_goodvoxels,
             grayord_density=config.workflow.cifti_output,
             omp_nthreads=omp_nthreads,
             mem_gb=mem_gb["resampled"],
         )
+
+        if config.workflow.project_goodvoxels:
+            goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb["resampled"])
+
+            workflow.connect([
+                (inputnode, goodvoxels_bold_mask_wf, [("anat_ribbon", "inputnode.anat_ribbon")]),
+                (bold_anat_wf, goodvoxels_bold_mask_wf, [
+                    ("outputnode.bold_file", "inputnode.bold_file"),
+                ]),
+                (goodvoxels_bold_mask_wf, bold_fsLR_resampling_wf, [
+                    ("outputnode.goodvoxels_mask", "inputnode.volume_roi"),
+                ]),
+            ])  # fmt:skip
+
+            bold_fsLR_resampling_wf.__desc__ += """\
+A "goodvoxels" mask was applied during volume-to-surface sampling in fsLR space,
+excluding voxels whose time-series have a locally high coefficient of variation.
+"""
 
         bold_grayords_wf = init_bold_grayords_wf(
             grayord_density=config.workflow.cifti_output,
@@ -573,7 +597,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ("midthickness_fsLR", "inputnode.midthickness_fsLR"),
                 ("sphere_reg_fsLR", "inputnode.sphere_reg_fsLR"),
                 ("cortex_mask", "inputnode.cortex_mask"),
-                ("anat_ribbon", "inputnode.anat_ribbon"),
             ]),
             (bold_anat_wf, bold_fsLR_resampling_wf, [
                 ("outputnode.bold_file", "inputnode.bold_file"),

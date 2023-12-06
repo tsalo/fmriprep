@@ -503,7 +503,6 @@ def init_goodvoxels_bold_mask_wf(mem_gb: float, name: str = "goodvoxels_bold_mas
 
 def init_bold_fsLR_resampling_wf(
     grayord_density: ty.Literal['91k', '170k'],
-    estimate_goodvoxels: bool,
     omp_nthreads: int,
     mem_gb: float,
     name: str = "bold_fsLR_resampling_wf",
@@ -522,7 +521,6 @@ def init_bold_fsLR_resampling_wf(
 
             from fmriprep.workflows.bold.resampling import init_bold_fsLR_resampling_wf
             wf = init_bold_fsLR_resampling_wf(
-                estimate_goodvoxels=True,
                 grayord_density='92k',
                 omp_nthreads=1,
                 mem_gb=1,
@@ -532,9 +530,6 @@ def init_bold_fsLR_resampling_wf(
     ----------
     grayord_density : :class:`str`
         Either ``"91k"`` or ``"170k"``, representing the total *grayordinates*.
-    estimate_goodvoxels : :class:`bool`
-        Calculate mask excluding voxels with a locally high coefficient of variation to
-        exclude from surface resampling
     omp_nthreads : :class:`int`
         Maximum number of threads an individual process may use
     mem_gb : :class:`float`
@@ -546,35 +541,33 @@ def init_bold_fsLR_resampling_wf(
     ------
     bold_file : :class:`str`
         Path to BOLD file resampled into T1 space
-    surfaces : :class:`list` of :class:`str`
-        Path to left and right hemisphere white, pial and midthickness GIFTI surfaces
-    morphometrics : :class:`list` of :class:`str`
-        Path to left and right hemisphere morphometric GIFTI surfaces, which must include thickness
+    white : :class:`list` of :class:`str`
+        Path to left and right hemisphere white matter GIFTI surfaces.
+    pial : :class:`list` of :class:`str`
+        Path to left and right hemisphere pial GIFTI surfaces.
+    midthickness : :class:`list` of :class:`str`
+        Path to left and right hemisphere midthickness GIFTI surfaces.
+    midthickness_fsLR : :class:`list` of :class:`str`
+        Path to left and right hemisphere midthickness GIFTI surfaces in fsLR space.
     sphere_reg_fsLR : :class:`list` of :class:`str`
         Path to left and right hemisphere sphere.reg GIFTI surfaces, mapping from subject to fsLR
-    anat_ribbon : :class:`str`
-        Path to mask of cortical ribbon in T1w space, for calculating goodvoxels
+    cortex_mask : :class:`list` of :class:`str`
+        Path to left and right hemisphere cortical masks.
+    volume_roi : :class:`str` or Undefined
+        Pre-calculated goodvoxels mask. Not required.
 
     Outputs
     -------
     bold_fsLR : :class:`list` of :class:`str`
         Path to BOLD series resampled as functional GIFTI files in fsLR space
-    goodvoxels_mask : :class:`str`
-        Path to mask of voxels, excluding those with locally high coefficients of variation
 
     """
     import templateflow.api as tf
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.utility import KeySelect
     from smriprep import data as smriprep_data
-    from smriprep.interfaces.workbench import SurfaceResample
 
-    from fmriprep.interfaces.gifti import CreateROI
-    from fmriprep.interfaces.workbench import (
-        MetricFillHoles,
-        MetricRemoveIslands,
-        VolumeToSurfaceMapping,
-    )
+    from fmriprep.interfaces.workbench import VolumeToSurfaceMapping
 
     fslr_density = "32k" if grayord_density == "91k" else "59k"
 
@@ -589,13 +582,13 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         niu.IdentityInterface(
             fields=[
                 'bold_file',
-                'anat_ribbon',
                 'white',
                 'pial',
                 'midthickness',
                 'midthickness_fsLR',
                 'sphere_reg_fsLR',
                 'cortex_mask',
+                'volume_roi',
             ]
         ),
         name='inputnode',
@@ -614,7 +607,7 @@ The BOLD time-series were resampled onto the left/right-symmetric template
     )
 
     outputnode = pe.Node(
-        niu.IdentityInterface(fields=['bold_fsLR', 'goodvoxels_mask']),
+        niu.IdentityInterface(fields=['bold_fsLR']),
         name='outputnode',
     )
 
@@ -689,6 +682,7 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         # Resample BOLD to native surface, dilate and mask
         (inputnode, volume_to_surface, [
             ('bold_file', 'volume_file'),
+            ('volume_roi', 'volume_roi'),
         ]),
         (select_surfaces, volume_to_surface, [
             ('midthickness', 'surface_file'),
@@ -714,27 +708,6 @@ The BOLD time-series were resampled onto the left/right-symmetric template
         (mask_fsLR, joinnode, [('out_file', 'bold_fsLR')]),
         (joinnode, outputnode, [('bold_fsLR', 'bold_fsLR')]),
     ])  # fmt:skip
-
-    if estimate_goodvoxels:
-        workflow.__desc__ += """\
-A "goodvoxels" mask was applied during volume-to-surface sampling in fsLR space,
-excluding voxels whose time-series have a locally high coefficient of variation.
-"""
-
-        goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb)
-
-        workflow.connect([
-            (inputnode, goodvoxels_bold_mask_wf, [
-                ("bold_file", "inputnode.bold_file"),
-                ("anat_ribbon", "inputnode.anat_ribbon"),
-            ]),
-            (goodvoxels_bold_mask_wf, volume_to_surface, [
-                ("outputnode.goodvoxels_mask", "volume_roi"),
-            ]),
-            (goodvoxels_bold_mask_wf, outputnode, [
-                ("outputnode.goodvoxels_mask", "goodvoxels_mask"),
-            ]),
-        ])  # fmt:skip
 
     return workflow
 
