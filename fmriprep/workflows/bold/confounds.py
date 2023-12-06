@@ -591,6 +591,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         (crowncompcor, mrg_cc_metadata, [("metadata_file", "in3")]),
         (mrg_cc_metadata, compcor_plot, [("out", "metadata_files")]),
         (compcor_plot, ds_report_compcor, [("out_file", "in_file")]),
+        (inputnode, conf_corr_plot, [("skip_vols", "ignore_initial_volumes")]),
         (concat, conf_corr_plot, [("confounds_file", "confounds_file"),
                                   (("confounds_file", _select_cols), "columns")]),
         (conf_corr_plot, ds_report_conf_corr, [("out_file", "in_file")]),
