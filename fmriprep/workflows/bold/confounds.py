@@ -677,8 +677,8 @@ def init_carpetplot_wf(
             tr=metadata["RepetitionTime"],
             confounds_list=[
                 ("global_signal", None, "GS"),
-                ("csf", None, "GSCSF"),
-                ("white_matter", None, "GSWM"),
+                ("csf", None, "CSF"),
+                ("white_matter", None, "WM"),
                 ("std_dvars", None, "DVARS"),
                 ("framewise_displacement", "mm", "FD"),
             ],
