@@ -22,7 +22,7 @@
 #
 from pathlib import Path
 
-from niworkflows.reports.core import Report as _Report
+from nireports.reports.core import Report as _Report
 
 # This patch is intended to permit fMRIPrep 20.2.0 LTS to use the YODA-style
 # derivatives directory. Ideally, we will remove this in 20.3.x and use an
@@ -52,58 +52,37 @@ class Report(_Report):
 # The following are the interface used directly by fMRIPrep
 #
 
-
-def run_reports(
-    out_dir,
-    subject_label,
-    run_uuid,
-    config=None,
-    reportlets_dir=None,
-    packagename=None,
-):
-    """
-    Run the reports.
-
-    .. testsetup::
-
-    >>> copytree_or_skip("data/tests/work", testdir)
-    >>> (testdir / 'fmriprep').mkdir(parents=True, exist_ok=True)
-
-    .. doctest::
-
-    >>> run_reports(testdir / 'out', '01', 'madeoutuuid', packagename='fmriprep',
-    ...             reportlets_dir=testdir / 'work' / 'reportlets' / 'fmriprep')
-    0
-
-    """
-    return Report(
-        out_dir,
-        run_uuid,
-        config=config,
-        subject_id=subject_label,
-        packagename=packagename,
-        reportlets_dir=reportlets_dir,
-    ).generate_report()
-
-
 def generate_reports(
     subject_list, output_dir, run_uuid, config=None, work_dir=None, packagename=None
 ):
-    """Execute run_reports on a list of subjects."""
+    """Generate reports for a list of subjects."""
     reportlets_dir = None
     if work_dir is not None:
         reportlets_dir = Path(work_dir) / "reportlets"
-    report_errors = [
-        run_reports(
+
+    report_errors = []
+    for subject_label in subject_list:
+
+        # Problem subject_label is not a path to a file, I think
+        entities = config.execution.layout.get_file(subject_label).get_entities()
+        entities.pop("extension", None)
+        entities.pop("echo", None)
+        entities.pop("part", None)
+
+        robj = Report(
             output_dir,
-            subject_label,
             run_uuid,
-            config=config,
-            packagename=packagename,
+            bootstrapfile=config,
             reportlets_dir=reportlets_dir,
+            plugins=None,
+            plugin_meta=None,
+            metadata=None,
+            **entities
         )
-        for subject_label in subject_list
-    ]
+
+        # Problem: this does not make sense anymore because generate_report in nireports always returns 0
+        report_errors.append(robj.generate_report()) 
+    
 
     errno = sum(report_errors)
     if errno:
