@@ -39,7 +39,7 @@ def generate_reports(subject_list, output_dir, run_uuid, config=None, work_dir=N
         robj = Report(
             output_dir,
             run_uuid,
-            bootstrapfile=config,
+            bootstrap_file=config,
             reportlets_dir=reportlets_dir,
             plugins=None,
             plugin_meta=None,
