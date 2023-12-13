@@ -218,8 +218,7 @@ def main():
             config.execution.participant_label,
             config.execution.fmriprep_dir,
             config.execution.run_uuid,
-            config=data.load("reports-spec.yml"),
-            packagename="fmriprep",
+            config=data.load("reports-spec.yml")
         )
         write_derivative_description(config.execution.bids_dir, config.execution.fmriprep_dir)
         write_bidsignore(config.execution.fmriprep_dir)

@@ -34,7 +34,6 @@ class Report(_Report):
         from yaml import safe_load as load
 
         settings = load(config.read_text())
-        self.packagename = self.packagename or settings.get("package", None)
 
         # Removed from here: Appending self.packagename to self.root and self.out_dir
         # In this version, pass reportlets_dir and out_dir with fmriprep in the path.
