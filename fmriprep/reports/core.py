@@ -34,7 +34,7 @@ def generate_reports(subject_list, output_dir, run_uuid, config=None, work_dir=N
     report_errors = []
     for subject_label in subject_list:
         entities = {}
-        entities["sub"] = subject_label
+        entities["subject"] = subject_label
 
         robj = Report(
             output_dir,
