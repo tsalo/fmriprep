@@ -40,6 +40,7 @@ from ...interfaces.confounds import (
     GatherConfounds,
     RenameACompCor,
 )
+from ...utils.bids import dismiss_echo
 
 
 def init_bold_confs_wf(
@@ -145,6 +146,10 @@ def init_bold_confs_wf(
         Mask of brain edge voxels
 
     """
+    from nireports.interfaces.nuisance import (
+        CompCorVariancePlot,
+        ConfoundsCorrelationPlot,
+    )
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.confounds import ExpandModel, SpikeRegressors
     from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
@@ -153,10 +158,6 @@ def init_bold_confs_wf(
     from niworkflows.interfaces.nibabel import ApplyMask, Binarize
     from niworkflows.interfaces.patches import RobustACompCor as ACompCor
     from niworkflows.interfaces.patches import RobustTCompCor as TCompCor
-    from niworkflows.interfaces.plotting import (
-        CompCorVariancePlot,
-        ConfoundsCorrelationPlot,
-    )
     from niworkflows.interfaces.reportlets.masks import ROIsPlot
     from niworkflows.interfaces.utility import TSV2JSON, AddTSVHeader, DictMerge
 
@@ -442,7 +443,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
     )
 
     ds_report_bold_rois = pe.Node(
-        DerivativesDataSink(desc="rois", datatype="figures", dismiss_entities=("echo",)),
+        DerivativesDataSink(desc="rois", datatype="figures", dismiss_entities=dismiss_echo()),
         name="ds_report_bold_rois",
         run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
@@ -461,7 +462,9 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
     )
 
     ds_report_compcor = pe.Node(
-        DerivativesDataSink(desc="compcorvar", datatype="figures", dismiss_entities=("echo",)),
+        DerivativesDataSink(
+            desc="compcorvar", datatype="figures", dismiss_entities=dismiss_echo()
+        ),
         name="ds_report_compcor",
         run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
@@ -473,7 +476,9 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         name="conf_corr_plot",
     )
     ds_report_conf_corr = pe.Node(
-        DerivativesDataSink(desc="confoundcorr", datatype="figures", dismiss_entities=("echo",)),
+        DerivativesDataSink(
+            desc="confoundcorr", datatype="figures", dismiss_entities=dismiss_echo()
+        ),
         name="ds_report_conf_corr",
         run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB,
@@ -586,6 +591,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         (crowncompcor, mrg_cc_metadata, [("metadata_file", "in3")]),
         (mrg_cc_metadata, compcor_plot, [("out", "metadata_files")]),
         (compcor_plot, ds_report_compcor, [("out_file", "in_file")]),
+        (inputnode, conf_corr_plot, [("skip_vols", "ignore_initial_volumes")]),
         (concat, conf_corr_plot, [("confounds_file", "confounds_file"),
                                   (("confounds_file", _select_cols), "columns")]),
         (conf_corr_plot, ds_report_conf_corr, [("out_file", "in_file")]),
@@ -672,8 +678,8 @@ def init_carpetplot_wf(
             tr=metadata["RepetitionTime"],
             confounds_list=[
                 ("global_signal", None, "GS"),
-                ("csf", None, "GSCSF"),
-                ("white_matter", None, "GSWM"),
+                ("csf", None, "CSF"),
+                ("white_matter", None, "WM"),
                 ("std_dvars", None, "DVARS"),
                 ("framewise_displacement", "mm", "FD"),
             ],
@@ -683,7 +689,7 @@ def init_carpetplot_wf(
     )
     ds_report_bold_conf = pe.Node(
         DerivativesDataSink(
-            desc="carpetplot", datatype="figures", extension="svg", dismiss_entities=("echo",)
+            desc="carpetplot", datatype="figures", extension="svg", dismiss_entities=dismiss_echo()
         ),
         name="ds_report_bold_conf",
         run_without_submitting=True,

@@ -31,7 +31,6 @@ from niworkflows.func.util import init_enhance_and_skullstrip_bold_wf
 from niworkflows.interfaces.header import ValidateImage
 from niworkflows.interfaces.nitransforms import ConcatenateXFMs
 from niworkflows.interfaces.utility import KeySelect
-from niworkflows.utils.connections import listify
 from sdcflows.workflows.apply.correction import init_unwarp_wf
 from sdcflows.workflows.apply.registration import init_coeff2epi_wf
 
@@ -83,7 +82,8 @@ def get_sbrefs(
     """
     entities = extract_entities(bold_files)
     entities.pop("echo", None)
-    entities.update(suffix="sbref", extension=[".nii", ".nii.gz"], **entity_overrides)
+    entities.update(suffix="sbref", extension=[".nii", ".nii.gz"])
+    entities.update(entity_overrides)
 
     return sorted(
         layout.get(return_type="file", **entities),
@@ -204,6 +204,10 @@ def init_bold_fit_wf(
 
     layout = config.execution.layout
 
+    # Fitting operates on the shortest echo
+    # This could become more complicated in the future
+    bold_file = bold_series[0]
+
     # Collect sbref files, sorted by EchoTime
     sbref_files = get_sbrefs(
         bold_series,
@@ -211,9 +215,16 @@ def init_bold_fit_wf(
         layout=layout,
     )
 
-    # Fitting operates on the shortest echo
-    # This could become more complicated in the future
-    bold_file = bold_series[0]
+    basename = os.path.basename(bold_file)
+    sbref_msg = f"No single-band-reference found for {basename}."
+    if sbref_files and "sbref" in config.workflow.ignore:
+        sbref_msg = f"Single-band reference file(s) found for {basename} and ignored."
+        sbref_files = []
+    elif sbref_files:
+        sbref_msg = "Using single-band reference file(s) {}.".format(
+            ",".join([os.path.basename(sbf) for sbf in sbref_files])
+        )
+    config.loggers.workflow.info(sbref_msg)
 
     # Get metadata from BOLD file(s)
     entities = extract_entities(bold_series)
