@@ -91,7 +91,6 @@ def build_workflow(config_file, retval):
             config.execution.fmriprep_dir,
             config.execution.run_uuid,
             config=data.load("reports-spec.yml"),
-            packagename="fmriprep",
         )
         return retval
 
