@@ -669,6 +669,7 @@ tasks and sessions), the following preprocessing was performed.
                     f'outputnode.sphere_reg_{"msm" if msm_sulc else "fsLR"}',
                     'inputnode.sphere_reg_fsLR',
                 ),
+                ('outputnode.t2w_preproc', 'inputnode.t2w_preproc'),  # Optional
             ]),
         ])  # fmt:skip
         if fieldmap_id:
