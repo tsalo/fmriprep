@@ -48,12 +48,14 @@ RegistrationInit = ty.Literal['register', 'header']
 
 
 def init_bold_reg_wf(
+    *,
     freesurfer: bool,
     use_bbr: bool,
     bold2t1w_dof: AffineDOF,
     bold2t1w_init: RegistrationInit,
     mem_gb: float,
     omp_nthreads: int,
+    use_t2w: bool = False,
     name: str = 'bold_reg_wf',
     sloppy: bool = False,
 ):
@@ -97,6 +99,8 @@ def init_bold_reg_wf(
         Size of BOLD file in GB
     omp_nthreads : :obj:`int`
         Maximum number of threads an individual process may use
+    use_t2w: :obj:`bool` or None
+
     name : :obj:`str`
         Name of workflow (default: ``bold_reg_wf``)
 
@@ -196,13 +200,14 @@ def init_bbreg_wf(
     bold2t1w_dof: AffineDOF,
     bold2t1w_init: RegistrationInit,
     omp_nthreads: int,
+    use_t2w: bool = False,
     name: str = 'bbreg_wf',
 ):
     """
     Build a workflow to run FreeSurfer's ``bbregister``.
 
     This workflow uses FreeSurfer's ``bbregister`` to register a BOLD image to
-    a T1-weighted structural image.
+    a T2-weighted structural image (if available), and ultimately a T1-weighted structual image.
 
     It is a counterpart to :py:func:`~fmriprep.workflows.bold.registration.init_fsl_bbr_wf`,
     which performs the same task using FSL's FLIRT with a BBR cost function.
@@ -266,10 +271,11 @@ def init_bbreg_wf(
         Boolean indicating whether BBR was rejected (mri_coreg registration returned)
 
     """
-    from nipype.interfaces.freesurfer import BBRegister, MRICoreg
+    from nipype.interfaces.freesurfer import BBRegister
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-    from niworkflows.interfaces.freesurfer import PatchedLTAConvert as LTAConvert
     from niworkflows.interfaces.nitransforms import ConcatenateXFMs
+
+    from fmriprep.interfaces.patches import MRICoreg
 
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
@@ -293,6 +299,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
                 't1w_preproc',  # FLIRT BBR
                 't1w_mask',
                 't1w_dseg',
+                't2w_preproc',  # Conditional
             ]
         ),
         name='inputnode',
@@ -314,13 +321,16 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
             LOGGER.warning("Initializing BBR with header; affine fallback disabled")
             use_bbr = True
 
-    # Define both nodes, but only connect conditionally
     mri_coreg = pe.Node(
         MRICoreg(dof=bold2t1w_dof, sep=[4], ftol=0.0001, linmintol=0.01),
         name='mri_coreg',
         n_procs=omp_nthreads,
         mem_gb=5,
     )
+
+    # Create separate mri_coreg to initialize bbregister
+    mri_coreg_t2w = mri_coreg.clone('mri_coreg_t2w')
+    mri_coreg_t2w.inputs.reference_mask = False
 
     bbregister = pe.Node(
         BBRegister(
@@ -362,6 +372,15 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
             (mri_coreg, transforms, [('out_lta_file', 'in2')]),
         ])  # fmt:skip
 
+        if use_t2w:
+            workflow.connect([
+                (inputnode, mri_coreg_t2w, [
+                    ('subjects_dir', 'subjects_dir'),
+                    ('subject_id', 'subject_id'),
+                    ('in_file', 'source_file'),
+                    ('t2w_preproc', 'reference_file')]),
+            ])  # fmt:skip
+
         # Short-circuit workflow building, use initial registration
         if use_bbr is False:
             outputnode.inputs.fallback = True
@@ -369,7 +388,9 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
             return workflow
 
         # Otherwise bbregister will also be used
-        workflow.connect(mri_coreg, 'out_lta_file', bbregister, 'init_reg_file')
+        workflow.connect(
+            mri_coreg_t2w if use_t2w else mri_coreg, 'out_lta_file', bbregister, 'init_reg_file'
+        )
 
     # Use bbregister
     workflow.connect([
@@ -378,6 +399,9 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
                                  ('in_file', 'source_file')]),
         (bbregister, transforms, [('out_lta_file', 'in1')]),
     ])  # fmt:skip
+
+    if use_t2w:
+        workflow.connect(inputnode, 't2w_preproc', bbregister, 'intermediate_file')
 
     # Short-circuit workflow building, use boundary-based registration
     if use_bbr is True:

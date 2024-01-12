@@ -215,6 +215,11 @@ def init_bold_fit_wf(
         layout=layout,
     )
 
+    # T2w is not required, but if available, use to improve BOLD -> anat coreg
+    has_t2w = layout.get(
+        suffix='T2w', extension='.nii.gz', **config.execution.get().get('bids_filters', {})
+    )
+
     basename = os.path.basename(bold_file)
     sbref_msg = f"No single-band-reference found for {basename}."
     if sbref_files and "sbref" in config.workflow.ignore:
@@ -267,6 +272,8 @@ def init_bold_fit_wf(
                 "subjects_dir",
                 "subject_id",
                 "fsnative2t1w_xfm",
+                # Optional - improvements if available
+                "t2w_preproc",
             ],
         ),
         name="inputnode",
@@ -592,6 +599,7 @@ def init_bold_fit_wf(
             freesurfer=config.workflow.run_reconall,
             omp_nthreads=omp_nthreads,
             mem_gb=mem_gb["resampled"],
+            use_t2w=has_t2w,
             sloppy=config.execution.sloppy,
         )
 
@@ -609,6 +617,7 @@ def init_bold_fit_wf(
                 ("t1w_preproc", "inputnode.t1w_preproc"),
                 ("t1w_mask", "inputnode.t1w_mask"),
                 ("t1w_dseg", "inputnode.t1w_dseg"),
+                ("t2w_preproc", "inputnode.t2w_preproc"),
                 # Undefined if --fs-no-reconall, but this is safe
                 ("subjects_dir", "inputnode.subjects_dir"),
                 ("subject_id", "inputnode.subject_id"),
