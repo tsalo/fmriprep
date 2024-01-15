@@ -195,8 +195,8 @@ def validate_input_dir(exec_env, bids_dir, participant_label):
             "MALFORMED_BVAL",
             "MISSING_TSV_COLUMN_EEG_ELECTRODES",
             "MISSING_SESSION",
+            "NO_T1W",
         ],
-        "error": ["NO_T1W"],
         "ignoredFiles": ['/dataset_description.json', '/participants.tsv'],
     }
     # Limit validation only to data from requested participants
