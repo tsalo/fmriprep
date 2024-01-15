@@ -555,6 +555,8 @@ jobs:
           name: Re-run fMRIPrep on single run of task data, without T1w in BIDS
           no_output_timeout: 2h
           command: |
+            mkdir -p /tmp/${DATASET}/work_partial_noT1w
+            chmod a+rwX /tmp/${DATASET}/work_partial_noT1w
             rm -Rf /tmp/data/${DATASET}/sub-01/anat
             FASTRACK_ARG="--derivatives anat=/tmp/${DATASET}/smriprep"
             fmriprep-docker -i nipreps/fmriprep:latest \
@@ -564,8 +566,8 @@ jobs:
                 /tmp/data/${DATASET} /tmp/${DATASET}/fmriprep-partial-noT1w participant \
                 --fs-subjects-dir /tmp/${DATASET}/freesurfer \
                 ${FASTRACK_ARG} \
-                --sloppy --write-graph --use-syn-sdc --mem-mb 14336 \
-                --output-spaces MNI152NLin2009cAsym fsaverage5 fsnative MNI152NLin6Asym anat \
+                --sloppy --write-graph --mem-mb 14336 \
+                --output-spaces MNI152NLin2009cAsym fsaverage5 \
                 --nthreads 4 --cifti-output --project-goodvoxels -vv
       - run:
           name: Clean working directory
