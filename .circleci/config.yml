@@ -560,7 +560,7 @@ jobs:
             fmriprep-docker -i nipreps/fmriprep:latest \
                 -e FMRIPREP_DEV 1 --user $(id -u):$(id -g) \
                 --network none \
-                --config $PWD/nipype.cfg -w /tmp/${DATASET}/work_partial \
+                --config $PWD/nipype.cfg -w /tmp/${DATASET}/work_partial_noT1w \
                 /tmp/data/${DATASET} /tmp/${DATASET}/fmriprep-partial-noT1w participant \
                 --fs-subjects-dir /tmp/${DATASET}/freesurfer \
                 ${FASTRACK_ARG} \
