@@ -18,10 +18,10 @@ def load_transforms(xfm_paths: list[Path], inverse: list[bool]) -> nt.base.Trans
     if len(inverse) == 1:
         inverse *= len(xfm_paths)
     elif len(inverse) != len(xfm_paths):
-        raise ValueError("Mismatched number of transforms and inverses")
+        raise ValueError('Mismatched number of transforms and inverses')
 
     chain = None
-    for path, inv in zip(xfm_paths[::-1], inverse[::-1]):
+    for path, inv in zip(xfm_paths[::-1], inverse[::-1], strict=False):
         path = Path(path)
         if path.suffix == '.h5':
             xfm = load_ants_h5(path)

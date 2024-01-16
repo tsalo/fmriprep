@@ -84,16 +84,16 @@ class RobustTCompCor(nac.TCompCor):
 
 class _MRICoregInputSpec(fs.registration.MRICoregInputSpec):
     reference_file = File(
-        argstr="--ref %s",
-        desc="reference (target) file",
+        argstr='--ref %s',
+        desc='reference (target) file',
         copyfile=False,
     )
     subject_id = traits.Str(
-        argstr="--s %s",
+        argstr='--s %s',
         position=1,
-        requires=["subjects_dir"],
-        desc="freesurfer subject ID (implies ``reference_mask == "
-        "aparc+aseg.mgz`` unless otherwise specified)",
+        requires=['subjects_dir'],
+        desc='freesurfer subject ID (implies ``reference_mask == '
+        'aparc+aseg.mgz`` unless otherwise specified)',
     )
 
 
@@ -106,7 +106,7 @@ class MRICoreg(fs.MRICoreg):
 
 
 class _FSSourceOutputSpec(nio.FSSourceOutputSpec):
-    T2 = File(desc="Intensity normalized whole-head volume", loc="mri")
+    T2 = File(desc='Intensity normalized whole-head volume', loc='mri')
 
 
 class FreeSurferSource(nio.FreeSurferSource):
