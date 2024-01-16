@@ -149,6 +149,7 @@ def init_bold_reg_wf(
                 'subjects_dir',
                 'subject_id',
                 'fsnative2t1w_xfm',
+                't2w_preproc',  # Optional
             ]
         ),
         name='inputnode',
@@ -162,6 +163,7 @@ def init_bold_reg_wf(
     if freesurfer:
         bbr_wf = init_bbreg_wf(
             use_bbr=use_bbr,
+            use_t2w=use_t2w,
             bold2t1w_dof=bold2t1w_dof,
             bold2t1w_init=bold2t1w_init,
             omp_nthreads=omp_nthreads,
@@ -184,6 +186,7 @@ def init_bold_reg_wf(
             ('t1w_preproc', 'inputnode.t1w_preproc'),
             ('t1w_mask', 'inputnode.t1w_mask'),
             ('t1w_dseg', 'inputnode.t1w_dseg'),
+            ('t2w_preproc', 'inputnode.t2w_preproc'),
         ]),
         (bbr_wf, outputnode, [
             ('outputnode.itk_bold_to_t1', 'itk_bold_to_t1'),
@@ -427,6 +430,7 @@ def init_fsl_bbr_wf(
     bold2t1w_init: RegistrationInit,
     omp_nthreads: int,
     sloppy: bool = False,
+    use_t2w: bool = False,
     name: str = 'fsl_bbr_wf',
 ):
     """
@@ -525,6 +529,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
                 't1w_preproc',  # FLIRT BBR
                 't1w_mask',
                 't1w_dseg',
+                't2w_preproc',
             ]
         ),
         name='inputnode',
