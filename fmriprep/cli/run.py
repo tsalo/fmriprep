@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
@@ -235,10 +234,3 @@ def main():
                 sentry_sdk.capture_message(msg, level="error")
 
         sys.exit(int((errno + len(failed_reports)) > 0))
-
-
-if __name__ == "__main__":
-    raise RuntimeError(
-        "fmriprep/cli/run.py should not be run directly;\n"
-        "Please `pip install` fmriprep and use the `fmriprep` command"
-    )
