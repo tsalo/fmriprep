@@ -12,7 +12,6 @@
 
 import os
 import sys
-from datetime import datetime
 
 from packaging import version as pver  # Avoid distutils.LooseVersion which is deprecated
 from sphinx import __version__ as sphinxversion
@@ -86,7 +85,7 @@ master_doc = 'index'
 # General information about the project.
 project = 'fmriprep'
 author = 'The fMRIPrep developers'
-copyright = f'2016-{datetime.now().year}, {author}'
+copyright = f'2016-, {author}'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
