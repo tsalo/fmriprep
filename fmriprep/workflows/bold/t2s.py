@@ -50,14 +50,13 @@ def init_bold_t2s_wf(
     r"""
     Combine multiple echos of :abbr:`ME-EPI (multi-echo echo-planar imaging)`.
 
-    This workflow wraps the `tedana`_ `T2* workflow`_ to optimally
-    combine multiple preprocessed echos and derive a T2\ :sup:`★` map.
+    This workflow wraps the `tedana`_ :func:`T2* workflow <tedana.workflows.t2smap_workflow>`
+    to optimally combine multiple preprocessed echos and derive a T2\ :sup:`★` map.
     The following steps are performed:
     #. Compute the T2\ :sup:`★` map
     #. Create an optimally combined ME-EPI time series
 
     .. _tedana: https://github.com/me-ica/tedana
-    .. _`T2* workflow`: https://tedana.readthedocs.io/en/latest/generated/tedana.workflows.t2smap_workflow.html#tedana.workflows.t2smap_workflow  # noqa
 
     Parameters
     ----------

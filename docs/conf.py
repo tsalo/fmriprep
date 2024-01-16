@@ -343,6 +343,7 @@ intersphinx_mapping = {
     "sdcflows": ("https://www.nipreps.org/sdcflows/", None),
     "smriprep": ("https://www.nipreps.org/smriprep/", None),
     "templateflow": ("https://www.templateflow.org/python-client", None),
+    "tedana": ("https://tedana.readthedocs.io/en/latest/", None),
 }
 
 suppress_warnings = ["image.nonlocal_uri"]
