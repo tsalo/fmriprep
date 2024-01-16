@@ -116,8 +116,8 @@ def _build_parser(**kwargs):
             if Path(value).exists():
                 try:
                     return loads(Path(value).read_text(), object_hook=_filter_pybids_none_any)
-                except JSONDecodeError:
-                    raise parser.error(f'JSON syntax error in: <{value}>.')
+                except JSONDecodeError as e:
+                    raise parser.error(f'JSON syntax error in: <{value}>.') from e
             else:
                 raise parser.error(f'Path does not exist: <{value}>.')
 
@@ -130,8 +130,8 @@ def _build_parser(**kwargs):
             value = float(value)
         except ValueError:
             raise parser.error(
-                "Slice time reference must be number, 'start', or 'middle'. " f'Received {value}.'
-            )
+                f"Slice time reference must be number, 'start', or 'middle'. Received {value}."
+            ) from None
         if not 0 <= value <= 1:
             raise parser.error(f'Slice time reference must be in range 0-1. Received {value}.')
         return value
@@ -784,7 +784,7 @@ def parse_args(args=None, namespace=None):
         import yaml
 
         with open(opts.use_plugin) as f:
-            plugin_settings = yaml.load(f, Loader=yaml.FullLoader)
+            plugin_settings = yaml.safe_load(f)
         _plugin = plugin_settings.get('plugin')
         if _plugin:
             config.nipype.plugin = _plugin

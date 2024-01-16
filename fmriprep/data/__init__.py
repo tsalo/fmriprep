@@ -163,7 +163,7 @@ class Loader:
         """
         return as_file(self.files.joinpath(*segments))
 
-    @cache
+    @cache  # noqa: B019
     def cached(self, *segments) -> Path:
         """Ensure data is available as a :class:`~pathlib.Path`.
 

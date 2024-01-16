@@ -183,7 +183,7 @@ def test_bids_filter_file(tmp_path, capsys):
     _reset_config()
 
 
-@pytest.mark.parametrize('st_ref', (None, '0', '1', '0.5', 'start', 'middle'))
+@pytest.mark.parametrize('st_ref', (None, '0', '1', '0.5', 'start', 'middle'))  # noqa: PT007
 def test_slice_time_ref(tmp_path, st_ref):
     bids_path = tmp_path / 'data'
     out_path = tmp_path / 'out'
@@ -200,13 +200,13 @@ def test_slice_time_ref(tmp_path, st_ref):
 
 @pytest.mark.parametrize(
     ('args', 'expectation'),
-    (
+    [
         ([], False),
         (['--use-syn-sdc'], 'error'),
         (['--use-syn-sdc', 'error'], 'error'),
         (['--use-syn-sdc', 'warn'], 'warn'),
         (['--use-syn-sdc', 'other'], (SystemExit, ArgumentError)),
-    ),
+    ],
 )
 def test_use_syn_sdc(tmp_path, args, expectation):
     bids_path = tmp_path / 'data'

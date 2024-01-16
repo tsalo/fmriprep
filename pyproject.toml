@@ -171,12 +171,16 @@ extend-select = [
   "PT",
   "Q",
 ]
+extend-ignore = [
+  "S311",  # We are not using random for cryptographic purposes
+]
 
 [tool.ruff.flake8-quotes]
 inline-quotes = "single"
 
 [tool.ruff.extend-per-file-ignores]
 "*/test_*.py" = ["S101"]
+"fmriprep/utils/debug.py" = ["A002", "T100"]
 
 [tool.ruff.format]
 quote-style = "single"

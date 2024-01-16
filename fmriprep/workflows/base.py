@@ -237,6 +237,7 @@ It is released under the [CC0]\
             "Future versions of fMRIPrep will use alternative conventions. "
             "Please refer to the documentation before upgrading.",
             FutureWarning,
+            stacklevel=1,
         )
 
     spaces = config.workflow.spaces

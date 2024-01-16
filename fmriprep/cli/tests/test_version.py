@@ -21,7 +21,7 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Test version checks."""
-from datetime import datetime
+from datetime import datetime, timezone
 from os import getenv, geteuid
 from pathlib import Path
 
@@ -71,7 +71,7 @@ def test_check_latest1(tmpdir, monkeypatch):
     assert v == Version('1.1.0')
     assert cachefile.read_text().split('|') == [
         str(v),
-        datetime.now().strftime(DATE_FMT),
+        datetime.now(tz=timezone.utc).strftime(DATE_FMT),
     ]
 
     # Second check - test the cache file is read
@@ -139,7 +139,7 @@ def test_check_latest2(tmpdir, monkeypatch, result, code, json):
     [
         '3laj#r???d|3akajdf#',
         '2.0.0|3akajdf#',
-        '|'.join(('2.0.0', datetime.now().strftime(DATE_FMT), '')),
+        '|'.join(('2.0.0', datetime.now(tz=timezone.utc).strftime(DATE_FMT), '')),
         '',
     ],
 )
@@ -210,7 +210,7 @@ def test_readonly(tmp_path, monkeypatch):
         cachedir.mkdir(mode=0o555, exist_ok=True)
 
     # Make sure creating the folder will raise the exception.
-    with pytest.raises(OSError):
+    with pytest.raises(OSError, match=r'Read-only file system|Permission denied'):
         (cachedir / 'fmriprep').mkdir(parents=True)
 
     # Should not raise

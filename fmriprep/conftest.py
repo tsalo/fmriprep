@@ -22,12 +22,12 @@ def copytree_or_skip(source, target):
 
     try:
         copytree(data_dir, target / data_dir.name)
-    except Exception:
+    except Exception:  # noqa: BLE001
         pytest.skip(f'Cannot copy {data_dir!r} into {target / data_dir.name}. Probably in a zip.')
 
 
 @pytest.fixture(autouse=True)
-def populate_namespace(doctest_namespace, tmp_path):
+def _populate_namespace(doctest_namespace, tmp_path):
     doctest_namespace['copytree_or_skip'] = copytree_or_skip
     doctest_namespace['testdir'] = tmp_path
 

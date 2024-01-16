@@ -447,7 +447,9 @@ def init_fsl_bbr_wf(
             :simple_form: yes
 
             from fmriprep.workflows.bold.registration import init_fsl_bbr_wf
-            wf = init_fsl_bbr_wf(use_bbr=True, bold2anat_dof=9, bold2anat_init='t1w', omp_nthreads=1)
+            wf = init_fsl_bbr_wf(
+                use_bbr=True, bold2anat_dof=9, bold2anat_init='t1w', omp_nthreads=1
+            )
 
 
     Parameters
