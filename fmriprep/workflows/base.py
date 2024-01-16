@@ -341,27 +341,19 @@ It is released under the [CC0]\
 
     # allow to run with anat-fast-track on fMRI-only dataset
     if 't1w_preproc' in anatomical_cache and not subject_data['t1w']:
-        workflow.connect(
-            [
-                (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
-                (anat_fit_wf, summary, [('outputnode.t1w_preproc', 't1w')]),
-                (anat_fit_wf, ds_report_summary, [('outputnode.t1w_preproc', 'source_file')]),
-                (anat_fit_wf, ds_report_about, [('outputnode.t1w_preproc', 'source_file')]),
-            ]
-        )
+        workflow.connect([
+            (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
+            (anat_fit_wf, summary, [('outputnode.t1w_preproc', 't1w')]),
+            (anat_fit_wf, ds_report_summary, [('outputnode.t1w_preproc', 'source_file')]),
+            (anat_fit_wf, ds_report_about, [('outputnode.t1w_preproc', 'source_file')]),
+        ])  # fmt:skip
     else:
-        workflow.connect(
-            [
-                (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
-                (bidssrc, summary, [('t1w', 't1w')]),
-                (
-                    bidssrc,
-                    ds_report_summary,
-                    [(('t1w', fix_multi_T1w_source_name), 'source_file')],
-                ),
-                (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
-            ]
-        )
+        workflow.connect([
+            (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
+            (bidssrc, summary, [('t1w', 't1w')]),
+            (bidssrc, ds_report_summary, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+            (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+        ])  # fmt:skip
 
     workflow.connect([
         (inputnode, anat_fit_wf, [('subjects_dir', 'inputnode.subjects_dir')]),
