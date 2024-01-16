@@ -146,7 +146,7 @@ def write_derivative_description(bids_dir, deriv_dir):
     Path.write_text(deriv_dir / 'dataset_description.json', json.dumps(desc, indent=4))
 
 
-def validate_input_dir(exec_env, bids_dir, participant_label):
+def validate_input_dir(exec_env, bids_dir, participant_label, need_T1w=True):
     # Ignore issues and warnings that should not influence FMRIPREP
     import subprocess
     import tempfile
@@ -197,6 +197,7 @@ def validate_input_dir(exec_env, bids_dir, participant_label):
             "MISSING_SESSION",
             "NO_T1W",
         ],
+        "error": ["NO_T1W"] if need_T1w else [],
         "ignoredFiles": ['/dataset_description.json', '/participants.tsv'],
     }
     # Limit validation only to data from requested participants
