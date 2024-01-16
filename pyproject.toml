@@ -123,7 +123,6 @@ version-file = "fmriprep/_version.py"
 
 [tool.black]
 line-length = 99
-target-version = ['py39']
 skip-string-normalization = true
 
 [tool.isort]
@@ -146,3 +145,38 @@ doctest_optionflags = "ALLOW_UNICODE NORMALIZE_WHITESPACE ELLIPSIS"
 env = "PYTHONHASHSEED=0"
 filterwarnings = ["ignore::DeprecationWarning"]
 junit_family = "xunit2"
+
+[tool.ruff]
+line-length = 99
+extend-select = [
+  "F",
+  "E",
+  "W",
+  "I",
+  "UP",
+  "YTT",
+  "S",
+  "BLE",
+  "B",
+  "A",
+  # "CPY",
+  "C4",
+  "DTZ",
+  "T10",
+  # "EM",
+  "EXE",
+  "FA",
+  "ISC",
+  "ICN",
+  "PT",
+  "Q",
+]
+
+[tool.ruff.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ruff.extend-per-file-ignores]
+"*/test_*.py" = ["S101"]
+
+[tool.ruff.format]
+quote-style = "single"
