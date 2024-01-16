@@ -340,7 +340,7 @@ It is released under the [CC0]\
     )
 
     # allow to run with anat-fast-track on fMRI-only dataset
-    if anatomical_cache and not subject_data['t1w']:
+    if 't1w_preproc' in anatomical_cache and not subject_data['t1w']:
         workflow.connect(
             [
                 (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
