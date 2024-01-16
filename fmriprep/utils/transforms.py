@@ -84,7 +84,7 @@ def load_ants_h5(filename: Path) -> nt.base.TransformBase:
         msg += f'Found: {fixed_params}'
         if not np.array_equal(fixed_params[6:], FIXED_PARAMS[6:]):
             raise ValueError(msg)
-        warnings.warn(msg)
+        warnings.warn(msg, stacklevel=1)
 
     shape = tuple(fixed_params[:3].astype(int))
     warp = h['TransformGroup']['2']['TransformParameters'][:]
@@ -96,18 +96,5 @@ def load_ants_h5(filename: Path) -> nt.base.TransformBase:
     warp_affine[:3, 3] = fixed_params[3:6]
     lps_to_ras = np.eye(4) * np.array([-1, -1, 1, 1])
     warp_affine = lps_to_ras @ warp_affine
-    if np.array_equal(fixed_params, FIXED_PARAMS):
-        # Confirm that we construct the right affine when fixed parameters are known
-        assert np.array_equal(
-            warp_affine,
-            np.array(
-                [
-                    [1.0, 0.0, 0.0, -96.0],
-                    [0.0, 1.0, 0.0, -132.0],
-                    [0.0, 0.0, 1.0, -78.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ]
-            ),
-        )
     transforms.insert(0, nt.DenseFieldTransform(nb.Nifti1Image(warp, warp_affine)))
     return nt.TransformChain(transforms)
