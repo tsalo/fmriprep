@@ -415,7 +415,7 @@ class FMRISummary(SimpleInterface):
         names = {}
 
         for conf_el in self.inputs.confounds_list:
-            if isinstance(conf_el, (list, tuple)):
+            if isinstance(conf_el, list | tuple):
                 headers.append(conf_el[0])
                 if conf_el[1] is not None:
                     units[conf_el[0]] = conf_el[1]

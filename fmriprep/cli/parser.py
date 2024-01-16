@@ -719,11 +719,10 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     latest = check_latest()
     if latest is not None and currentv < latest:
         print(
-            """\
-You are using fMRIPrep-%s, and a newer version of fMRIPrep is available: %s.
+            f"""\
+You are using fMRIPrep-{currentv}, and a newer version of fMRIPrep is available: {latest}.
 Please check out our documentation about how and when to upgrade:
-https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading"""
-            % (currentv, latest),
+https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading""",
             file=sys.stderr,
         )
 
@@ -731,12 +730,11 @@ https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading"""
     if _blist[0]:
         _reason = _blist[1] or 'unknown'
         print(
-            """\
-WARNING: Version %s of fMRIPrep (current) has been FLAGGED
-(reason: %s).
+            f"""\
+WARNING: Version {config.environment.version} of fMRIPrep (current) has been FLAGGED
+(reason: {_reason}).
 That means some severe flaw was found in it and we strongly
-discourage its usage."""
-            % (config.environment.version, _reason),
+discourage its usage.""",
             file=sys.stderr,
         )
 

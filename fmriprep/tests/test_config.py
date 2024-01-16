@@ -103,7 +103,7 @@ def test_config_spaces():
 
 
 @pytest.mark.parametrize(
-    'master_seed,ants_seed,numpy_seed', [(1, 17612, 8272), (100, 19094, 60232)]
+    ('master_seed', 'ants_seed', 'numpy_seed'), [(1, 17612, 8272), (100, 19094, 60232)]
 )
 def test_prng_seed(master_seed, ants_seed, numpy_seed):
     """Ensure seeds are properly tracked"""

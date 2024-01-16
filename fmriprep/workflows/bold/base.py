@@ -29,7 +29,6 @@ Orchestrating the BOLD-preprocessing workflow
 .. autofunction:: init_bold_native_wf
 
 """
-import typing as ty
 
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
@@ -56,8 +55,8 @@ from .t2s import init_t2s_reporting_wf
 def init_bold_wf(
     *,
     bold_series: list[str],
-    precomputed: dict = {},
-    fieldmap_id: ty.Optional[str] = None,
+    precomputed: dict = None,
+    fieldmap_id: str | None = None,
 ) -> pe.Workflow:
     """
     This workflow controls the functional preprocessing stages of *fMRIPrep*.
@@ -168,6 +167,8 @@ def init_bold_wf(
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 
+    if precomputed is None:
+        precomputed = {}
     bold_file = bold_series[0]
 
     fmriprep_dir = config.execution.fmriprep_dir

@@ -80,10 +80,11 @@ def get_git_lines(fname='line-contributors.txt'):
     if not lines:
         raise RuntimeError(
             """\
-Could not find line-contributors from git repository.%s"""
-            % """ \
+Could not find line-contributors from git repository.{}""".format(
+                """ \
 git-(line-)summary not found, please install git-extras. """
-            * (cmd[0] is None)
+                * (cmd[0] is None)
+            )
         )
     return [' '.join(line.strip().split()[1:-1]) for line in lines if '%' in line]
 

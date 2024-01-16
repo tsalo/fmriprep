@@ -209,7 +209,7 @@ DEBUG_MODES = ('compcor', 'fieldmaps', 'pdb')
 class _Config:
     """An abstract class forbidding instantiation."""
 
-    _paths = tuple()
+    _paths = ()
 
     def __init__(self):
         """Avert instantiation."""
@@ -223,7 +223,7 @@ class _Config:
             if k in ignore or v is None:
                 continue
             if k in cls._paths:
-                if isinstance(v, (list, tuple)):
+                if isinstance(v, list | tuple):
                     setattr(cls, k, [Path(val).absolute() for val in v])
                 else:
                     setattr(cls, k, Path(v).absolute())
@@ -248,7 +248,7 @@ class _Config:
             if callable(getattr(cls, k)):
                 continue
             if k in cls._paths:
-                if isinstance(v, (list, tuple)):
+                if isinstance(v, list | tuple):
                     v = [str(val) for val in v]
                 else:
                     v = str(v)

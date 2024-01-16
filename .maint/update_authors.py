@@ -119,10 +119,11 @@ def get_git_lines(fname='line-contributors.txt'):
     if not lines:
         raise RuntimeError(
             """\
-Could not find line-contributors from git repository.%s"""
-            % """ \
+Could not find line-contributors from git repository.{}""".format(
+                """ \
 git-line-summary not found, please install git-extras. """
-            * (git_line_summary_path is None)
+                * (git_line_summary_path is None)
+            )
         )
     return [' '.join(line.strip().split()[1:-1]) for line in lines if '%' in line]
 
@@ -242,7 +243,7 @@ def publication(
     hits = [hit for hit in hits if hit['name'] not in pi_names] + pi_hits
 
     def _aslist(value):
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list | tuple):
             return value
         return [value]
 
@@ -273,7 +274,12 @@ def publication(
     print('Authors (%d):' % len(hits))
     print(
         '%s.'
-        % '; '.join(['%s \\ :sup:`%s`\\ ' % (i['name'], idx) for i, idx in zip(hits, aff_indexes, strict=False)])
+        % '; '.join(
+            [
+                '{} \\ :sup:`{}`\\ '.format(i['name'], idx)
+                for i, idx in zip(hits, aff_indexes, strict=False)
+            ]
+        )
     )
 
     print(

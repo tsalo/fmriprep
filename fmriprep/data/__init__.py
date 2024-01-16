@@ -19,7 +19,6 @@ from contextlib import AbstractContextManager, ExitStack
 from functools import cached_property
 from pathlib import Path
 from types import ModuleType
-from typing import Union
 
 try:
     from functools import cache
@@ -111,7 +110,7 @@ class Loader:
     .. automethod:: cached
     """
 
-    def __init__(self, anchor: Union[str, ModuleType]):
+    def __init__(self, anchor: str | ModuleType):
         self._anchor = anchor
         self.files = files(anchor)
         self.exit_stack = ExitStack()

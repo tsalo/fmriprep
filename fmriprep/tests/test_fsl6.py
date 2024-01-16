@@ -15,7 +15,7 @@ TEMPLATE = tf.get('MNI152NLin2009cAsym', resolution=2, desc=None, suffix='T1w')
     fslversion and LooseVersion(fslversion) < LooseVersion('6.0.0'), reason='FSL6 test'
 )
 @pytest.mark.parametrize(
-    'path_parent,filename',
+    ('path_parent', 'filename'),
     [
         ('.', 'brain.nii.gz'),
         (

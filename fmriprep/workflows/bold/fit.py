@@ -94,8 +94,8 @@ def get_sbrefs(
 def init_bold_fit_wf(
     *,
     bold_series: list[str],
-    precomputed: dict = {},
-    fieldmap_id: ty.Optional[str] = None,
+    precomputed: dict = None,
+    fieldmap_id: str | None = None,
     omp_nthreads: int = 1,
     name: str = 'bold_fit_wf',
 ) -> pe.Workflow:
@@ -202,6 +202,8 @@ def init_bold_fit_wf(
 
     from fmriprep.utils.misc import estimate_bold_mem_usage
 
+    if precomputed is None:
+        precomputed = {}
     layout = config.execution.layout
     bids_filters = config.execution.get().get('bids_filters', {})
 
@@ -632,7 +634,7 @@ def init_bold_fit_wf(
 def init_bold_native_wf(
     *,
     bold_series: list[str],
-    fieldmap_id: ty.Optional[str] = None,
+    fieldmap_id: str | None = None,
     omp_nthreads: int = 1,
     name: str = 'bold_native_wf',
 ) -> pe.Workflow:
@@ -734,7 +736,8 @@ def init_bold_native_wf(
         shapes = [nb.load(echo).shape for echo in bold_series]
         if len(set(shapes)) != 1:
             diagnostic = '\n'.join(
-                f'{os.path.basename(echo)}: {shape}' for echo, shape in zip(bold_series, shapes, strict=False)
+                f'{os.path.basename(echo)}: {shape}'
+                for echo, shape in zip(bold_series, shapes, strict=False)
             )
             raise RuntimeError(f'Multi-echo images found with mismatching shapes\n{diagnostic}')
         if len(shapes) == 2:

@@ -281,9 +281,7 @@ class MetricResample(WBCommand, OpenMPCommandMixin):
     def _format_arg(self, opt, spec, val):
         if opt in ('current_area', 'new_area'):
             if not self.inputs.area_surfs and not self.inputs.area_metrics:
-                raise ValueError(
-                    f'{opt} was set but neither area_surfs or area_metrics were set'
-                )
+                raise ValueError(f'{opt} was set but neither area_surfs or area_metrics were set')
         if opt == 'method':
             if (
                 val == 'ADAP_BARY_AREA'
