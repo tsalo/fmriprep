@@ -31,7 +31,7 @@ def generate_reports(subject_list, output_dir, run_uuid, config=None, work_dir=N
     if work_dir is not None:
         reportlets_dir = Path(work_dir) / "reportlets"
 
-    report_errors = []
+    error_list = ""
     for subject_label in subject_list:
         entities = {}
         entities["subject"] = subject_label
@@ -53,17 +53,14 @@ def generate_reports(subject_list, output_dir, run_uuid, config=None, work_dir=N
             robj.generate_report()
         except:
             errno += 1
+            error_list = error_list + f"{subject_label}, "
 
     if errno:
         import logging
 
         logger = logging.getLogger("cli")
-        error_list = ", ".join(
-            f"{subid} ({err})" for subid, err in zip(subject_list, report_errors) if err
-        )
-        logger.error(
-            "Preprocessing did not finish successfully. Errors occurred while processing "
-            "data from participants: %s. Check the HTML reports for details.",
+        logger.debug(
+            "Report generation was not successful for the following participants : %s.",
             error_list,
         )
     return errno
