@@ -667,7 +667,7 @@ jobs:
                 --reports-only --config-file /tmp/${DATASET}/work/${UUID}/config.toml -vv
             RET=$?
             set -e
-            [[ "$RET" -eq "1" ]]
+            [[ "$RET" -eq "0" ]]  # ensure report was generated successfully
       - run:
           name: Clean working directory
           when: on_success
