@@ -210,7 +210,7 @@ def init_bbreg_wf(
     Build a workflow to run FreeSurfer's ``bbregister``.
 
     This workflow uses FreeSurfer's ``bbregister`` to register a BOLD image to
-    a T1-weighted structual image, leveraging a T2-weighted image (if available)
+    a T1-weighted structural image, leveraging a T2-weighted image (if available)
     in the intermediate for improved tissue contrast.
 
     It is a counterpart to :py:func:`~fmriprep.workflows.bold.registration.init_fsl_bbr_wf`,

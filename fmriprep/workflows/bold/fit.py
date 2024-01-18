@@ -203,6 +203,7 @@ def init_bold_fit_wf(
     from fmriprep.utils.misc import estimate_bold_mem_usage
 
     layout = config.execution.layout
+    bids_filters = config.execution.get().get('bids_filters', {})
 
     # Fitting operates on the shortest echo
     # This could become more complicated in the future
@@ -211,15 +212,13 @@ def init_bold_fit_wf(
     # Collect sbref files, sorted by EchoTime
     sbref_files = get_sbrefs(
         bold_series,
-        entity_overrides=config.execution.get().get('bids_filters', {}).get('sbref', {}),
+        entity_overrides=bids_filters.get('sbref', {}),
         layout=layout,
     )
 
     # T2w is not required, but if available, use to improve BOLD -> anat coreg
     has_t2w = bool(
-        layout.get(
-            suffix='T2w', extension='.nii.gz', **config.execution.get().get('bids_filters', {})
-        )
+        layout.get(suffix='T2w', extension=['.nii', '.nii.gz'], **bids_filters.get('t2w', {}))
     )
 
     basename = os.path.basename(bold_file)
