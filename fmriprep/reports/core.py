@@ -24,6 +24,8 @@ from pathlib import Path
 
 from nireports.assembler.report import Report
 
+from .. import config
+
 
 def generate_reports(subject_list, output_dir, run_uuid, config=None, work_dir=None):
     """Generate reports for a list of subjects."""
@@ -31,7 +33,7 @@ def generate_reports(subject_list, output_dir, run_uuid, config=None, work_dir=N
     if work_dir is not None:
         reportlets_dir = Path(work_dir) / "reportlets"
 
-    error_list = ""
+    errors = []
     for subject_label in subject_list:
         entities = {}
         entities["subject"] = subject_label
@@ -48,19 +50,21 @@ def generate_reports(subject_list, output_dir, run_uuid, config=None, work_dir=N
         )
 
         # Count nbr of subject for which report generation failed
-        errno = 0
         try:
             robj.generate_report()
         except:
-            errno += 1
-            error_list = error_list + f"{subject_label}, "
+            import sys
+            import traceback
 
-    if errno:
-        import logging
+            errors.append(subject_label)
+            traceback.print_exception(
+                *sys.exc_info(),
+                file=str(Path(output_dir) / "logs" / f"report-{run_uuid}-{subject_label}.err"),
+            )
 
-        logger = logging.getLogger("cli")
+    if errors:
         logger.debug(
             "Report generation was not successful for the following participants : %s.",
-            error_list,
+            ", ".join(errors),
         )
-    return errno
+    return len(errors)
