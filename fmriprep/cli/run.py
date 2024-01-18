@@ -225,10 +225,11 @@ def main():
 
         if sentry_sdk is not None and failed_reports:
             sentry_sdk.capture_message(
-                "Report generation failed for %d subjects" % failed_reports,
+                "Report generation was not successful for the following participants : %s.",
+                ", ".join(failed_reports),
                 level="error",
             )
-        sys.exit(int((errno + failed_reports) > 0))
+        sys.exit(int((errno + len(failed_reports)) > 0))
 
 
 if __name__ == "__main__":

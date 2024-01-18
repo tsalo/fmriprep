@@ -24,8 +24,6 @@ from pathlib import Path
 
 from nireports.assembler.report import Report
 
-from .. import config
-
 
 def generate_reports(subject_list, output_dir, run_uuid, config=None, work_dir=None):
     """Generate reports for a list of subjects."""
@@ -62,9 +60,4 @@ def generate_reports(subject_list, output_dir, run_uuid, config=None, work_dir=N
                 file=str(Path(output_dir) / "logs" / f"report-{run_uuid}-{subject_label}.err"),
             )
 
-    if errors:
-        logger.debug(
-            "Report generation was not successful for the following participants : %s.",
-            ", ".join(errors),
-        )
-    return len(errors)
+    return errors
