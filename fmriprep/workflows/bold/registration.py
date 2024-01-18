@@ -210,7 +210,8 @@ def init_bbreg_wf(
     Build a workflow to run FreeSurfer's ``bbregister``.
 
     This workflow uses FreeSurfer's ``bbregister`` to register a BOLD image to
-    a T2-weighted structural image (if available), and ultimately a T1-weighted structual image.
+    a T1-weighted structual image, leveraging a T2-weighted image (if available)
+    in the intermediate for improved tissue contrast.
 
     It is a counterpart to :py:func:`~fmriprep.workflows.bold.registration.init_fsl_bbr_wf`,
     which performs the same task using FSL's FLIRT with a BBR cost function.
@@ -244,6 +245,8 @@ def init_bbreg_wf(
     bold2t1w_init : str, 'header' or 'register'
         If ``'header'``, use header information for initialization of BOLD and T1 images.
         If ``'register'``, align volumes by their centers.
+    use_t2w : :obj:`bool`, optional
+        If a T2w reference image is available, use it as an intermediate for BBR.
     name : :obj:`str`, optional
         Workflow name (default: bbreg_wf)
 
@@ -263,6 +266,8 @@ def init_bbreg_wf(
         Unused (see :py:func:`~fmriprep.workflows.bold.registration.init_fsl_bbr_wf`)
     t1w_dseg
         Unused (see :py:func:`~fmriprep.workflows.bold.registration.init_fsl_bbr_wf`)
+    t2w_preproc
+        T2w reference in T1w space (Only used if ``use_t2w`` is ``True``)
 
     Outputs
     -------
@@ -291,6 +296,11 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         if bold2t1w_dof == 6
         else 'to account for distortions remaining in the BOLD reference',
     )
+
+    if use_t2w:
+        workflow.__desc__ += (
+            " A T2w reference was used as an intermediate volume to improve tissue contrast." ""
+        )
 
     inputnode = pe.Node(
         niu.IdentityInterface(
@@ -469,6 +479,8 @@ def init_fsl_bbr_wf(
     bold2t1w_init : str, 'header' or 'register'
         If ``'header'``, use header information for initialization of BOLD and T1 images.
         If ``'register'``, align volumes by their centers.
+    use_t2w : :obj:`bool`, optional
+        Unused
     name : :obj:`str`, optional
         Workflow name (default: fsl_bbr_wf)
 
