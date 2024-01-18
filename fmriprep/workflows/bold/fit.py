@@ -216,8 +216,10 @@ def init_bold_fit_wf(
     )
 
     # T2w is not required, but if available, use to improve BOLD -> anat coreg
-    has_t2w = layout.get(
-        suffix='T2w', extension='.nii.gz', **config.execution.get().get('bids_filters', {})
+    has_t2w = bool(
+        layout.get(
+            suffix='T2w', extension='.nii.gz', **config.execution.get().get('bids_filters', {})
+        )
     )
 
     basename = os.path.basename(bold_file)
