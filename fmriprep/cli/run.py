@@ -223,6 +223,12 @@ def main():
         write_derivative_description(config.execution.bids_dir, config.execution.fmriprep_dir)
         write_bidsignore(config.execution.fmriprep_dir)
 
+        if failed_reports:
+            config.loggers.cli.error(
+                "Report generation was not successful for the following participants : %s.",
+                ", ".join(failed_reports),
+            )
+
         if sentry_sdk is not None and failed_reports:
             sentry_sdk.capture_message(
                 "Report generation was not successful for the following participants : %s.",
