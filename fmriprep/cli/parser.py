@@ -31,7 +31,7 @@ def _build_parser(**kwargs):
 
     ``kwargs`` are passed to ``argparse.ArgumentParser`` (mainly useful for debugging).
     """
-    from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+    from argparse import Action, ArgumentDefaultsHelpFormatter, ArgumentParser
     from functools import partial
     from pathlib import Path
 
@@ -39,6 +39,27 @@ def _build_parser(**kwargs):
     from packaging.version import Version
 
     from .version import check_latest, is_flagged
+
+    deprecations = {
+        # parser attribute name: (replacement flag, version slated to be removed in)
+        'use_aroma': (None, '24.0.0'),
+        'aroma_melodic_dim': (None, '24.0.0'),
+        'aroma_err_on_warn': (None, '24.0.0'),
+        'bold2t1w_init': ('--bold2anat-init', '24.2.0'),
+        'bold2t1w_dof': ('--bold2anat-dof', '24.2.0'),
+    }
+
+    class DeprecatedAction(Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            new_opt, rem_vers = deprecations.get(self.dest, (None, None))
+            msg = (
+                f"{self.option_strings} has been deprecated and will be removed in "
+                f"{rem_vers or 'a later version'}."
+            )
+            if new_opt:
+                msg += f" Please use `{new_opt}` instead."
+            print(msg, file=sys.stderr)
+            delattr(namespace, self.dest)
 
     def _path_exists(path, parser):
         """Ensure a given path exists."""
@@ -313,19 +334,32 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     )
     g_conf.add_argument(
         "--bold2t1w-init",
-        action="store",
-        default="register",
+        action=DeprecatedAction,
         choices=["register", "header"],
-        help='Either "register" (the default) to initialize volumes at center or "header"'
-        " to use the header information when coregistering BOLD to T1w images.",
+        help="Deprecated - use `--bold2anat-init` instead.",
     )
     g_conf.add_argument(
         "--bold2t1w-dof",
+        action=DeprecatedAction,
+        choices=[6, 9, 12],
+        type=int,
+        help="Deprecated - use `--bold2anat-dof` instead.",
+    )
+    g_conf.add_argument(
+        "--bold2anat-init",
+        choices=["auto", "t1w", "header"],
+        default="auto",
+        help="Method of BOLD to anatomical coregistration. If `auto`, a T2w image is used if "
+        "available, otherwise the T1w image. `t1w` forces use of the T1w, and `header` uses "
+        "the T1w header information.",
+    )
+    g_conf.add_argument(
+        "--bold2anat-dof",
         action="store",
         default=6,
         choices=[6, 9, 12],
         type=int,
-        help="Degrees of freedom when registering BOLD to T1w images. "
+        help="Degrees of freedom when registering BOLD to anatomical images. "
         "6 degrees (rotation and translation) are used by default.",
     )
     g_conf.add_argument(
@@ -445,23 +479,20 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     g_aroma = parser.add_argument_group("[DEPRECATED] Options for running ICA_AROMA")
     g_aroma.add_argument(
         "--use-aroma",
-        action="store_true",
-        default=False,
+        action=DeprecatedAction,
         help="Deprecated. Will raise an error in 24.0.",
     )
     g_aroma.add_argument(
         "--aroma-melodic-dimensionality",
         dest="aroma_melodic_dim",
-        action="store",
-        default=0,
+        action=DeprecatedAction,
         type=int,
         help="Deprecated. Will raise an error in 24.0.",
     )
     g_aroma.add_argument(
         "--error-on-aroma-warnings",
-        action="store_true",
+        action=DeprecatedAction,
         dest="aroma_err_on_warn",
-        default=False,
         help="Deprecated. Will raise an error in 24.0.",
     )
 
