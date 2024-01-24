@@ -525,11 +525,12 @@ class workflow(_Config):
     aroma_melodic_dim = None
     """Number of ICA components to be estimated by MELODIC
     (positive = exact, negative = maximum)."""
-    bold2t1w_dof = None
-    """Degrees of freedom of the BOLD-to-T1w registration steps."""
-    bold2t1w_init = "register"
-    """Whether to use standard coregistration ('register') or to initialize coregistration from the
-    BOLD image-header ('header')."""
+    bold2anat_dof = None
+    """Degrees of freedom of the BOLD-to-anatomical registration steps."""
+    bold2anat_init = "auto"
+    """Method of BOLD to anatomical coregistration. The target anatomical (``'t1w'``, ``'t2w'``)
+    can be specified, otherwise ``'auto'`` will prefer a T2w image but fall back to T1w if none
+    are available. Alternatively, ``'header'`` will use the T1w header information."""
     cifti_output = None
     """Generate HCP Grayordinates, accepts either ``'91k'`` (default) or ``'170k'``."""
     dummy_scans = None
