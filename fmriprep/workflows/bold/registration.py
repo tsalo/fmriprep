@@ -54,7 +54,6 @@ def init_bold_reg_wf(
     bold2anat_init: RegistrationInit,
     mem_gb: float,
     omp_nthreads: int,
-    use_t2w: bool = False,
     name: str = 'bold_reg_wf',
     sloppy: bool = False,
 ):
@@ -147,7 +146,6 @@ def init_bold_reg_wf(
                 'subjects_dir',
                 'subject_id',
                 'fsnative2t1w_xfm',
-                't2w_preproc',  # Optional
             ]
         ),
         name='inputnode',
@@ -183,7 +181,6 @@ def init_bold_reg_wf(
             ('t1w_preproc', 'inputnode.t1w_preproc'),
             ('t1w_mask', 'inputnode.t1w_mask'),
             ('t1w_dseg', 'inputnode.t1w_dseg'),
-            ('t2w_preproc', 'inputnode.t2w_preproc'),
         ]),
         (bbr_wf, outputnode, [
             ('outputnode.itk_bold_to_t1', 'itk_bold_to_t1'),
@@ -241,8 +238,6 @@ def init_bbreg_wf(
         If ``'header'``, use header information for initialization of BOLD and T1 images.
         If ``'t1w'``, align BOLD to T1w by their centers.
         If ``'t2w'``, align BOLD to T1w using the T2w as an intermediate.
-    use_t2w : :obj:`bool`, optional
-        If a T2w reference image is available, use it as an intermediate for BBR.
     name : :obj:`str`, optional
         Workflow name (default: bbreg_wf)
 
@@ -262,8 +257,6 @@ def init_bbreg_wf(
         Unused (see :py:func:`~fmriprep.workflows.bold.registration.init_fsl_bbr_wf`)
     t1w_dseg
         Unused (see :py:func:`~fmriprep.workflows.bold.registration.init_fsl_bbr_wf`)
-    t2w_preproc
-        T2w reference in T1w space (Only used if ``bold2anat_init`` is ``t2w``)
 
     Outputs
     -------
@@ -279,7 +272,7 @@ def init_bbreg_wf(
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.nitransforms import ConcatenateXFMs
 
-    from fmriprep.interfaces.patches import MRICoreg
+    from fmriprep.interfaces.patches import FreeSurferSource, MRICoreg
 
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
@@ -309,7 +302,6 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
                 't1w_preproc',  # FLIRT BBR
                 't1w_mask',
                 't1w_dseg',
-                't2w_preproc',  # Conditional
             ]
         ),
         name='inputnode',
@@ -330,6 +322,8 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         if use_bbr is None:
             LOGGER.warning("Initializing BBR with header; affine fallback disabled")
             use_bbr = True
+
+    fssource = pe.Node(FreeSurferSource(), name='fssource')
 
     mri_coreg = pe.Node(
         MRICoreg(dof=bold2anat_dof, sep=[4], ftol=0.0001, linmintol=0.01),
@@ -362,6 +356,8 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     concat_xfm = pe.Node(ConcatenateXFMs(inverse=True), name='concat_xfm')
 
     workflow.connect([
+        (inputnode, fssource, [('subjects_dir', 'subjects_dir'),
+                               ('subject_id', 'subject_id')]),
         (inputnode, merge_ltas, [('fsnative2t1w_xfm', 'in2')]),
         # Wire up the co-registration alternatives
         (transforms, select_transform, [('out', 'inlist')]),
@@ -381,7 +377,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         ])  # fmt:skip
 
         if use_t2w:
-            workflow.connect(inputnode, 't2w_preproc', mri_coreg, 'reference_file')
+            workflow.connect(fssource, 'T2', mri_coreg, 'reference_file')
 
         # Short-circuit workflow building, use initial registration
         if use_bbr is False:
@@ -401,7 +397,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     ])  # fmt:skip
 
     if use_t2w:
-        workflow.connect(inputnode, 't2w_preproc', bbregister, 'intermediate_file')
+        workflow.connect(fssource, 'T2', bbregister, 'intermediate_file')
 
     # Short-circuit workflow building, use boundary-based registration
     if use_bbr is True:
@@ -427,7 +423,6 @@ def init_fsl_bbr_wf(
     bold2anat_init: RegistrationInit,
     omp_nthreads: int,
     sloppy: bool = False,
-    use_t2w: bool = False,
     name: str = 'fsl_bbr_wf',
 ):
     """
@@ -467,8 +462,6 @@ def init_fsl_bbr_wf(
         If ``'header'``, use header information for initialization of BOLD and T1 images.
         If ``'t1w'``, align BOLD to T1w by their centers.
         If ``'t2w'``, align BOLD to T1w using the T2w as an intermediate.
-    use_t2w : :obj:`bool`, optional
-        Unused
     name : :obj:`str`, optional
         Workflow name (default: fsl_bbr_wf)
 
@@ -529,7 +522,6 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
                 't1w_preproc',  # FLIRT BBR
                 't1w_mask',
                 't1w_dseg',
-                't2w_preproc',
             ]
         ),
         name='inputnode',

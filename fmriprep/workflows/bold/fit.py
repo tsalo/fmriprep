@@ -600,7 +600,6 @@ def init_bold_fit_wf(
             freesurfer=config.workflow.run_reconall,
             omp_nthreads=omp_nthreads,
             mem_gb=mem_gb["resampled"],
-            use_t2w=has_t2w,
             sloppy=config.execution.sloppy,
         )
 
