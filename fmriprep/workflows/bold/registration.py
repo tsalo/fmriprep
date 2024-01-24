@@ -90,7 +90,7 @@ def init_bold_reg_wf(
         If ``None``, test BBR result for distortion before accepting.
     bold2anat_dof : 6, 9 or 12
         Degrees-of-freedom for BOLD-anatomical registration
-    bold2anat_init : str, 't1w', 't2w' or 'register'
+    bold2anat_init : str, 't1w', 't2w' or 'header'
         If ``'header'``, use header information for initialization of BOLD and T1 images.
         If ``'t1w'``, align BOLD to T1w by their centers.
         If ``'t2w'``, align BOLD to T1w using the T2w as an intermediate.
@@ -234,7 +234,7 @@ def init_bbreg_wf(
         If ``None``, test BBR result for distortion before accepting.
     bold2anat_dof : 6, 9 or 12
         Degrees-of-freedom for BOLD-anatomical registration
-    bold2anat_init : str, 't1w', 't2w' or 'register'
+    bold2anat_init : str, 't1w', 't2w' or 'header'
         If ``'header'``, use header information for initialization of BOLD and T1 images.
         If ``'t1w'``, align BOLD to T1w by their centers.
         If ``'t2w'``, align BOLD to T1w using the T2w as an intermediate.
@@ -368,7 +368,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     ])  # fmt:skip
 
     # Do not initialize with header, use mri_coreg
-    if bold2anat_init == "register":
+    if bold2anat_init != "header":
         workflow.connect([
             (inputnode, mri_coreg, [('subjects_dir', 'subjects_dir'),
                                     ('subject_id', 'subject_id'),
@@ -405,7 +405,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
 
         return workflow
 
-    # Only reach this point if bold2anat_init is "register" and use_bbr is None
+    # Only reach this point if bold2anat_init is "t1w" or "t2w" and use_bbr is None
     compare_transforms = pe.Node(niu.Function(function=compare_xforms), name='compare_transforms')
 
     workflow.connect([
@@ -458,7 +458,7 @@ def init_fsl_bbr_wf(
         If ``None``, test BBR result for distortion before accepting.
     bold2anat_dof : 6, 9 or 12
         Degrees-of-freedom for BOLD-anatomical registration
-    bold2anat_init : str, 't1w', 't2w' or 'register'
+    bold2anat_init : str, 't1w', 't2w' or 'header'
         If ``'header'``, use header information for initialization of BOLD and T1 images.
         If ``'t1w'``, align BOLD to T1w by their centers.
         If ``'t2w'``, align BOLD to T1w using the T2w as an intermediate.
