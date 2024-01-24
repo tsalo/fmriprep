@@ -105,7 +105,7 @@ def bids_root(tmp_path_factory):
 
 
 def _make_params(
-    bold2anat_init: str = "auto",
+    bold2anat_init: str = "t1w",
     use_bbr: bool | None = None,
     dummy_scans: int | None = None,
     me_output_echos: bool = False,
