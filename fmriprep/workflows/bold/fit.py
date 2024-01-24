@@ -216,11 +216,6 @@ def init_bold_fit_wf(
         layout=layout,
     )
 
-    # T2w is not required, but if available, use to improve BOLD -> anat coreg
-    has_t2w = bool(
-        layout.get(suffix='T2w', extension=['.nii', '.nii.gz'], **bids_filters.get('t2w', {}))
-    )
-
     basename = os.path.basename(bold_file)
     sbref_msg = f"No single-band-reference found for {basename}."
     if sbref_files and "sbref" in config.workflow.ignore:
