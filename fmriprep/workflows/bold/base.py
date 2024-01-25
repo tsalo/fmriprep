@@ -209,7 +209,6 @@ configured with cubic B-spline interpolation.
                 "t1w_mask",
                 "t1w_dseg",
                 "t1w_tpms",
-                "t2w_preproc",  # Optional
                 # FreeSurfer outputs
                 "subjects_dir",
                 "subject_id",
@@ -261,7 +260,6 @@ configured with cubic B-spline interpolation.
             ('t1w_preproc', 'inputnode.t1w_preproc'),
             ('t1w_mask', 'inputnode.t1w_mask'),
             ('t1w_dseg', 'inputnode.t1w_dseg'),
-            ('t2w_preproc', 'inputnode.t2w_preproc'),
             ('subjects_dir', 'inputnode.subjects_dir'),
             ('subject_id', 'inputnode.subject_id'),
             ('fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm'),

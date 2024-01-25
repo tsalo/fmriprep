@@ -268,8 +268,6 @@ def init_bold_fit_wf(
                 "subjects_dir",
                 "subject_id",
                 "fsnative2t1w_xfm",
-                # Optional - improvements if available
-                "t2w_preproc",
             ],
         ),
         name="inputnode",
