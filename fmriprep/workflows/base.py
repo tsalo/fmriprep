@@ -624,7 +624,7 @@ tasks and sessions), the following preprocessing was performed.
     )
 
     # Before initializing BOLD workflow, select/verify anatomical target for coregistration
-    if config.workflow.bold2anat_init in ('auto', 't2w'):
+    if config.workflow.bold2anat_init == 'auto':
         config.workflow.bold2anat_init = 't2w' if subject_data['t2w'] else 't1w'
 
     for bold_series in bold_runs:

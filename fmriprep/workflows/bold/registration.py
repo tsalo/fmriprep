@@ -289,7 +289,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     use_t2w = bold2anat_init == 't2w'
     if use_t2w:
         workflow.__desc__ += (
-            " A T2w reference was used as an intermediate volume to improve tissue contrast."
+            " The aligned T2w image was used for initial co-registration."
         )
 
     inputnode = pe.Node(
@@ -312,7 +312,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     )
 
     if bold2anat_init not in ty.get_args(RegistrationInit):
-        raise ValueError(f"Unknown BOLD-anat initialization option: {bold2anat_init}")
+        raise ValueError(f"Unknown BOLD-to-anatomical initialization option: {bold2anat_init}")
 
     # For now make BBR unconditional - in the future, we can fall back to identity,
     # but adding the flexibility without testing seems a bit dangerous
@@ -395,9 +395,6 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
                                  ('in_file', 'source_file')]),
         (bbregister, transforms, [('out_lta_file', 'in1')]),
     ])  # fmt:skip
-
-    if use_t2w:
-        workflow.connect(fssource, 'T2', bbregister, 'intermediate_file')
 
     # Short-circuit workflow building, use boundary-based registration
     if use_bbr is True:
