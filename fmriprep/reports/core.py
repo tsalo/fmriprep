@@ -34,8 +34,8 @@ def run_reports(
     bootstrap_file=None,
     out_filename='report.html',
     reportlets_dir=None,
-    entities=None,
     errorname='report.err',
+    **entities,
 ):
     """
     Run the reports.
@@ -79,8 +79,6 @@ def generate_reports(
 
     errors = []
     for subject_label in subject_list:
-        entities = {}
-        entities['subject'] = subject_label
 
         # The number of sessions is intentionally not based on session_list but on the total number of sessions, because
         # I want the final derivatives folder to be the same whether sessions were ran one at a time or all-together.
@@ -105,8 +103,8 @@ def generate_reports(
             bootstrap_file=bootstrap_file,
             out_filename=html_report,
             reportlets_dir=reportlets_dir,
-            entities=entities,
             errorname=f'report-{run_uuid}-{subject_label}.err',
+            subject=subject_label,
         )
         # If the report generation failed, append the subject label for which it failed
         if report_error is not None:
@@ -129,7 +127,6 @@ def generate_reports(
                 html_report = ''.join(
                     [f"sub-{subject_label.lstrip('sub-')}", f'_ses-{session_label}', '_func.html']
                 )
-                entities['session'] = session_label
 
                 report_error = run_reports(
                     output_dir,
@@ -138,8 +135,9 @@ def generate_reports(
                     bootstrap_file=bootstrap_file,
                     out_filename=html_report,
                     reportlets_dir=reportlets_dir,
-                    entities=entities,
                     errorname=f'report-{run_uuid}-{subject_label}-func.err',
+                    subject=subject_label,
+                    session=session_label,
                 )
                 # If the report generation failed, append the subject label for which it failed
                 if report_error is not None:
