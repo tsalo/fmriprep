@@ -347,11 +347,11 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     )
     g_conf.add_argument(
         "--bold2anat-init",
-        choices=["auto", "t1w", "header"],
+        choices=["auto", "t1w", "t2w", "header"],
         default="auto",
-        help="Method of initial BOLD to anatomical coregistration. If `auto`, a T2w image is used if "
-        "available, otherwise the T1w image. `t1w` forces use of the T1w, and `header` uses "
-        "the BOLD header information without an initial registration.",
+        help="Method of initial BOLD to anatomical coregistration. If `auto`, a T2w image is used "
+        "if available, otherwise the T1w image. `t1w` forces use of the T1w, `t2w` forces use of "
+        "the T2w, and `header` uses the BOLD header information without an initial registration.",
     )
     g_conf.add_argument(
         "--bold2anat-dof",

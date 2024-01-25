@@ -528,9 +528,9 @@ class workflow(_Config):
     bold2anat_dof = None
     """Degrees of freedom of the BOLD-to-anatomical registration steps."""
     bold2anat_init = "auto"
-    """Method of BOLD to anatomical coregistration. The target anatomical (``'t1w'``, ``'t2w'``)
-    can be specified, otherwise ``'auto'`` will prefer a T2w image but fall back to T1w if none
-    are available. Alternatively, ``'header'`` will use the T1w header information."""
+    """Method of initial BOLD to anatomical coregistration. If `auto`, a T2w image is used
+    if available, otherwise the T1w image. `t1w` forces use of the T1w, `t2w` forces use of
+    the T2w, and `header` uses the BOLD header information without an initial registration."""
     cifti_output = None
     """Generate HCP Grayordinates, accepts either ``'91k'`` (default) or ``'170k'``."""
     dummy_scans = None

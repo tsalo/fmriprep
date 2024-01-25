@@ -288,9 +288,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
 
     use_t2w = bold2anat_init == 't2w'
     if use_t2w:
-        workflow.__desc__ += (
-            " The aligned T2w image was used for initial co-registration."
-        )
+        workflow.__desc__ += " The aligned T2w image was used for initial co-registration."
 
     inputnode = pe.Node(
         niu.IdentityInterface(
@@ -356,8 +354,6 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     concat_xfm = pe.Node(ConcatenateXFMs(inverse=True), name='concat_xfm')
 
     workflow.connect([
-        (inputnode, fssource, [('subjects_dir', 'subjects_dir'),
-                               ('subject_id', 'subject_id')]),
         (inputnode, merge_ltas, [('fsnative2t1w_xfm', 'in2')]),
         # Wire up the co-registration alternatives
         (transforms, select_transform, [('out', 'inlist')]),
@@ -377,7 +373,11 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         ])  # fmt:skip
 
         if use_t2w:
-            workflow.connect(fssource, 'T2', mri_coreg, 'reference_file')
+            workflow.connect([
+                (inputnode, fssource, [('subjects_dir', 'subjects_dir'),
+                                       ('subject_id', 'subject_id')]),
+                (fssource, mri_coreg, [('T2', 'reference_file')]),
+            ])  # fmt:skip
 
         # Short-circuit workflow building, use initial registration
         if use_bbr is False:

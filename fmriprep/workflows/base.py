@@ -624,8 +624,13 @@ tasks and sessions), the following preprocessing was performed.
     )
 
     # Before initializing BOLD workflow, select/verify anatomical target for coregistration
-    if config.workflow.bold2anat_init == 'auto':
-        config.workflow.bold2anat_init = 't2w' if subject_data['t2w'] else 't1w'
+    if config.workflow.bold2anat_init in ('auto', 't2w'):
+        has_t2w = subject_data['t2w'] or 't2w_preproc' in anatomical_cache
+        if config.workflow.bold2anat_init == 't2w' and not has_t2w:
+            raise OSError(
+                "A T2w image is expected for BOLD-to-anatomical coregistration and was not found"
+            )
+        config.workflow.bold2anat_init = 't2w' if has_t2w else 't1w'
 
     for bold_series in bold_runs:
         bold_file = bold_series[0]
@@ -673,7 +678,6 @@ tasks and sessions), the following preprocessing was performed.
                     f'outputnode.sphere_reg_{"msm" if msm_sulc else "fsLR"}',
                     'inputnode.sphere_reg_fsLR',
                 ),
-                ('outputnode.t2w_preproc', 'inputnode.t2w_preproc'),  # Optional
             ]),
         ])  # fmt:skip
         if fieldmap_id:
