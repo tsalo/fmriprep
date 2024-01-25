@@ -55,7 +55,7 @@ def run_reports(
     # Count nbr of subject for which report generation failed
     try:
         robj.generate_report()
-    except:
+    except:  # noqa: E722
         import sys
         import traceback
 
