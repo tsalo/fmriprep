@@ -202,8 +202,6 @@ def main():
             _copy_any(dseg_tsv, str(config.execution.fmriprep_dir / "desc-aparcaseg_dseg.tsv"))
         errno = 0
     finally:
-        from .. import data
-
         # Code Carbon
         if config.execution.track_carbon:
             emissions: float = tracker.stop()
@@ -214,11 +212,15 @@ def main():
         from fmriprep.reports.core import generate_reports
 
         # Generate reports phase
+        session_list = (
+            config.execution.get().get('bids_filters', {}).get("bold", {}).get("session")
+        )
+
         failed_reports = generate_reports(
             config.execution.participant_label,
             config.execution.fmriprep_dir,
             config.execution.run_uuid,
-            config=data.load("reports-spec.yml"),
+            session_list=session_list,
         )
         write_derivative_description(config.execution.bids_dir, config.execution.fmriprep_dir)
         write_bidsignore(config.execution.fmriprep_dir)
