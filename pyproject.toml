@@ -148,6 +148,8 @@ junit_family = "xunit2"
 
 [tool.ruff]
 line-length = 99
+
+[tool.ruff.lint]
 extend-select = [
   "F",
   "E",
@@ -173,12 +175,13 @@ extend-select = [
 ]
 extend-ignore = [
   "S311",  # We are not using random for cryptographic purposes
+  "ISC001",
 ]
 
-[tool.ruff.flake8-quotes]
+[tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"
 
-[tool.ruff.extend-per-file-ignores]
+[tool.ruff.lint.extend-per-file-ignores]
 "*/test_*.py" = ["S101"]
 "fmriprep/utils/debug.py" = ["A002", "T100"]
 "docs/conf.py" = ["A001"]
