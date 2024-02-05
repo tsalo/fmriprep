@@ -79,22 +79,23 @@ def generate_reports(
 
     errors = []
     for subject_label in subject_list:
-
-        # The number of sessions is intentionally not based on session_list but on the total number of sessions, because
-        # I want the final derivatives folder to be the same whether sessions were ran one at a time or all-together.
+        # The number of sessions is intentionally not based on session_list but
+        # on the total number of sessions, because I want the final derivatives
+        # folder to be the same whether sessions were run one at a time or all-together.
         n_ses = len(config.execution.layout.get_sessions(subject=subject_label))
 
         if bootstrap_file is not None:
             # If a config file is precised, we do not override it
             html_report = 'report.html'
         elif n_ses <= config.execution.aggr_ses_reports:
-            # If there is only a few session for this subject, we aggregate them in a single visual report.
+            # If there are only a few session for this subject,
+            # we aggregate them in a single visual report.
             bootstrap_file = data.load('reports-spec.yml')
             html_report = 'report.html'
         else:
             # Beyond a threshold, we separate the anatomical report from the functional.
             bootstrap_file = data.load('reports-spec-anat.yml')
-            html_report = ''.join([f"sub-{subject_label.lstrip('sub-')}", '_anat.html'])
+            html_report = f'sub-{subject_label.lstrip("sub-")}_anat.html'
 
         report_error = run_reports(
             output_dir,
@@ -111,7 +112,8 @@ def generate_reports(
             errors.append(report_error)
 
         if n_ses > config.execution.aggr_ses_reports:
-            # Beyond a certain number of sessions per subject, we separate the functional reports per session
+            # Beyond a certain number of sessions per subject,
+            # we separate the functional reports per session
             if session_list is None:
                 all_filters = config.execution.bids_filters or {}
                 filters = all_filters.get('bold', {})
@@ -124,9 +126,7 @@ def generate_reports(
 
             for session_label in session_list:
                 bootstrap_file = data.load('reports-spec-func.yml')
-                html_report = ''.join(
-                    [f"sub-{subject_label.lstrip('sub-')}", f'_ses-{session_label}', '_func.html']
-                )
+                html_report = f'sub-{subject_label.lstrip("sub-")}_ses-{session_label}_func.html'
 
                 report_error = run_reports(
                     output_dir,
