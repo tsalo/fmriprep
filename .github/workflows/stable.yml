@@ -65,7 +65,7 @@ jobs:
         run: .maint/ci/install_extras.sh
       - name: Run tests
         run: .maint/ci/check.sh
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           file: coverage.xml
         if: ${{ always() }}
