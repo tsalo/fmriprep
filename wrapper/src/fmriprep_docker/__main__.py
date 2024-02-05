@@ -93,7 +93,7 @@ if not hasattr(subprocess, 'run'):
 
 # De-fang Python 2's input - we don't eval user input
 try:
-    input = raw_input
+    input = raw_input  # noqa: A001
 except NameError:
     pass
 
@@ -116,7 +116,7 @@ def check_docker():
         if e.errno == ENOENT:
             return -1
         raise e
-    if ret.stderr.startswith(b"Cannot connect to the Docker daemon."):
+    if ret.stderr.startswith(b'Cannot connect to the Docker daemon.'):
         return 0
     return 1
 
@@ -154,11 +154,11 @@ def merge_help(wrapper_help, target_help):
             line = targ.lstrip()
             if line.startswith('usage'):
                 continue
-            if line[0].isalnum() or line[0] == "{":
+            if line[0].isalnum() or line[0] == '{':
                 posargs.append(line)
-            elif line[0] == '[' and (line[1].isalnum() or line[1] == "{"):
+            elif line[0] == '[' and (line[1].isalnum() or line[1] == '{'):
                 posargs.append(line)
-        return " ".join(posargs)
+        return ' '.join(posargs)
 
     # Matches all flags with up to two nested square brackets
     # I'm sorry.
@@ -203,7 +203,7 @@ def merge_help(wrapper_help, target_help):
         'w',
     }
 
-    assert overlap == expected_overlap, "Clobbering options: {}".format(
+    assert overlap == expected_overlap, 'Clobbering options: {}'.format(
         ', '.join(overlap - expected_overlap)
     )
 
@@ -263,7 +263,7 @@ def get_parser():
         def __call__(self, parser, namespace, values, option_string=None):
             d = {}
             for kv in values:
-                k, v = kv.split("=")
+                k, v = kv.split('=')
                 d[k] = os.path.abspath(v)
             setattr(namespace, self.dest, d)
 
@@ -271,7 +271,7 @@ def get_parser():
         """Ensure a given path exists and it is a file."""
         path = os.path.abspath(path)
         if not os.path.isfile(path):
-            raise parser.error("Path should point to a file (or symlink of file): <%s>." % path)
+            raise parser.error('Path should point to a file (or symlink of file): <%s>.' % path)
         return path
 
     parser = argparse.ArgumentParser(
@@ -288,7 +288,7 @@ def get_parser():
     )
 
     parser.add_argument(
-        '-h', '--help', action='store_true', help="show this help message and exit"
+        '-h', '--help', action='store_true', help='show this help message and exit'
     )
     parser.add_argument(
         '--version', action='store_true', help="show program's version number and exit"
@@ -319,7 +319,7 @@ def get_parser():
     )
     g_wrap.add_argument(
         '--output-spaces',
-        nargs="*",
+        nargs='*',
     )
 
     g_wrap.add_argument(
@@ -370,8 +370,8 @@ def get_parser():
     )
     g_dev.add_argument(
         '--patch',
-        nargs="+",
-        metavar="PACKAGE=PATH",
+        nargs='+',
+        metavar='PACKAGE=PATH',
         action=ToDict,
         help='Sequence of PACKAGE=PATH specifications to patch a Python package into the '
         'container Python environment.',
@@ -431,7 +431,7 @@ def main():
         if opts.help:
             parser.print_help()
         if check == -1:
-            print("fmriprep: Could not find docker command... Is it installed?")
+            print('fmriprep: Could not find docker command... Is it installed?')
         else:
             print("fmriprep: Make sure you have permission to run 'docker'")
         return 1
@@ -477,7 +477,7 @@ def main():
                 return 0
 
     ret = subprocess.run(
-        ['docker', 'version', '--format', "{{.Server.Version}}"], stdout=subprocess.PIPE
+        ['docker', 'version', '--format', '{{.Server.Version}}'], stdout=subprocess.PIPE
     )
     docker_version = ret.stdout.decode('ascii').strip()
 
@@ -566,7 +566,7 @@ def main():
             if space.split(':')[0] not in (TF_TEMPLATES + NONSTANDARD_REFERENCES):
                 tpl = os.path.basename(space)
                 if not tpl.startswith('tpl-'):
-                    raise RuntimeError("Custom template %s requires a `tpl-` prefix" % tpl)
+                    raise RuntimeError('Custom template %s requires a `tpl-` prefix' % tpl)
                 target = '/home/fmriprep/.cache/templateflow/' + tpl
                 command.extend(['-v', ':'.join((os.path.abspath(space), target, 'ro'))])
                 spaces.append(tpl[4:])
@@ -599,10 +599,10 @@ def main():
         command.extend(main_args)
         command.extend(unknown_args)
 
-    print("RUNNING: " + ' '.join(command))
+    print('RUNNING: ' + ' '.join(command))
     ret = subprocess.run(command)
     if ret.returncode:
-        print("fMRIPrep: Please report errors to {}".format(__bugreports__))
+        print('fMRIPrep: Please report errors to {}'.format(__bugreports__))
     return ret.returncode
 
 
