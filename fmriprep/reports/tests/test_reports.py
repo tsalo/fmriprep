@@ -13,7 +13,7 @@ data_dir = data.load('tests')
 
 # Test with and without sessions' aggregation
 @pytest.mark.parametrize(
-    'aggr_ses_reports, expected_files',
+    ('aggr_ses_reports', 'expected_files'),
     [
         (
             3,
@@ -29,15 +29,15 @@ data_dir = data.load('tests')
     ],
 )
 # Test with and without crash file
-@pytest.mark.parametrize('error', (True, False))
+@pytest.mark.parametrize('error', [True, False])
 # Test with and without boilerplate
-@pytest.mark.parametrize('boilerplate', (True, False))
+@pytest.mark.parametrize('boilerplate', [True, False])
 # Test ses- prefix stripping
 @pytest.mark.parametrize(
-    'session_list', (['001', '003', '004', '005'], ['ses-001', 'ses-003', 'ses-004', 'ses-005'])
+    'session_list', [['001', '003', '004', '005'], ['ses-001', 'ses-003', 'ses-004', 'ses-005']]
 )
 # Test sub- prefix stripping
-@pytest.mark.parametrize('subject_label', ('001', 'sub-001'))
+@pytest.mark.parametrize('subject_label', ['001', 'sub-001'])
 @pytest.mark.skipif(
     not Path.exists(data_dir / 'work'),
     reason='Package installed - large test data directory excluded from wheel',
@@ -93,7 +93,7 @@ def test_ReportSeparation(
         assert file_path.is_file(), f'Expected file {expected_file} is missing'
 
     # Check if there are no unexpected HTML files
-    unexpected_files = set(file.name for file in tmp_path.glob('*.html')) - set(expected_files)
+    unexpected_files = {file.name for file in tmp_path.glob('*.html')} - set(expected_files)
     assert not unexpected_files, f'Unexpected HTML files found: {unexpected_files}'
 
     if not (boilerplate or error):
@@ -103,9 +103,9 @@ def test_ReportSeparation(
     if boilerplate:
         assert (
             'The boilerplate text was automatically generated' in html_content
-        ), f'The file {file} did not contain the reported error.'
+        ), f'The file {expected_files[0]} did not contain the reported error.'
 
     if error:
         assert (
             'One or more execution steps failed' in html_content
-        ), f'The file {file} did not contain the reported error.'
+        ), f'The file {expected_files[0]} did not contain the reported error.'
