@@ -186,6 +186,7 @@ inline-quotes = "single"
 "*/test_*.py" = ["S101"]
 "fmriprep/utils/debug.py" = ["A002", "T100"]
 "docs/conf.py" = ["A001"]
+"docs/sphinxext/github_link.py" = ["BLE001"]
 
 [tool.ruff.format]
 quote-style = "single"
