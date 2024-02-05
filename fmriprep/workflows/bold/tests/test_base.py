@@ -12,30 +12,30 @@ from ...tests.test_base import BASE_LAYOUT
 from ..base import init_bold_wf
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope='module', autouse=True)
 def _quiet_logger():
     import logging
 
-    logger = logging.getLogger("nipype.workflow")
+    logger = logging.getLogger('nipype.workflow')
     old_level = logger.getEffectiveLevel()
     logger.setLevel(logging.ERROR)
     yield
     logger.setLevel(old_level)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def bids_root(tmp_path_factory):
-    base = tmp_path_factory.mktemp("boldbase")
-    bids_dir = base / "bids"
+    base = tmp_path_factory.mktemp('boldbase')
+    bids_dir = base / 'bids'
     generate_bids_skeleton(bids_dir, BASE_LAYOUT)
-    yield bids_dir
+    return bids_dir
 
 
-@pytest.mark.parametrize("task", ["rest", "nback"])
-@pytest.mark.parametrize("fieldmap_id", ["phasediff", None])
-@pytest.mark.parametrize("freesurfer", [False, True])
-@pytest.mark.parametrize("level", ["minimal", "resampling", "full"])
-@pytest.mark.parametrize("bold2anat_init", ["t1w", "t2w"])
+@pytest.mark.parametrize('task', ['rest', 'nback'])
+@pytest.mark.parametrize('fieldmap_id', ['phasediff', None])
+@pytest.mark.parametrize('freesurfer', [False, True])
+@pytest.mark.parametrize('level', ['minimal', 'resampling', 'full'])
+@pytest.mark.parametrize('bold2anat_init', ['t1w', 't2w'])
 def test_bold_wf(
     bids_root: Path,
     tmp_path: Path,

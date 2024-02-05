@@ -290,7 +290,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
 
     use_t2w = bold2anat_init == 't2w'
     if use_t2w:
-        workflow.__desc__ += " The aligned T2w image was used for initial co-registration."
+        workflow.__desc__ += ' The aligned T2w image was used for initial co-registration.'
 
     inputnode = pe.Node(
         niu.IdentityInterface(
@@ -312,15 +312,15 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     )
 
     if bold2anat_init not in ty.get_args(RegistrationInit):
-        raise ValueError(f"Unknown BOLD-to-anatomical initialization option: {bold2anat_init}")
+        raise ValueError(f'Unknown BOLD-to-anatomical initialization option: {bold2anat_init}')
 
     # For now make BBR unconditional - in the future, we can fall back to identity,
     # but adding the flexibility without testing seems a bit dangerous
-    if bold2anat_init == "header":
+    if bold2anat_init == 'header':
         if use_bbr is False:
-            raise ValueError("Cannot disable BBR and use header registration")
+            raise ValueError('Cannot disable BBR and use header registration')
         if use_bbr is None:
-            LOGGER.warning("Initializing BBR with header; affine fallback disabled")
+            LOGGER.warning('Initializing BBR with header; affine fallback disabled')
             use_bbr = True
 
     fssource = pe.Node(FreeSurferSource(), name='fssource')
@@ -343,8 +343,8 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         name='bbregister',
         mem_gb=12,
     )
-    if bold2anat_init == "header":
-        bbregister.inputs.init = "header"
+    if bold2anat_init == 'header':
+        bbregister.inputs.init = 'header'
 
     transforms = pe.Node(niu.Merge(2), run_without_submitting=True, name='transforms')
     # In cases where Merge(2) only has `in1` or `in2` defined
@@ -366,7 +366,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     ])  # fmt:skip
 
     # Do not initialize with header, use mri_coreg
-    if bold2anat_init != "header":
+    if bold2anat_init != 'header':
         workflow.connect([
             (inputnode, mri_coreg, [('subjects_dir', 'subjects_dir'),
                                     ('subject_id', 'subject_id'),
@@ -447,7 +447,9 @@ def init_fsl_bbr_wf(
             :simple_form: yes
 
             from fmriprep.workflows.bold.registration import init_fsl_bbr_wf
-            wf = init_fsl_bbr_wf(use_bbr=True, bold2anat_dof=9, bold2anat_init='t1w', omp_nthreads=1)
+            wf = init_fsl_bbr_wf(
+                use_bbr=True, bold2anat_dof=9, bold2anat_init='t1w', omp_nthreads=1
+            )
 
 
     Parameters
@@ -536,13 +538,13 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     wm_mask.inputs.label = 2  # BIDS default is WM=2
 
     if bold2anat_init not in ty.get_args(RegistrationInit):
-        raise ValueError(f"Unknown BOLD-T1w initialization option: {bold2anat_init}")
+        raise ValueError(f'Unknown BOLD-T1w initialization option: {bold2anat_init}')
 
-    if bold2anat_init == "header":
-        raise NotImplementedError("Header-based registration initialization not supported for FSL")
-    if bold2anat_init == "t2w":
+    if bold2anat_init == 'header':
+        raise NotImplementedError('Header-based registration initialization not supported for FSL')
+    if bold2anat_init == 't2w':
         LOGGER.warning(
-            "T2w intermediate for FSL is not implemented, registering with T1w instead."
+            'T2w intermediate for FSL is not implemented, registering with T1w instead.'
         )
 
     # Mask T1w_preproc with T1w_mask to make T1w_brain
@@ -603,7 +605,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         return workflow
 
     flt_bbr = pe.Node(
-        fsl.FLIRT(cost_func='bbr', dof=bold2anat_dof, args="-basescale 1"),
+        fsl.FLIRT(cost_func='bbr', dof=bold2anat_dof, args='-basescale 1'),
         name='flt_bbr',
     )
 
@@ -612,7 +614,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         flt_bbr.inputs.schedule = schedule
     else:
         # Should mostly be hit while building docs
-        LOGGER.warning("FSLDIR unset - using packaged BBR schedule")
+        LOGGER.warning('FSLDIR unset - using packaged BBR schedule')
         flt_bbr.inputs.schedule = data.load('flirtsch/bbr.sch')
     # fmt:off
     workflow.connect([
@@ -624,14 +626,14 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     if sloppy is True:
         downsample = pe.Node(
             niu.Function(
-                function=_conditional_downsampling, output_names=["out_file", "out_mask"]
+                function=_conditional_downsampling, output_names=['out_file', 'out_mask']
             ),
             name='downsample',
         )
         # fmt:off
         workflow.connect([
-            (mask_t1w_brain, downsample, [("out_file", "in_file")]),
-            (wm_mask, downsample, [("out", "in_mask")]),
+            (mask_t1w_brain, downsample, [('out_file', 'in_file')]),
+            (wm_mask, downsample, [('out', 'in_mask')]),
             (downsample, flt_bbr, [('out_file', 'reference'),
                                    ('out_mask', 'wm_seg')]),
         ])
