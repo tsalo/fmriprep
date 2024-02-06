@@ -26,8 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pipx run ruff fmriprep
-      - run: pipx run ruff format --diff fmriprep
+      - run: pipx run ruff .
+      - run: pipx run ruff format --diff .
 
   codespell:
     name: Check for spelling errors

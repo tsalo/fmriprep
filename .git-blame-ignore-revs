@@ -1,3 +1,5 @@
+# 2024-02-05 - effigies@gmail.com - STY: ruff --fix + 1 ignore [git-blame-ignore-rev]
+e7dc59fbc7df88dfabbff154f4cc3d24721b6b4f
 # 2024-01-16 - effigies@gmail.com - STY: ruff --fix --unsafe-fixes (with cleanup) [git-blame-ignore-rev]
 66734bd0164d1dae3cf299fa9d9d682c22eeda66
 # 2024-01-16 - effigies@gmail.com - STY: ruff format and ruff --fix [git-blame-ignore-rev]

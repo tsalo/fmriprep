@@ -215,7 +215,7 @@ def build_boilerplate(config_file, workflow):
 
         config.loggers.cli.info('Generating an HTML version of the citation boilerplate...')
         try:
-            check_call(cmd, timeout=10)  # noqa: S603
+            check_call(cmd, timeout=10)
         except (FileNotFoundError, CalledProcessError, TimeoutExpired):
             config.loggers.cli.warning('Could not generate CITATION.html file:\n%s', ' '.join(cmd))
 
@@ -232,6 +232,6 @@ def build_boilerplate(config_file, workflow):
         ]
         config.loggers.cli.info('Generating a LaTeX version of the citation boilerplate...')
         try:
-            check_call(cmd, timeout=10)  # noqa: S603
+            check_call(cmd, timeout=10)
         except (FileNotFoundError, CalledProcessError, TimeoutExpired):
             config.loggers.cli.warning('Could not generate CITATION.tex file:\n%s', ' '.join(cmd))

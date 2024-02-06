@@ -176,6 +176,7 @@ extend-select = [
 extend-ignore = [
   "S311",  # We are not using random for cryptographic purposes
   "ISC001",
+  "S603",
 ]
 
 [tool.ruff.lint.flake8-quotes]
@@ -185,6 +186,7 @@ inline-quotes = "single"
 "*/test_*.py" = ["S101"]
 "fmriprep/utils/debug.py" = ["A002", "T100"]
 "docs/conf.py" = ["A001"]
+"docs/sphinxext/github_link.py" = ["BLE001"]
 
 [tool.ruff.format]
 quote-style = "single"
