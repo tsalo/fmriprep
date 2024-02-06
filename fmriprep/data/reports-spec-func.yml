@@ -1,8 +1,5 @@
 package: fmriprep
 sections:
-- name: Summary
-  reportlets:
-  - bids: {datatype: figures, desc: summary, suffix: T1w}
 - name: <em>B<sub>0</sub></em> field mapping
   ordering: session,acquisition,run,fmapid
   reportlets:
