@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - master
-      - maint/*
   pull_request:
     branches:
       - master
-      - maint/*
 
 defaults:
   run:
@@ -47,7 +45,7 @@ jobs:
         run: |
           python -m black --diff --color --check wrapper
           python -m isort --diff --color --check wrapper
-  
+
   codespell:
     name: Check for spelling errors
     runs-on: ubuntu-latest
