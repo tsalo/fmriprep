@@ -23,17 +23,17 @@
 # SOFTWARE.
 
 # Ubuntu 22.04 LTS - Jammy
-ARG BASE_IMAGE=ubuntu:jammy-20230308
+ARG BASE_IMAGE=ubuntu:jammy-20240125
 
 #
-# fMRIPrep wheel
+# Build wheel
 #
 FROM python:slim AS src
 RUN pip install build
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git
-COPY . /src/fmriprep
-RUN python -m build /src/fmriprep
+COPY . /src
+RUN python -m build /src
 
 #
 # Download stages
@@ -96,9 +96,16 @@ RUN mkdir /opt/convert3d && \
 
 # Micromamba
 FROM downloader as micromamba
+
+# Install a C compiler to build extensions when needed.
+# traits<6.4 wheels are not available for Python 3.11+, but build easily.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 WORKDIR /
 # Bump the date to current to force update micromamba
-RUN echo "2023.04.05"
+RUN echo "2024.02.06"
 RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
 
 ENV MAMBA_ROOT_PREFIX="/opt/conda"
@@ -112,7 +119,7 @@ RUN micromamba create -y -f /tmp/env.yml && \
 # Check if this is still necessary when updating the base image.
 ENV PATH="/opt/conda/envs/fmriprep/bin:$PATH" \
     UV_USE_IO_URING=0
-RUN npm install -g svgo@^3.0.4 bids-validator@^1.13.1 && \
+RUN npm install -g svgo@^3.2.0 bids-validator@^1.14.0 && \
     rm -r ~/.npm
 
 #
@@ -249,7 +256,7 @@ RUN curl -L -H "Accept: application/octet-stream" https://api.github.com/repos/e
     && chmod +x /usr/local/bin/msm
 
 # Installing FMRIPREP
-COPY --from=src /src/fmriprep/dist/*.whl .
+COPY --from=src /src/dist/*.whl .
 RUN pip install --no-cache-dir $( ls *.whl )[container,test]
 
 RUN find $HOME -type d -exec chmod go=u {} + && \
