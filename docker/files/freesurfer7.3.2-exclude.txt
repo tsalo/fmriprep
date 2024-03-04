@@ -791,7 +791,6 @@ freesurfer/mni/bin/mincexpand
 freesurfer/mni/bin/mincextract
 freesurfer/mni/bin/mincheader
 freesurfer/mni/bin/minchistory
-freesurfer/mni/bin/mincinfo
 freesurfer/mni/bin/minclookup
 freesurfer/mni/bin/mincmakescalar
 freesurfer/mni/bin/mincmakevector
