@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 #
-# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
+# Copyright The NiPreps Developers <nipreps@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ Calculate BOLD confounds
 .. autofunction:: init_bold_confs_wf
 
 """
+
 from nipype.algorithms import confounds as nac
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
@@ -412,10 +413,31 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         name='crowncc_metadata_fmt',
     )
 
+    # Combine all confounds metadata
     mrg_conf_metadata = pe.Node(
-        niu.Merge(3), name='merge_confound_metadata', run_without_submitting=True
+        niu.Merge(4), name='merge_confound_metadata', run_without_submitting=True
     )
+    # Tissue mean time series
     mrg_conf_metadata.inputs.in3 = {label: {'Method': 'Mean'} for label in signals_class_labels}
+    # Movement parameters
+    mrg_conf_metadata.inputs.in4 = {
+        'trans_x': {'Description': 'Translation along left-right axis.', 'Units': 'mm'},
+        'trans_y': {'Description': 'Translation along anterior-posterior axis.', 'Units': 'mm'},
+        'trans_z': {'Description': 'Translation along superior-inferior axis.', 'Units': 'mm'},
+        'rot_x': {
+            'Description': 'Rotation about left-right axis. Also known as "pitch".',
+            'Units': 'rad',
+        },
+        'rot_y': {
+            'Description': 'Rotation about anterior-posterior axis. Also known as "roll".',
+            'Units': 'rad',
+        },
+        'rot_z': {
+            'Description': 'Rotation about superior-inferior axis. Also known as "yaw".',
+            'Units': 'rad',
+        },
+        'framewise_displacement': {'Units': 'mm'},
+    }
     mrg_conf_metadata2 = pe.Node(
         DictMerge(), name='merge_confound_metadata2', run_without_submitting=True
     )

@@ -4,14 +4,14 @@ _machine_defaults: &machine_defaults
     TZ: "/usr/share/zoneinfo/America/Los_Angeles"
     SCRATCH: "/scratch"
   machine:
-    image: ubuntu-2204:2023.04.2
+    image: default
     docker_layer_caching: true
   working_directory: /tmp/src/fmriprep
   resource_class: large
 
 _python_defaults: &python_defaults
   docker:
-    - image: cimg/python:3.10.9
+    - image: cimg/python:3.12
   working_directory: /tmp/src/fmriprep
 
 _docker_auth: &docker_auth
@@ -80,9 +80,7 @@ _check_skip_job: &check_skip_job
 _setup_fmriprep_docker: &setup_fmriprep_docker
   name: Install fMRIPrep's docker wrapper
   command: |
-    export PY3=$(pyenv versions | grep '3\.' |
-                  sed -e 's/.* 3\./3./' -e 's/ .*//')
-    pyenv local $PY3
+    pyenv local 3
     pip install --upgrade pip
     pip install --upgrade /tmp/src/fmriprep/wrapper/
 
@@ -132,9 +130,7 @@ jobs:
           name: Build Docker image
           no_output_timeout: 60m
           command: |
-            export PY3=$(pyenv versions | grep '3\.' |
-                         sed -e 's/.* 3\./3./' -e 's/ .*//')
-            pyenv local $PY3
+            pyenv local 3
             pip install hatch
             # Get version, update files
             THISVERSION=$( hatch version )
@@ -174,9 +170,7 @@ jobs:
           name: Build Docker image
           no_output_timeout: 60m
           command: |
-            export PY3=$(pyenv versions | grep '3\.' |
-                         sed -e 's/.* 3\./3./' -e 's/ .*//')
-            pyenv local $PY3
+            pyenv local 3
             pip install hatch
             # Get version, update files.
             THISVERSION=$( hatch version )
@@ -199,9 +193,6 @@ jobs:
       - run:
           name: Check Docker image
           command: |
-            export PY3=$(pyenv versions | grep '3\.' |
-                         sed -e 's/.* 3\./3./' -e 's/ .*//')
-            pyenv local $PY3
             # Get version, update files.
             THISVERSION=$( hatch version )
             BUILT_VERSION=$( docker run --rm nipreps/fmriprep:latest --version )
@@ -384,17 +375,12 @@ jobs:
       - run:
           name: Build fmriprep-docker wheel
           command: |
-            export PY3=$(pyenv versions | grep '3\.' |
-                         sed -e 's/.* 3\./3./' -e 's/ .*//')
-            pyenv local $PY3
+            pyenv local 3
             pip install --upgrade pip build
             python -m build wrapper/
       - run:
           name: Install and test fmriprep-docker (Python 3)
           command: |
-            export PY3=$(pyenv versions | grep '3\.' |
-                         sed -e 's/.* 3\./3./' -e 's/ .*//')
-            pyenv local $PY3
             echo -n "Python version: "
             python --version
             pip install --upgrade wrapper/
@@ -405,9 +391,7 @@ jobs:
       - run:
           name: Install and test fmriprep-docker (Python 2)
           command: |
-            export PY2=$(pyenv versions | grep '2\.' |
-                         sed -e 's/.* 2\./2./' -e 's/ .*//')
-            pyenv local $PY2
+            pyenv local 2.7
             echo -n "Python version: "
             python --version
             pip install --upgrade "pip<21"
