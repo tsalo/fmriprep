@@ -373,7 +373,9 @@ It is released under the [CC0]\
     select_MNI2009c_xfm = None
     if config.workflow.level == 'full':
         if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
-            template_iterator_wf = init_template_iterator_wf(spaces=spaces)
+            template_iterator_wf = init_template_iterator_wf(
+                spaces=spaces, sloppy=config.execution.sloppy
+            )
             ds_std_volumes_wf = init_ds_anat_volumes_wf(
                 bids_root=bids_root,
                 output_dir=fmriprep_dir,
