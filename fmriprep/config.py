@@ -484,7 +484,7 @@ class execution(_Config):
                 # Ignore any subjects who aren't the requested ones.
                 # This is only done if the database is written out to a run-specific folder.
                 ignore_patterns.append(
-                    re.compile(r'sub-(?!' + '|'.join(cls.participant_label) + r')\w+')
+                    re.compile(r'sub-(?!(' + '|'.join(cls.participant_label) + r')\b)')
                 )
 
             _indexer = BIDSLayoutIndexer(
