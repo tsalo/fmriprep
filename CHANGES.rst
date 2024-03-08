@@ -1,3 +1,18 @@
+23.2.1 (March 06, 2024)
+=======================
+Bug fix release in the 23.2.x series.
+
+Masks, BOLD references and T2\* maps resampled into template spaces had
+their order of transforms inverted. BOLD files were unaffected.
+
+This release also preserves the TR in the NIfTI header of BOLD series.
+
+* FIX: Preserve pixdim4+ of resampled images (#3239)
+* FIX: Flip order of transforms in ``init_ds_volumes_wf`` (#3238)
+* DOCKER: restore mincinfo binary (#3249)
+* CI: Move to new CircleCI machine tags (#3247)
+
+
 23.2.0 (January 10, 2024)
 =========================
 New feature release in the 23.2.x series.
