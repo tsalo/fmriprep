@@ -472,18 +472,24 @@ class execution(_Config):
             _db_path.mkdir(exist_ok=True, parents=True)
 
             # Recommended after PyBIDS 12.1
+            ignore_patterns = [
+                'code',
+                'stimuli',
+                'sourcedata',
+                'models',
+                re.compile(r'^\.'),
+                re.compile(r'sub-[a-zA-Z0-9]+(/ses-[a-zA-Z0-9]+)?/(beh|dwi|eeg|ieeg|meg|perf)'),
+            ]
+            if cls.participant_label and cls.bids_database_dir is None:
+                # Ignore any subjects who aren't the requested ones.
+                # This is only done if the database is written out to a run-specific folder.
+                ignore_patterns.append(
+                    re.compile(r'sub-(?!(' + '|'.join(cls.participant_label) + r')(\b|_))')
+                )
+
             _indexer = BIDSLayoutIndexer(
                 validate=False,
-                ignore=(
-                    'code',
-                    'stimuli',
-                    'sourcedata',
-                    'models',
-                    re.compile(r'^\.'),
-                    re.compile(
-                        r'sub-[a-zA-Z0-9]+(/ses-[a-zA-Z0-9]+)?/(beh|dwi|eeg|ieeg|meg|perf)'
-                    ),
-                ),
+                ignore=ignore_patterns,
             )
             cls._layout = BIDSLayout(
                 str(cls.bids_dir),
