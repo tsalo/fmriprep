@@ -425,7 +425,7 @@ def _find_nearest_path(path_dict, input_path):
                 matching_path = relative_path
 
     if matching_path is None:
-        matching_path = input_path.absolute()
+        matching_path = str(input_path.absolute())
     else:
         matching_path = f'{matching_key}{matching_path}'
 
