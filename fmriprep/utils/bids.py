@@ -402,10 +402,10 @@ def _find_nearest_path(path_dict, input_path):
     --------
     >>> from pathlib import Path
     >>> path_dict = {
-    >>>     'bids::': Path('/data/derivatives/fmriprep'),
-    >>>     'bids:raw:': Path('/data'),
-    >>>     'bids:deriv-0:': Path('/data/derivatives/source-1'),
-    >>> }
+    ...     'bids::': Path('/data/derivatives/fmriprep'),
+    ...     'bids:raw:': Path('/data'),
+    ...     'bids:deriv-0:': Path('/data/derivatives/source-1'),
+    ... }
     >>> input_path = Path('/data/derivatives/source-1/sub-01/func/sub-01_task-rest_bold.nii.gz')
     >>> find_nearest_path(path_dict, input_path)  # match to 'bids:deriv-0:'
     'bids:deriv-0:sub-01/func/sub-01_task-rest_bold.nii.gz'
