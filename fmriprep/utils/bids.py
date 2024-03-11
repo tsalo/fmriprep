@@ -372,8 +372,8 @@ def _convert_bids_uri(in_files):
     if isinstance(in_files, list):
         return [_convert_bids_uri(p) for p in in_files]
 
-    updated_keys = {f"bids:{k}:": v for k, v in config.execution.dataset_links.items()}
-    updated_keys["bids::"] = config.execution.fmriprep_dir
+    updated_keys = {f'bids:{k}:': v for k, v in config.execution.dataset_links.items()}
+    updated_keys['bids::'] = config.execution.fmriprep_dir
     return _find_nearest_path(updated_keys, Path(in_files))
 
 
@@ -425,9 +425,8 @@ def _find_nearest_path(path_dict, input_path):
                 matching_path = relative_path
 
     if matching_path is None:
-        print("Warning: No matching path found. Defaulting to absolute path.")
         matching_path = input_path.absolute()
     else:
-        matching_path = f"{matching_key}{matching_path}"
+        matching_path = f'{matching_key}{matching_path}'
 
     return matching_path
