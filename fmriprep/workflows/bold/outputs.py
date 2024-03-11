@@ -453,10 +453,10 @@ def init_ds_boldref_wf(
 
     # fmt:off
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_file')]),
+        (inputnode, raw_sources, [('source_files', 'in_files')]),
         (inputnode, ds_boldref, [('boldref', 'in_file'),
                                  ('source_files', 'source_file')]),
-        (raw_sources, ds_boldref, [('uri', 'Sources')]),
+        (raw_sources, ds_boldref, [('out', 'Sources')]),
         (ds_boldref, outputnode, [('out_file', 'boldref')]),
     ])
     # fmt:on
@@ -498,10 +498,10 @@ def init_ds_registration_wf(
 
     # fmt:off
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_file')]),
+        (inputnode, raw_sources, [('source_files', 'in_files')]),
         (inputnode, ds_xform, [('xform', 'in_file'),
                                ('source_files', 'source_file')]),
-        (raw_sources, ds_xform, [('uri', 'Sources')]),
+        (raw_sources, ds_xform, [('out', 'Sources')]),
         (ds_xform, outputnode, [('out_file', 'xform')]),
     ])
     # fmt:on
@@ -541,10 +541,10 @@ def init_ds_hmc_wf(
 
     # fmt:off
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_file')]),
+        (inputnode, raw_sources, [('source_files', 'in_files')]),
         (inputnode, ds_xforms, [('xforms', 'in_file'),
                                 ('source_files', 'source_file')]),
-        (raw_sources, ds_xforms, [('uri', 'Sources')]),
+        (raw_sources, ds_xforms, [('out', 'Sources')]),
         (ds_xforms, outputnode, [('out_file', 'xforms')]),
     ])
     # fmt:on
@@ -580,7 +580,7 @@ def init_ds_bold_native_wf(
     )
 
     raw_sources = pe.Node(BIDSURI(), name='raw_sources')
-    workflow.connect(inputnode, 'source_files', raw_sources, 'in_file')
+    workflow.connect(inputnode, 'source_files', raw_sources, 'in_files')
 
     # Masks should be output if any other derivatives are output
     ds_bold_mask = pe.Node(
@@ -600,7 +600,7 @@ def init_ds_bold_native_wf(
             ('source_files', 'source_file'),
             ('bold_mask', 'in_file'),
         ]),
-        (raw_sources, ds_bold_mask, [('uri', 'Sources')]),
+        (raw_sources, ds_bold_mask, [('out', 'Sources')]),
     ])  # fmt:skip
 
     if bold_output:
@@ -648,7 +648,7 @@ def init_ds_bold_native_wf(
                 ('source_files', 'source_file'),
                 ('t2star', 'in_file'),
             ]),
-            (raw_sources, ds_t2star, [('uri', 'Sources')]),
+            (raw_sources, ds_t2star, [('out', 'Sources')]),
         ])  # fmt:skip
 
     if echo_output:
@@ -728,7 +728,7 @@ def init_ds_volumes_wf(
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_file')]),
+        (inputnode, raw_sources, [('source_files', 'in_files')]),
         (inputnode, boldref2target, [
             # Note that ANTs expects transforms in target-to-source order
             # Reverse this for nitransforms-based resamplers

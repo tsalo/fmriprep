@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from bids.utils import listify
 from nipype.interfaces.base import File, SimpleInterface, TraitedSpec, traits
 
 from .. import config
@@ -9,7 +10,7 @@ from ..utils.bids import _find_nearest_path
 
 
 class _BIDSURIInputSpec(TraitedSpec):
-    in_file = traits.Either(
+    in_files = traits.Either(
         File(exists=False),
         traits.List(File(exists=False)),
         mandatory=True,
@@ -18,9 +19,8 @@ class _BIDSURIInputSpec(TraitedSpec):
 
 
 class _BIDSURIOutputSpec(TraitedSpec):
-    uri = traits.Either(
+    out = traits.List(
         traits.Str,
-        traits.List(traits.Str),
         desc='BIDS URI(s) for file',
     )
 
@@ -28,7 +28,7 @@ class _BIDSURIOutputSpec(TraitedSpec):
 class BIDSURI(SimpleInterface):
     """Simple clipping interface that clips values to specified minimum/maximum
 
-    If no values are outside the bounds, nothing is done and the in_file is passed
+    If no values are outside the bounds, nothing is done and the in_files is passed
     as the out_file without copying.
     """
 
@@ -36,13 +36,10 @@ class BIDSURI(SimpleInterface):
     output_spec = _BIDSURIOutputSpec
 
     def _run_interface(self, runtime):
+        in_files = listify(self.inputs.in_files)
         updated_keys = {f'bids:{k}:': v for k, v in config.execution.dataset_links.items()}
         updated_keys['bids::'] = config.execution.fmriprep_dir
-        if isinstance(self.inputs.in_file, list):
-            uri = [_find_nearest_path(updated_keys, Path(f)) for f in self.inputs.in_file]
-        else:
-            uri = _find_nearest_path(updated_keys, Path(self.inputs.in_file))
-
-        self._results['uri'] = uri
+        out = [_find_nearest_path(updated_keys, Path(f)) for f in in_files]
+        self._results['out'] = out
 
         return runtime

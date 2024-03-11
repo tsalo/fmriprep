@@ -383,6 +383,8 @@ def _find_nearest_path(path_dict, input_path):
     If ``input_path`` is not relative to any of the paths in ``path_dict``,
     the absolute path string is returned.
 
+    If ``input_path`` is already a BIDS-URI, then it will be returned unmodified.
+
     Parameters
     ----------
     path_dict : dict of (str, Path)
@@ -415,7 +417,14 @@ def _find_nearest_path(path_dict, input_path):
     >>> input_path = Path('/data/sub-01/func/sub-01_task-rest_bold.nii.gz')
     >>> _find_nearest_path(path_dict, input_path)  # match to 'bids:raw:'
     'bids:raw:sub-01/func/sub-01_task-rest_bold.nii.gz'
+    >>> input_path = 'bids::sub-01/func/sub-01_task-rest_bold.nii.gz'
+    >>> _find_nearest_path(path_dict, input_path)  # already a BIDS-URI
+    'bids::sub-01/func/sub-01_task-rest_bold.nii.gz'
     """
+    # Don't modify BIDS-URIs
+    if isinstance(input_path, str) and input_path.startswith('bids:'):
+        return input_path
+
     matching_path = None
     for key, path in path_dict.items():
         if input_path.is_relative_to(path):
