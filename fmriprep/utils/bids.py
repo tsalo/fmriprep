@@ -146,7 +146,7 @@ def write_derivative_description(bids_dir, deriv_dir):
         desc['License'] = orig_desc['License']
 
     # Add DatasetLinks
-    desc['DatasetLinks'] = config.execution.dataset_links
+    desc['DatasetLinks'] = {k: str(v) for k, v in config.execution.dataset_links.items()}
 
     Path.write_text(deriv_dir / 'dataset_description.json', json.dumps(desc, indent=4))
 

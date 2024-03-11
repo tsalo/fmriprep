@@ -443,7 +443,7 @@ class execution(_Config):
     """Path to a working directory where intermediate results will be available."""
     write_graph = False
     """Write out the computational graph corresponding to the planned preprocessing."""
-    dataset_links = None
+    dataset_links = {}
     """A dictionary of dataset links to be used to track Sources in sidecars."""
 
     _layout = None
