@@ -348,15 +348,15 @@ def dismiss_echo(entities=None):
     return entities
 
 
-def convert_bids_uri(path):
+def _convert_bids_uri(in_files):
     """Convert a BIDS path to a URI.
 
     This uses the Config's dataset_links and fmriprep_dir as potential base paths.
 
     Parameters
     ----------
-    path : str or list of str
-        The path to convert to a URI. May be a list of Paths.
+    in_files : str or list of str
+        The path to convert to a URI. May be a list of paths.
 
     Returns
     -------
@@ -367,17 +367,17 @@ def convert_bids_uri(path):
     from pathlib import Path
 
     from fmriprep import config
-    from fmriprep.utils.bids import find_nearest_path
+    from fmriprep.utils.bids import _convert_bids_uri, _find_nearest_path
 
-    if isinstance(path, list):
-        return [convert_bids_uri(p) for p in path]
+    if isinstance(in_files, list):
+        return [_convert_bids_uri(p) for p in in_files]
 
     updated_keys = {f"bids:{k}:": v for k, v in config.execution.dataset_links.items()}
     updated_keys["bids::"] = config.execution.fmriprep_dir
-    return find_nearest_path(updated_keys, Path(path))
+    return _find_nearest_path(updated_keys, Path(in_files))
 
 
-def find_nearest_path(path_dict, input_path):
+def _find_nearest_path(path_dict, input_path):
     """Find the nearest relative path from an input path to a dictionary of paths.
 
     If ``input_path`` is not relative to any of the paths in ``path_dict``,

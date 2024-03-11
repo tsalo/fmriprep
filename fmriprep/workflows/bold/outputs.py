@@ -29,12 +29,11 @@ from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 from niworkflows.utils.images import dseg_label
-from smriprep.workflows.outputs import _bids_relative
 
 from fmriprep import config
 from fmriprep.config import DEFAULT_MEMORY_MIN_GB
 from fmriprep.interfaces import DerivativesDataSink
-from fmriprep.utils.bids import dismiss_echo
+from fmriprep.utils.bids import _convert_bids_uri, dismiss_echo
 
 
 def prepare_timing_parameters(metadata: dict):
@@ -437,7 +436,7 @@ def init_ds_boldref_wf(
     )
     outputnode = pe.Node(niu.IdentityInterface(fields=['boldref']), name='outputnode')
 
-    raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
+    raw_sources = pe.Node(niu.Function(function=_convert_bids_uri), name='raw_sources')
     raw_sources.inputs.bids_root = bids_root
 
     ds_boldref = pe.Node(
@@ -457,7 +456,7 @@ def init_ds_boldref_wf(
         (inputnode, raw_sources, [('source_files', 'in_files')]),
         (inputnode, ds_boldref, [('boldref', 'in_file'),
                                  ('source_files', 'source_file')]),
-        (raw_sources, ds_boldref, [('out', 'RawSources')]),
+        (raw_sources, ds_boldref, [('out', 'Sources')]),
         (ds_boldref, outputnode, [('out_file', 'boldref')]),
     ])
     # fmt:on
@@ -481,7 +480,7 @@ def init_ds_registration_wf(
     )
     outputnode = pe.Node(niu.IdentityInterface(fields=['xform']), name='outputnode')
 
-    raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
+    raw_sources = pe.Node(niu.Function(function=_convert_bids_uri), name='raw_sources')
     raw_sources.inputs.bids_root = bids_root
 
     ds_xform = pe.Node(
@@ -503,7 +502,7 @@ def init_ds_registration_wf(
         (inputnode, raw_sources, [('source_files', 'in_files')]),
         (inputnode, ds_xform, [('xform', 'in_file'),
                                ('source_files', 'source_file')]),
-        (raw_sources, ds_xform, [('out', 'RawSources')]),
+        (raw_sources, ds_xform, [('out', 'Sources')]),
         (ds_xform, outputnode, [('out_file', 'xform')]),
     ])
     # fmt:on
@@ -525,7 +524,7 @@ def init_ds_hmc_wf(
     )
     outputnode = pe.Node(niu.IdentityInterface(fields=['xforms']), name='outputnode')
 
-    raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
+    raw_sources = pe.Node(niu.Function(function=_convert_bids_uri), name='raw_sources')
     raw_sources.inputs.bids_root = bids_root
 
     ds_xforms = pe.Node(
@@ -547,7 +546,7 @@ def init_ds_hmc_wf(
         (inputnode, raw_sources, [('source_files', 'in_files')]),
         (inputnode, ds_xforms, [('xforms', 'in_file'),
                                 ('source_files', 'source_file')]),
-        (raw_sources, ds_xforms, [('out', 'RawSources')]),
+        (raw_sources, ds_xforms, [('out', 'Sources')]),
         (ds_xforms, outputnode, [('out_file', 'xforms')]),
     ])
     # fmt:on
@@ -582,7 +581,7 @@ def init_ds_bold_native_wf(
         name='inputnode',
     )
 
-    raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
+    raw_sources = pe.Node(niu.Function(function=_convert_bids_uri), name='raw_sources')
     raw_sources.inputs.bids_root = bids_root
     workflow.connect(inputnode, 'source_files', raw_sources, 'in_files')
 
@@ -604,7 +603,7 @@ def init_ds_bold_native_wf(
             ('source_files', 'source_file'),
             ('bold_mask', 'in_file'),
         ]),
-        (raw_sources, ds_bold_mask, [('out', 'RawSources')]),
+        (raw_sources, ds_bold_mask, [('out', 'Sources')]),
     ])  # fmt:skip
 
     if bold_output:
@@ -652,7 +651,7 @@ def init_ds_bold_native_wf(
                 ('source_files', 'source_file'),
                 ('t2star', 'in_file'),
             ]),
-            (raw_sources, ds_t2star, [('out', 'RawSources')]),
+            (raw_sources, ds_t2star, [('out', 'Sources')]),
         ])  # fmt:skip
 
     if echo_output:
@@ -714,7 +713,7 @@ def init_ds_volumes_wf(
         name='inputnode',
     )
 
-    raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
+    raw_sources = pe.Node(niu.Function(function=_convert_bids_uri), name='raw_sources')
     raw_sources.inputs.bids_root = bids_root
     boldref2target = pe.Node(niu.Merge(2), name='boldref2target')
 
