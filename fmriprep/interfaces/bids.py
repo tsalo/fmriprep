@@ -1,8 +1,8 @@
 """BIDS-related interfaces."""
 
-from nipype.interfaces.base import File, SimpleInterface, TraitedSpec, traits
-
 from pathlib import Path
+
+from nipype.interfaces.base import File, SimpleInterface, TraitedSpec, traits
 
 from .. import config
 from ..utils.bids import _find_nearest_path
