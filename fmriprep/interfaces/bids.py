@@ -39,7 +39,7 @@ class BIDSURI(SimpleInterface):
         updated_keys = {f'bids:{k}:': v for k, v in config.execution.dataset_links.items()}
         updated_keys['bids::'] = config.execution.fmriprep_dir
         if isinstance(self.inputs.in_file, list):
-            uri = [_find_nearest_path(f, updated_keys) for f in self.inputs.in_file]
+            uri = [_find_nearest_path(updated_keys, Path(f)) for f in self.inputs.in_file]
         else:
             uri = _find_nearest_path(updated_keys, Path(self.inputs.in_file))
 
