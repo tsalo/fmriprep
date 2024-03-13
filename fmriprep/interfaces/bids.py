@@ -5,7 +5,6 @@ from pathlib import Path
 from bids.utils import listify
 from nipype.interfaces.base import File, SimpleInterface, TraitedSpec, traits
 
-from .. import config
 from ..utils.bids import _find_nearest_path
 
 
@@ -16,6 +15,8 @@ class _BIDSURIInputSpec(TraitedSpec):
         mandatory=True,
         desc='Input imaging file(s)',
     )
+    dataset_links = traits.Dict()
+    out_dir = traits.Str()
 
 
 class _BIDSURIOutputSpec(TraitedSpec):
@@ -37,8 +38,8 @@ class BIDSURI(SimpleInterface):
 
     def _run_interface(self, runtime):
         in_files = listify(self.inputs.in_files)
-        updated_keys = {f'bids:{k}:': v for k, v in config.execution.dataset_links.items()}
-        updated_keys['bids::'] = config.execution.fmriprep_dir
+        updated_keys = {f'bids:{k}:': v for k, v in self.inputs.dataset_links.items()}
+        updated_keys['bids::'] = self.inputs.out_dir
         out = [_find_nearest_path(updated_keys, Path(f)) for f in in_files]
         self._results['out'] = out
 

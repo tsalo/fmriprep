@@ -710,7 +710,13 @@ def init_ds_volumes_wf(
         name='inputnode',
     )
 
-    raw_sources = pe.Node(BIDSURI(), name='raw_sources')
+    raw_sources = pe.Node(
+        BIDSURI(
+            dataset_links=config.execution.dataset_links,
+            out_dir=config.execution.fmriprep_dir,
+        ),
+        name='raw_sources',
+    )
     boldref2target = pe.Node(niu.Merge(2), name='boldref2target')
 
     # BOLD is pre-resampled
