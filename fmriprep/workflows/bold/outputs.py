@@ -713,7 +713,7 @@ def init_ds_volumes_wf(
     raw_sources = pe.Node(
         BIDSURI(
             dataset_links=config.execution.dataset_links,
-            out_dir=config.execution.fmriprep_dir,
+            out_dir=str(config.execution.fmriprep_dir.absolute()),
         ),
         name='raw_sources',
     )

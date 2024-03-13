@@ -39,7 +39,7 @@ class BIDSURI(SimpleInterface):
     def _run_interface(self, runtime):
         in_files = listify(self.inputs.in_files)
         updated_keys = {f'bids:{k}:': v for k, v in self.inputs.dataset_links.items()}
-        updated_keys['bids::'] = self.inputs.out_dir
+        updated_keys['bids::'] = Path(self.inputs.out_dir)
         out = [_find_nearest_path(updated_keys, Path(f)) for f in in_files]
         self._results['out'] = out
 
