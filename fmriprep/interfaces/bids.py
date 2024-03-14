@@ -3,15 +3,20 @@
 from pathlib import Path
 
 from bids.utils import listify
-from nipype.interfaces.base import File, SimpleInterface, TraitedSpec, traits
+from nipype.interfaces.base import (
+    File,
+    InputMultiObject,
+    SimpleInterface,
+    TraitedSpec,
+    traits,
+)
 
 from ..utils.bids import _find_nearest_path
 
 
 class _BIDSURIInputSpec(TraitedSpec):
-    in_files = traits.Either(
-        File(exists=False),
-        traits.List(File(exists=False)),
+    in_files = InputMultiObject(
+        File(exists=True),
         mandatory=True,
         desc='Input imaging file(s)',
     )
