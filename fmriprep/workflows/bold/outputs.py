@@ -437,7 +437,13 @@ def init_ds_boldref_wf(
     )
     outputnode = pe.Node(niu.IdentityInterface(fields=['boldref']), name='outputnode')
 
-    raw_sources = pe.Node(BIDSURI(), name='raw_sources')
+    raw_sources = pe.Node(
+        BIDSURI(
+            dataset_links=config.execution.dataset_links,
+            out_dir=str(config.execution.fmriprep_dir.absolute()),
+        ),
+        name='raw_sources',
+    )
 
     ds_boldref = pe.Node(
         DerivativesDataSink(
@@ -480,7 +486,13 @@ def init_ds_registration_wf(
     )
     outputnode = pe.Node(niu.IdentityInterface(fields=['xform']), name='outputnode')
 
-    raw_sources = pe.Node(BIDSURI(), name='raw_sources')
+    raw_sources = pe.Node(
+        BIDSURI(
+            dataset_links=config.execution.dataset_links,
+            out_dir=str(config.execution.fmriprep_dir.absolute()),
+        ),
+        name='raw_sources',
+    )
 
     ds_xform = pe.Node(
         DerivativesDataSink(
@@ -523,7 +535,13 @@ def init_ds_hmc_wf(
     )
     outputnode = pe.Node(niu.IdentityInterface(fields=['xforms']), name='outputnode')
 
-    raw_sources = pe.Node(BIDSURI(), name='raw_sources')
+    raw_sources = pe.Node(
+        BIDSURI(
+            dataset_links=config.execution.dataset_links,
+            out_dir=str(config.execution.fmriprep_dir.absolute()),
+        ),
+        name='raw_sources',
+    )
 
     ds_xforms = pe.Node(
         DerivativesDataSink(
@@ -579,7 +597,13 @@ def init_ds_bold_native_wf(
         name='inputnode',
     )
 
-    raw_sources = pe.Node(BIDSURI(), name='raw_sources')
+    raw_sources = pe.Node(
+        BIDSURI(
+            dataset_links=config.execution.dataset_links,
+            out_dir=str(config.execution.fmriprep_dir.absolute()),
+        ),
+        name='raw_sources',
+    )
     workflow.connect(inputnode, 'source_files', raw_sources, 'in_files')
 
     # Masks should be output if any other derivatives are output

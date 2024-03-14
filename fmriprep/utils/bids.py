@@ -97,7 +97,7 @@ def write_bidsignore(deriv_dir):
     ignore_file.write_text('\n'.join(bids_ignore) + '\n')
 
 
-def write_derivative_description(bids_dir, deriv_dir):
+def write_derivative_description(bids_dir, deriv_dir, dataset_links=None):
     from .. import __version__
 
     DOWNLOAD_URL = f'https://github.com/nipreps/fmriprep/archive/{__version__}.tar.gz'
@@ -146,7 +146,8 @@ def write_derivative_description(bids_dir, deriv_dir):
         desc['License'] = orig_desc['License']
 
     # Add DatasetLinks
-    desc['DatasetLinks'] = {k: str(v) for k, v in config.execution.dataset_links.items()}
+    if dataset_links:
+        desc['DatasetLinks'] = {k: str(v) for k, v in dataset_links.items()}
 
     Path.write_text(deriv_dir / 'dataset_description.json', json.dumps(desc, indent=4))
 
@@ -346,35 +347,6 @@ def dismiss_echo(entities=None):
         entities.append('echo')
 
     return entities
-
-
-def _convert_bids_uri(in_files):
-    """Convert a BIDS path to a URI.
-
-    This uses the Config's dataset_links and fmriprep_dir as potential base paths.
-
-    Parameters
-    ----------
-    in_files : str or list of str
-        The path to convert to a URI. May be a list of paths.
-
-    Returns
-    -------
-    str or list of str
-        The BIDS-URI of the input path.
-        If the input path is a list, the output is a list.
-    """
-    from pathlib import Path
-
-    from fmriprep import config
-    from fmriprep.utils.bids import _convert_bids_uri, _find_nearest_path
-
-    if isinstance(in_files, list):
-        return [_convert_bids_uri(p) for p in in_files]
-
-    updated_keys = {f'bids:{k}:': v for k, v in config.execution.dataset_links.items()}
-    updated_keys['bids::'] = config.execution.fmriprep_dir
-    return _find_nearest_path(updated_keys, Path(in_files))
 
 
 def _find_nearest_path(path_dict, input_path):

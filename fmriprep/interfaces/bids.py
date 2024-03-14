@@ -20,8 +20,8 @@ class _BIDSURIInputSpec(TraitedSpec):
         mandatory=True,
         desc='Input imaging file(s)',
     )
-    dataset_links = traits.Dict()
-    out_dir = traits.Str()
+    dataset_links = traits.Dict(mandatory=True, desc='Dataset links')
+    out_dir = traits.Str(mandatory=True, desc='Output directory')
 
 
 class _BIDSURIOutputSpec(TraitedSpec):
