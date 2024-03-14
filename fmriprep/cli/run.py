@@ -225,7 +225,7 @@ def main():
         write_derivative_description(
             config.execution.bids_dir,
             config.execution.fmriprep_dir,
-            dataset_links=config.execution.dataset_links.items(),
+            dataset_links=config.execution.dataset_links,
         )
         write_bidsignore(config.execution.fmriprep_dir)
 
