@@ -16,8 +16,8 @@ def test_BIDSURI():
         numinputs=1,
         dataset_links=dataset_links,
         out_dir=out_dir,
-        in1='/data/sub-01/func/sub-01_task-rest_bold.nii.gz',
     )
+    interface.inputs.in1 = '/data/sub-01/func/sub-01_task-rest_bold.nii.gz'
     results = interface.run()
     assert results.outputs.out == ['bids:raw:sub-01/func/sub-01_task-rest_bold.nii.gz']
 
@@ -26,8 +26,8 @@ def test_BIDSURI():
         numinputs=1,
         dataset_links=dataset_links,
         out_dir=out_dir,
-        in1=['/data/sub-01/func/sub-01_task-rest_bold.nii.gz'],
     )
+    interface.inputs.in1 = ['/data/sub-01/func/sub-01_task-rest_bold.nii.gz']
     results = interface.run()
     assert results.outputs.out == ['bids:raw:sub-01/func/sub-01_task-rest_bold.nii.gz']
 
@@ -36,12 +36,12 @@ def test_BIDSURI():
         numinputs=2,
         dataset_links=dataset_links,
         out_dir=out_dir,
-        in1='/data/sub-01/func/sub-01_task-rest_bold.nii.gz',
-        in2=[
-            '/data/derivatives/source-1/sub-01/func/sub-01_task-rest_bold.nii.gz',
-            '/out/sub-01/func/sub-01_task-rest_bold.nii.gz',
-        ],
     )
+    interface.inputs.in1 = '/data/sub-01/func/sub-01_task-rest_bold.nii.gz'
+    interface.inputs.in2 = [
+        '/data/derivatives/source-1/sub-01/func/sub-01_task-rest_bold.nii.gz',
+        '/out/sub-01/func/sub-01_task-rest_bold.nii.gz',
+    ]
     results = interface.run()
     assert results.outputs.out == [
         'bids:raw:sub-01/func/sub-01_task-rest_bold.nii.gz',
@@ -54,15 +54,15 @@ def test_BIDSURI():
         numinputs=2,
         dataset_links=dataset_links,
         out_dir=out_dir,
-        in1=[
-            '/data/sub-01/func/sub-01_task-rest_bold.nii.gz',
-            'bids:raw:sub-01/func/sub-01_task-rest_boldref.nii.gz',
-        ],
-        in2=[
-            '/data/derivatives/source-1/sub-01/func/sub-01_task-rest_bold.nii.gz',
-            '/out/sub-01/func/sub-01_task-rest_bold.nii.gz',
-        ],
     )
+    interface.inputs.in1 = [
+        '/data/sub-01/func/sub-01_task-rest_bold.nii.gz',
+        'bids:raw:sub-01/func/sub-01_task-rest_boldref.nii.gz',
+    ]
+    interface.inputs.in2 = [
+        '/data/derivatives/source-1/sub-01/func/sub-01_task-rest_bold.nii.gz',
+        '/out/sub-01/func/sub-01_task-rest_bold.nii.gz',
+    ]
     results = interface.run()
     assert results.outputs.out == [
         'bids:raw:sub-01/func/sub-01_task-rest_bold.nii.gz',
