@@ -397,6 +397,7 @@ def _find_nearest_path(path_dict, input_path):
     if isinstance(input_path, str) and input_path.startswith('bids:'):
         return input_path
 
+    input_path = Path(input_path)
     matching_path = None
     for key, path in path_dict.items():
         if input_path.is_relative_to(path):
