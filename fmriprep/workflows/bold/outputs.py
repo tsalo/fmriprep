@@ -595,6 +595,8 @@ def init_ds_bold_native_wf(
                 'bold_mask',
                 'bold_echos',
                 't2star',
+                'motion_xfm',
+                'boldref2fmap_xfm',
             ]
         ),
         name='inputnode',
@@ -602,13 +604,19 @@ def init_ds_bold_native_wf(
 
     raw_sources = pe.Node(
         BIDSURI(
-            numinputs=1,
+            numinputs=3,
             dataset_links=config.execution.dataset_links,
             out_dir=str(config.execution.fmriprep_dir.absolute()),
         ),
         name='raw_sources',
     )
-    workflow.connect(inputnode, 'source_files', raw_sources, 'in1')
+    workflow.connect([
+        (inputnode, raw_sources, [
+            ('source_files', 'in1'),
+            ('motion_xfm', 'in2'),
+            ('boldref2fmap_xfm', 'in3'),
+        ]),
+    ])  # fmt:skip
 
     # Masks should be output if any other derivatives are output
     ds_bold_mask = pe.Node(

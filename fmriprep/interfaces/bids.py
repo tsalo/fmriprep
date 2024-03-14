@@ -3,8 +3,8 @@
 from pathlib import Path
 
 from bids.utils import listify
-from nipype.interfaces.base import TraitedSpec, traits
-from nipype.interfaces.io import IOBase, add_traits
+from nipype.interfaces.base import SimpleInterface, TraitedSpec, traits
+from nipype.interfaces.io import add_traits
 
 from ..utils.bids import _find_nearest_path
 
@@ -21,7 +21,7 @@ class _BIDSURIOutputSpec(TraitedSpec):
     )
 
 
-class BIDSURI(IOBase):
+class BIDSURI(SimpleInterface):
     """Convert input filenames to BIDS URIs, based on links in the dataset.
 
     This interface can combine multiple lists of inputs.
