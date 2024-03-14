@@ -439,6 +439,7 @@ def init_ds_boldref_wf(
 
     raw_sources = pe.Node(
         BIDSURI(
+            numinputs=1,
             dataset_links=config.execution.dataset_links,
             out_dir=str(config.execution.fmriprep_dir.absolute()),
         ),
@@ -459,7 +460,7 @@ def init_ds_boldref_wf(
 
     # fmt:off
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, raw_sources, [('source_files', 'in1')]),
         (inputnode, ds_boldref, [('boldref', 'in_file'),
                                  ('source_files', 'source_file')]),
         (raw_sources, ds_boldref, [('out', 'Sources')]),
@@ -488,6 +489,7 @@ def init_ds_registration_wf(
 
     raw_sources = pe.Node(
         BIDSURI(
+            numinputs=1,
             dataset_links=config.execution.dataset_links,
             out_dir=str(config.execution.fmriprep_dir.absolute()),
         ),
@@ -510,7 +512,7 @@ def init_ds_registration_wf(
 
     # fmt:off
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, raw_sources, [('source_files', 'in1')]),
         (inputnode, ds_xform, [('xform', 'in_file'),
                                ('source_files', 'source_file')]),
         (raw_sources, ds_xform, [('out', 'Sources')]),
@@ -537,6 +539,7 @@ def init_ds_hmc_wf(
 
     raw_sources = pe.Node(
         BIDSURI(
+            numinputs=1,
             dataset_links=config.execution.dataset_links,
             out_dir=str(config.execution.fmriprep_dir.absolute()),
         ),
@@ -559,7 +562,7 @@ def init_ds_hmc_wf(
 
     # fmt:off
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, raw_sources, [('source_files', 'in1')]),
         (inputnode, ds_xforms, [('xforms', 'in_file'),
                                 ('source_files', 'source_file')]),
         (raw_sources, ds_xforms, [('out', 'Sources')]),
@@ -599,12 +602,13 @@ def init_ds_bold_native_wf(
 
     raw_sources = pe.Node(
         BIDSURI(
+            numinputs=1,
             dataset_links=config.execution.dataset_links,
             out_dir=str(config.execution.fmriprep_dir.absolute()),
         ),
         name='raw_sources',
     )
-    workflow.connect(inputnode, 'source_files', raw_sources, 'in_files')
+    workflow.connect(inputnode, 'source_files', raw_sources, 'in1')
 
     # Masks should be output if any other derivatives are output
     ds_bold_mask = pe.Node(
@@ -736,6 +740,7 @@ def init_ds_volumes_wf(
 
     raw_sources = pe.Node(
         BIDSURI(
+            numinputs=1,
             dataset_links=config.execution.dataset_links,
             out_dir=str(config.execution.fmriprep_dir.absolute()),
         ),
@@ -758,7 +763,7 @@ def init_ds_volumes_wf(
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, raw_sources, [('source_files', 'in1')]),
         (inputnode, boldref2target, [
             # Note that ANTs expects transforms in target-to-source order
             # Reverse this for nitransforms-based resamplers
