@@ -3,7 +3,13 @@
 from pathlib import Path
 
 from bids.utils import listify
-from nipype.interfaces.base import DynamicTraitedSpec, SimpleInterface, TraitedSpec, traits
+from nipype.interfaces.base import (
+    DynamicTraitedSpec,
+    SimpleInterface,
+    TraitedSpec,
+    isdefined,
+    traits,
+)
 from nipype.interfaces.io import add_traits
 from nipype.interfaces.utility.base import _ravel
 
@@ -44,8 +50,12 @@ class BIDSURI(SimpleInterface):
         inputs = [getattr(self.inputs, f'in{i + 1}') for i in range(self._numinputs)]
         in_files = listify(inputs)
         in_files = _ravel(in_files)
+        # Remove undefined inputs
+        in_files = [f for f in in_files if isdefined(f)]
+        # Convert the dataset links to BIDS URI prefixes
         updated_keys = {f'bids:{k}:': Path(v) for k, v in self.inputs.dataset_links.items()}
         updated_keys['bids::'] = Path(self.inputs.out_dir)
+        # Convert the paths to BIDS URIs
         out = [_find_nearest_path(updated_keys, f) for f in in_files]
         self._results['out'] = out
 
