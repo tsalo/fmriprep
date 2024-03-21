@@ -3,14 +3,14 @@
 from pathlib import Path
 
 from bids.utils import listify
-from nipype.interfaces.base import SimpleInterface, TraitedSpec, traits
+from nipype.interfaces.base import DynamicTraitedSpec, SimpleInterface, TraitedSpec, traits
 from nipype.interfaces.io import add_traits
 from nipype.interfaces.utility.base import _ravel
 
 from ..utils.bids import _find_nearest_path
 
 
-class _BIDSURIInputSpec(TraitedSpec):
+class _BIDSURIInputSpec(DynamicTraitedSpec):
     dataset_links = traits.Dict(mandatory=True, desc='Dataset links')
     out_dir = traits.Str(mandatory=True, desc='Output directory')
 
