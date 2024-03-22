@@ -378,6 +378,10 @@ def init_bold_fit_wf(
     # fmt:on
 
     # Stage 1: Generate motion correction boldref
+    hmc_boldref_source_buffer = pe.Node(
+        niu.IdentityInterface(fields=['in_file']),
+        name='hmc_boldref_source_buffer',
+    )
     if not have_hmcref:
         config.loggers.workflow.info('Stage 1: Adding HMC boldref workflow')
         hmc_boldref_wf = init_raw_boldref_wf(
@@ -407,6 +411,7 @@ def init_bold_fit_wf(
             (hmc_boldref_wf, func_fit_reports_wf, [
                 ('outputnode.validation_report', 'inputnode.validation_report'),
             ]),
+            (ds_hmc_boldref_wf, hmc_boldref_source_buffer, [('out_file', 'in_file')]),
         ])
         # fmt:on
     else:
@@ -421,6 +426,7 @@ def init_bold_fit_wf(
         workflow.connect([
             (validate_bold, hmcref_buffer, [('out_file', 'bold_file')]),
             (validate_bold, func_fit_reports_wf, [('out_report', 'inputnode.validation_report')]),
+            (hmcref_buffer, hmc_boldref_source_buffer, [('boldref', 'in_file')]),
         ])
         # fmt:on
 
@@ -475,7 +481,9 @@ def init_bold_fit_wf(
         workflow.connect([
             (hmcref_buffer, fmapref_buffer, [('boldref', 'boldref_files')]),
             (fmapref_buffer, enhance_boldref_wf, [('out', 'inputnode.in_file')]),
-            (fmapref_buffer, ds_coreg_boldref_wf, [('out', 'inputnode.source_files')]),
+            (hmc_boldref_source_buffer, ds_coreg_boldref_wf, [
+                ('in_file', 'inputnode.source_files'),
+            ]),
             (ds_coreg_boldref_wf, regref_buffer, [('outputnode.boldref', 'boldref')]),
             (fmapref_buffer, func_fit_reports_wf, [('out', 'inputnode.sdc_boldref')]),
         ])
