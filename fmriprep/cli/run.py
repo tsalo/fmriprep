@@ -197,7 +197,16 @@ def main():
             from niworkflows.utils.misc import _copy_any
             from templateflow import api
 
-            dseg_tsv = str(api.get('fsaverage', suffix='dseg', extension=['.tsv']))
+            dseg_tsv = str(
+                api.get(
+                    'fsaverage',
+                    hemi=None,
+                    atlas=None,
+                    segmentation='aparc',
+                    suffix='dseg',
+                    extension=['.tsv'],
+                )
+            )
             _copy_any(dseg_tsv, str(config.execution.fmriprep_dir / 'desc-aseg_dseg.tsv'))
             _copy_any(dseg_tsv, str(config.execution.fmriprep_dir / 'desc-aparcaseg_dseg.tsv'))
         errno = 0
