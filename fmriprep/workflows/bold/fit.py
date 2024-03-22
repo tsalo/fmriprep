@@ -448,10 +448,10 @@ def init_bold_fit_wf(
             ]),
             (bold_hmc_wf, ds_hmc_wf, [('outputnode.xforms', 'inputnode.xforms')]),
             (bold_hmc_wf, hmc_buffer, [
-                ('outputnode.xforms', 'hmc_xforms'),
                 ('outputnode.movpar_file', 'movpar_file'),
                 ('outputnode.rmsd_file', 'rmsd_file'),
             ]),
+            (ds_hmc_wf, hmc_buffer, [('outputnode.xforms', 'hmc_xforms')]),
         ])  # fmt:skip
     else:
         config.loggers.workflow.info('Found motion correction transforms - skipping Stage 2')
