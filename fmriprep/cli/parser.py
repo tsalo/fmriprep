@@ -635,6 +635,13 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         dest='run_reconall',
         help='Disable FreeSurfer surface preprocessing.',
     )
+    g_fs.add_argument(
+        '--fs-no-resume',
+        action='store_true',
+        dest='fs_no_resume',
+        help='EXPERT: Import pre-computed FreeSurfer reconstruction without resuming. '
+        'The user is responsible for ensuring that all necessary files are present.',
+    )
 
     g_carbon = parser.add_argument_group('Options for carbon usage tracking')
     g_carbon.add_argument(
