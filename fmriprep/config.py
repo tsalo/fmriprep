@@ -433,6 +433,8 @@ class execution(_Config):
     """Only build the reports, based on the reportlets found in a cached working directory."""
     run_uuid = f"{strftime('%Y%m%d-%H%M%S')}_{uuid4()}"
     """Unique identifier of this particular run."""
+    session_id = None
+    """List of session identifiers that are to be preprocessed."""
     participant_label = None
     """List of participant identifiers that are to be preprocessed."""
     task_id = None

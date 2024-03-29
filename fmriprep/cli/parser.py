@@ -22,9 +22,15 @@
 #
 """Parser."""
 
+from __future__ import annotations
+
 import sys
+import typing as ty
 
 from .. import config
+
+if ty.TYPE_CHECKING:
+    from bids.layout import BIDSLayout
 
 
 def _build_parser(**kwargs):
@@ -90,6 +96,9 @@ def _build_parser(**kwargs):
 
     def _drop_sub(value):
         return value[4:] if value.startswith('sub-') else value
+
+    def _drop_ses(value):
+        return value[4:] if value.startswith("ses-") else value
 
     def _process_value(value):
         import bids
@@ -193,8 +202,14 @@ def _build_parser(**kwargs):
         'identifier (the sub- prefix can be removed)',
     )
     # Re-enable when option is actually implemented
-    # g_bids.add_argument('-s', '--session-id', action='store', default='single_session',
-    #                     help='Select a specific session to be processed')
+    g_bids.add_argument(
+        '-s',
+        '--session-id',
+        action='store',
+        nargs='+',
+        type=_drop_ses,
+        help='A space-delimited list of session identifiers or a single identifier',
+    )
     # Re-enable when option is actually implemented
     # g_bids.add_argument('-r', '--run-id', action='store', default='single_run',
     #                     help='Select a specific run to be processed')
@@ -908,4 +923,36 @@ applied."""
         )
 
     config.execution.participant_label = sorted(participant_label)
+
+    config.execution.unique_labels = compute_subworkflows(
+        layout=config.execution.layout,
+        participant_ids=config.execution.participant_label,
+        session_ids=config.execution.session_id,
+    )
     config.workflow.skull_strip_template = config.workflow.skull_strip_template[0]
+
+
+def compute_subworkflows(
+    *,
+    layout: 'BIDSLayout',
+    participant_ids: list,
+    session_ids: list | None = None,
+) -> list:
+    """Compute subworkflows based on participant and session IDs.
+
+    Query all available participants and sessions, and construct the combinations of the
+    subworkflows needed.
+    """
+    from niworkflows.utils.bids import collect_participants
+
+    # consists of (subject_id, session_id) tuples
+    subworkflows = []
+
+    subject_list = collect_participants(layout, participant_ids, strict=True)
+    for subject in subject_list:
+        # Due to rapidly changing morphometry of the population
+        # Ensure each subject session is processed individually
+        sessions = session_ids or layout.get_sessions(scope='raw', subject=subject) or [None]
+        for session in sessions:
+            subworkflows.append((subject, session))
+    return subworkflows
