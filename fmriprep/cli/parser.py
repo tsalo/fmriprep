@@ -98,7 +98,7 @@ def _build_parser(**kwargs):
         return value[4:] if value.startswith('sub-') else value
 
     def _drop_ses(value):
-        return value[4:] if value.startswith("ses-") else value
+        return value[4:] if value.startswith('ses-') else value
 
     def _process_value(value):
         import bids
@@ -934,7 +934,7 @@ applied."""
 
 def compute_subworkflows(
     *,
-    layout: 'BIDSLayout',
+    layout: BIDSLayout,
     participant_ids: list,
     session_ids: list | None = None,
 ) -> list:
