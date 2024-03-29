@@ -185,11 +185,7 @@ def init_single_subject_wf(
 
     from fmriprep.workflows.bold.base import init_bold_wf
 
-    name = (
-        f'sub_{subject_id}_ses_{session_id}_wf'
-        if session_id
-        else f'sub_{subject_id}_wf'
-    )
+    name = f'sub_{subject_id}_ses_{session_id}_wf' if session_id else f'sub_{subject_id}_wf'
 
     workflow = Workflow(name=name)
     workflow.__desc__ = f"""
