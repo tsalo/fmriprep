@@ -441,6 +441,8 @@ class execution(_Config):
     """Select a particular task from all available in the dataset."""
     templateflow_home = _templateflow_home
     """The root folder of the TemplateFlow client."""
+    unique_labels = None
+    """Combinations of subject + session identifiers to be preprocessed."""
     work_dir = Path('work').absolute()
     """Path to a working directory where intermediate results will be available."""
     write_graph = False
@@ -468,6 +470,12 @@ class execution(_Config):
     @classmethod
     def init(cls):
         """Create a new BIDS Layout accessible with :attr:`~execution.layout`."""
+        # Convert string literal None to NoneType
+        if cls.unique_labels:
+            cls.unique_labels = [
+                [sub, ses] if ses != 'None' else [sub, None] for sub, ses in cls.unique_labels
+            ]
+
         if cls.fs_license_file and Path(cls.fs_license_file).is_file():
             os.environ['FS_LICENSE'] = str(cls.fs_license_file)
 
