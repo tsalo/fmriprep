@@ -659,6 +659,7 @@ def init_ds_bold_native_wf(
                 ('source_files', 'source_file'),
                 ('bold', 'in_file'),
             ]),
+            (sources, ds_bold, [('out', 'Sources')]),
         ])  # fmt:skip
 
     if bold_output and multiecho:
@@ -734,6 +735,7 @@ def init_ds_volumes_wf(
                 'bold_mask',  # boldref space
                 'bold_ref',  # boldref space
                 't2star',  # boldref space
+                'template',  # target reference image from original transform
                 # Anatomical
                 'boldref2anat_xfm',
                 # Template
@@ -742,6 +744,9 @@ def init_ds_volumes_wf(
                 'space',
                 'cohort',
                 'resolution',
+                # Transforms previously used to generate the outputs
+                'motion_xfm',
+                'boldref2fmap_xfm',
             ]
         ),
         name='inputnode',
@@ -749,7 +754,7 @@ def init_ds_volumes_wf(
 
     sources = pe.Node(
         BIDSURI(
-            numinputs=3,
+            numinputs=6,
             dataset_links=config.execution.dataset_links,
             out_dir=str(config.execution.fmriprep_dir.absolute()),
         ),
@@ -774,8 +779,11 @@ def init_ds_volumes_wf(
     workflow.connect([
         (inputnode, sources, [
             ('source_files', 'in1'),
-            ('boldref2anat_xfm', 'in2'),
-            ('anat2std_xfm', 'in3'),
+            ('motion_xfm', 'in2'),
+            ('boldref2fmap_xfm', 'in3'),
+            ('boldref2anat_xfm', 'in4'),
+            ('anat2std_xfm', 'in5'),
+            ('template', 'in6'),
         ]),
         (inputnode, boldref2target, [
             # Note that ANTs expects transforms in target-to-source order

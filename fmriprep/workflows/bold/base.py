@@ -424,6 +424,8 @@ configured with cubic B-spline interpolation.
                 ('outputnode.bold_mask', 'inputnode.bold_mask'),
                 ('outputnode.coreg_boldref', 'inputnode.bold_ref'),
                 ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
+                ('outputnode.motion_xfm', 'inputnode.motion_xfm'),
+                ('outputnode.boldref2fmap_xfm', 'inputnode.boldref2fmap_xfm'),
             ]),
             (bold_native_wf, ds_bold_t1_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
             (bold_anat_wf, ds_bold_t1_wf, [
@@ -474,6 +476,7 @@ configured with cubic B-spline interpolation.
             ]),
             (inputnode, ds_bold_std_wf, [
                 ('anat2std_xfm', 'inputnode.anat2std_xfm'),
+                ('std_t1w', 'inputnode.template'),
                 ('std_space', 'inputnode.space'),
                 ('std_resolution', 'inputnode.resolution'),
                 ('std_cohort', 'inputnode.cohort'),
@@ -482,6 +485,8 @@ configured with cubic B-spline interpolation.
                 ('outputnode.bold_mask', 'inputnode.bold_mask'),
                 ('outputnode.coreg_boldref', 'inputnode.bold_ref'),
                 ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
+                ('outputnode.motion_xfm', 'inputnode.motion_xfm'),
+                ('outputnode.boldref2fmap_xfm', 'inputnode.boldref2fmap_xfm'),
             ]),
             (bold_native_wf, ds_bold_std_wf, [('outputnode.t2star_map', 'inputnode.t2star')]),
             (bold_std_wf, ds_bold_std_wf, [
