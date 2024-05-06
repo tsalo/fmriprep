@@ -1,3 +1,12 @@
+23.2.2 (May 06, 2024)
+=====================
+Bug fix release in the 23.2.x series.
+
+Fixes an issue with broken connections, which only affects ``--level resampling``.
+
+* FIX: Add datasink fill-in step to resampling level (#3254)
+
+
 23.2.1 (March 06, 2024)
 =======================
 Bug fix release in the 23.2.x series.
