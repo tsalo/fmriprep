@@ -474,7 +474,6 @@ def init_bold_fit_wf(
             name='ds_coreg_boldref_wf',
         )
         ds_boldmask_wf = init_ds_boldmask_wf(
-            bids_root=layout.root,
             output_dir=config.execution.fmriprep_dir,
             desc='brain',
             name='ds_boldmask_wf',
