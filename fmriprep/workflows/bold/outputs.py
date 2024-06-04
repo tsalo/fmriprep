@@ -29,6 +29,7 @@ from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 from niworkflows.utils.images import dseg_label
+from smriprep.workflows.outputs import _bids_relative
 
 from fmriprep import config
 from fmriprep.config import DEFAULT_MEMORY_MIN_GB
@@ -471,6 +472,50 @@ def init_ds_boldref_wf(
     return workflow
 
 
+def init_ds_boldmask_wf(
+    *,
+    bids_root,
+    output_dir,
+    desc: str,
+    name='ds_boldmask_wf',
+) -> pe.Workflow:
+    """Write out a BOLD mask."""
+    workflow = pe.Workflow(name=name)
+
+    inputnode = pe.Node(
+        niu.IdentityInterface(fields=['source_files', 'boldmask']),
+        name='inputnode',
+    )
+    outputnode = pe.Node(niu.IdentityInterface(fields=['boldmask']), name='outputnode')
+
+    raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
+    raw_sources.inputs.bids_root = bids_root
+
+    ds_boldmask = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            desc=desc,
+            suffix='mask',
+            compress=True,
+            dismiss_entities=dismiss_echo(),
+        ),
+        name='ds_boldmask',
+        run_without_submitting=True,
+    )
+
+    workflow.connect([
+        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, ds_boldmask, [
+            ('boldmask', 'in_file'),
+            ('source_files', 'source_file'),
+        ]),
+        (raw_sources, ds_boldmask, [('out', 'RawSources')]),
+        (ds_boldmask, outputnode, [('out_file', 'boldmask')]),
+    ])  # fmt:skip
+
+    return workflow
+
+
 def init_ds_registration_wf(
     *,
     bids_root: str,
@@ -592,7 +637,6 @@ def init_ds_bold_native_wf(
             fields=[
                 'source_files',
                 'bold',
-                'bold_mask',
                 'bold_echos',
                 't2star',
                 # Transforms previously used to generate the outputs
@@ -617,27 +661,6 @@ def init_ds_bold_native_wf(
             ('motion_xfm', 'in2'),
             ('boldref2fmap_xfm', 'in3'),
         ]),
-    ])  # fmt:skip
-
-    # Masks should be output if any other derivatives are output
-    ds_bold_mask = pe.Node(
-        DerivativesDataSink(
-            base_directory=output_dir,
-            desc='brain',
-            suffix='mask',
-            compress=True,
-            dismiss_entities=dismiss_echo(),
-        ),
-        name='ds_bold_mask',
-        run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB,
-    )
-    workflow.connect([
-        (inputnode, ds_bold_mask, [
-            ('source_files', 'source_file'),
-            ('bold_mask', 'in_file'),
-        ]),
-        (sources, ds_bold_mask, [('out', 'Sources')]),
     ])  # fmt:skip
 
     if bold_output:

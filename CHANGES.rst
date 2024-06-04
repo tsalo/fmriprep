@@ -1,3 +1,13 @@
+23.2.3 (May 20, 2024)
+=====================
+Bug fix release in the 23.2.x series.
+
+Writes brain masks in ``space-boldref`` with ``--level minimal``,
+bringing behavior in line with documentation.
+
+* FIX: Write out boldref-space brain mask with minimal level (#3292)
+
+
 23.2.2 (May 06, 2024)
 =====================
 Bug fix release in the 23.2.x series.
