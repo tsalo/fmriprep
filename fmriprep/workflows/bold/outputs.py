@@ -29,7 +29,6 @@ from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 from niworkflows.utils.images import dseg_label
-from smriprep.workflows.outputs import _bids_relative
 
 from fmriprep import config
 from fmriprep.config import DEFAULT_MEMORY_MIN_GB
@@ -474,7 +473,6 @@ def init_ds_boldref_wf(
 
 def init_ds_boldmask_wf(
     *,
-    bids_root,
     output_dir,
     desc: str,
     name='ds_boldmask_wf',
@@ -488,8 +486,14 @@ def init_ds_boldmask_wf(
     )
     outputnode = pe.Node(niu.IdentityInterface(fields=['boldmask']), name='outputnode')
 
-    raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
-    raw_sources.inputs.bids_root = bids_root
+    sources = pe.Node(
+        BIDSURI(
+            numinputs=1,
+            dataset_links=config.execution.dataset_links,
+            out_dir=str(config.execution.fmriprep_dir.absolute()),
+        ),
+        name='sources',
+    )
 
     ds_boldmask = pe.Node(
         DerivativesDataSink(
@@ -504,12 +508,12 @@ def init_ds_boldmask_wf(
     )
 
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, sources, [('source_files', 'in1')]),
         (inputnode, ds_boldmask, [
             ('boldmask', 'in_file'),
             ('source_files', 'source_file'),
         ]),
-        (raw_sources, ds_boldmask, [('out', 'RawSources')]),
+        (sources, ds_boldmask, [('out', 'Sources')]),
         (ds_boldmask, outputnode, [('out_file', 'boldmask')]),
     ])  # fmt:skip
 
