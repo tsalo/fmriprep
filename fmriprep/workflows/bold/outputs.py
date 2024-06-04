@@ -473,7 +473,6 @@ def init_ds_boldref_wf(
 
 def init_ds_boldmask_wf(
     *,
-    bids_root,
     output_dir,
     desc: str,
     name='ds_boldmask_wf',
