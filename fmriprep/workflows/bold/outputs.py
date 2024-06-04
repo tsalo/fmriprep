@@ -488,8 +488,14 @@ def init_ds_boldmask_wf(
     )
     outputnode = pe.Node(niu.IdentityInterface(fields=['boldmask']), name='outputnode')
 
-    raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
-    raw_sources.inputs.bids_root = bids_root
+    sources = pe.Node(
+        BIDSURI(
+            numinputs=1,
+            dataset_links=config.execution.dataset_links,
+            out_dir=str(config.execution.fmriprep_dir.absolute()),
+        ),
+        name='sources',
+    )
 
     ds_boldmask = pe.Node(
         DerivativesDataSink(
@@ -504,12 +510,12 @@ def init_ds_boldmask_wf(
     )
 
     workflow.connect([
-        (inputnode, raw_sources, [('source_files', 'in_files')]),
+        (inputnode, sources, [('source_files', 'in1')]),
         (inputnode, ds_boldmask, [
             ('boldmask', 'in_file'),
             ('source_files', 'source_file'),
         ]),
-        (raw_sources, ds_boldmask, [('out', 'RawSources')]),
+        (sources, ds_boldmask, [('out', 'Sources')]),
         (ds_boldmask, outputnode, [('out_file', 'boldmask')]),
     ])  # fmt:skip
 
