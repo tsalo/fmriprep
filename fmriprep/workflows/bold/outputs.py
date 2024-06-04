@@ -29,7 +29,6 @@ from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 from niworkflows.utils.images import dseg_label
-from smriprep.workflows.outputs import _bids_relative
 
 from fmriprep import config
 from fmriprep.config import DEFAULT_MEMORY_MIN_GB
