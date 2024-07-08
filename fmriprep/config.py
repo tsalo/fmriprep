@@ -624,6 +624,8 @@ class workflow(_Config):
     in the absence of any alternatives."""
     me_t2s_fit_method = 'curvefit'
     """The method by which to estimate T2*/S0 for multi-echo data"""
+    use_nordic = None
+    """Apply NORDIC denoising to the BOLD data."""
 
 
 class loggers:

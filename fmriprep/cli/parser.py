@@ -447,6 +447,13 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
             'It is faster and less memory intensive, but may be less accurate.'
         ),
     )
+    g_conf.add_argument(
+        '--use-nordic',
+        action='store_true',
+        dest='use_nordic',
+        default=None,
+        help='Apply NORDIC denoising to the BOLD data',
+    )
 
     g_outputs = parser.add_argument_group('Options for modulating outputs')
     g_outputs.add_argument(
