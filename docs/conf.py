@@ -26,6 +26,8 @@ from github_link import make_linkcode_resolve  # noqa: E402
 
 # -- General configuration ------------------------------------------------
 
+html_baseurl = os.environ.get('READTHEDOCS_CANONICAL_URL', '')
+
 # If your documentation needs a minimal Sphinx version, state it here.
 needs_sphinx = '1.5.3'
 
