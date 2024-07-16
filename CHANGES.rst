@@ -1,6 +1,18 @@
+24.0.1 (July 16, 2024)
+======================
+Bug fix release in the 24.0.x series.
+
+This release resolves a bug with multi-volume single-band references.
+If multiple volumes are found, they are processed in the same way as
+the BOLD series is processed to produce a motion-correction reference.
+
+* FIX: Validate and summarize multi-volume sbrefs (#3320)
+* DOC: Address errors/warnings in RTD builds (#3325)
+* DOC: Read html_baseurl from RTD environment, if available (#3324)
+
+
 24.0.0 (June 17, 2024)
 ======================
-
 New feature release in the 24.0.x series.
 
 This release is an incremental improvement on 23.2.x, with some
