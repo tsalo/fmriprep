@@ -127,6 +127,9 @@ ENV PATH="/usr/local/miniconda/bin:$PATH" \
     PYTHONNOUSERSITE=1
 
 COPY docker/files/environment.yml /usr/local/etc/environment.yml
+COPY docker/files/repo-anaconda-com-chain.pem /usr/local/etc/repo-anaconda-com-chain.pem
+
+RUN conda config --set ssl_verify /usr/local/etc/repo-anaconda-com-chain.pem
 
 # Installing precomputed python packages
 RUN conda env update -n base -f /usr/local/etc/environment.yml; sync && \
