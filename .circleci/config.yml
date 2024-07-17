@@ -1043,6 +1043,7 @@ jobs:
           name: Check sdist distribution
           command: |
             THISVERSION=$( cat fmriprep/VERSION )
+            SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
             python -m venv sdist
             source sdist/bin/activate
             python -m pip install --upgrade pip numpy
@@ -1058,6 +1059,7 @@ jobs:
           name: Check wheel distribution
           command: |
             THISVERSION=$( cat fmriprep/VERSION )
+            SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
             python -m venv wheel
             source wheel/bin/activate
             python -m pip install --upgrade pip numpy
