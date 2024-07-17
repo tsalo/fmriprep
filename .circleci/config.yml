@@ -344,8 +344,8 @@ jobs:
       image: ubuntu-2004:202104-01
     working_directory: /tmp/ds005
     environment:
-      - FS_LICENSE: /tmp/fslicense/license.txt
-      - DATASET: ds005
+      FS_LICENSE: /tmp/fslicense/license.txt
+      DATASET: ds005
     steps:
       - checkout:
           path: /home/circleci/src/fmriprep
@@ -583,8 +583,8 @@ jobs:
       image: ubuntu-2004:202104-01
     working_directory: /tmp/ds054
     environment:
-      - FS_LICENSE: /tmp/fslicense/license.txt
-      - DATASET: ds054
+      FS_LICENSE: /tmp/fslicense/license.txt
+      DATASET: ds054
     steps:
       - checkout:
           path: /home/circleci/src/fmriprep
@@ -751,8 +751,8 @@ jobs:
       image: ubuntu-2004:202104-01
     working_directory: /tmp/ds210
     environment:
-      - FS_LICENSE: /tmp/fslicense/license.txt
-      - DATASET: ds210
+      FS_LICENSE: /tmp/fslicense/license.txt
+      DATASET: ds210
     steps:
       - checkout:
           path: /home/circleci/src/fmriprep
