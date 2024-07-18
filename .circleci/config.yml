@@ -406,10 +406,10 @@ jobs:
     <<: *machine_defaults
     working_directory: /tmp/ds005
     environment:
-      - FS_LICENSE: /tmp/fslicense/license.txt
-      - DATASET: ds005
-      - CHECK_DS005: true
-      - MIGAS_OPTOUT: 1
+      FS_LICENSE: /tmp/fslicense/license.txt
+      DATASET: ds005
+      CHECK_DS005: 1
+      MIGAS_OPTOUT: 1
     steps:
       - checkout:
           path: *src
@@ -573,10 +573,10 @@ jobs:
     <<: *machine_defaults
     working_directory: /tmp/ds054
     environment:
-      - FS_LICENSE: /tmp/fslicense/license.txt
-      - DATASET: ds054
-      - CHECK_DS054: true
-      - MIGAS_OPTOUT: 1
+      FS_LICENSE: /tmp/fslicense/license.txt
+      DATASET: ds054
+      CHECK_DS054: 1
+      MIGAS_OPTOUT: 1
     steps:
       - checkout:
           path: *src
@@ -666,9 +666,9 @@ jobs:
     <<: *machine_defaults
     working_directory: /tmp/ds210
     environment:
-      - FS_LICENSE: /tmp/fslicense/license.txt
-      - DATASET: ds210
-      - CHECK_DS210: true
+      FS_LICENSE: /tmp/fslicense/license.txt
+      DATASET: ds210
+      CHECK_DS210: 1
     steps:
       - checkout:
           path: *src
