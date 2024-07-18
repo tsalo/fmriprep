@@ -1,6 +1,8 @@
-20.2.8 (To be determined)
-=========================
+20.2.8 (July 18, 2024)
+======================
 Bug-fix release in the 20.2.x LTS series.
+
+We anticipate this being the final release in the 20.2.x LTS series.
 
 * FIX: Select volumetric dseg.tsv from recent TemplateFlow releases (#3257)
 * FIX: LTS package build (#3328)
