@@ -1,3 +1,25 @@
+20.2.8 (To be determined)
+=========================
+Bug-fix release in the 20.2.x LTS series.
+
+* FIX: Select volumetric dseg.tsv from recent TemplateFlow releases (#3257)
+* FIX: LTS package build (#3328)
+* DOC: Read html_baseurl from RTD environment, if available (#3324)
+* DOCKER: Pin conda environment more strictly (#2853)
+* MNT: Require niworkflows ~1.3.6 (#2740)
+* CI: Upgrade docker orb (#2865)
+
+This release includes a number of fixes that have accumulated in niworkflows,
+including the following fixes that affect fMRIPrep:
+
+* FIX: Remove unused ANTs parameter that was removed in 2.4.1 (nipreps/sdcflows#431)
+* FIX: Limit 3dQwarp to maximum 4 CPUs for stability reasons (nipreps/sdcflows#128)
+* MAINT: Make call to scipy.stats.mode compatible with scipy 1.11.0 (nipreps/sdcflows#371)
+* FIX: TSV2JSON should convert empty TSV files to empty JSON files (nipreps/niworkflows#747)
+* FIX: Use copy function that does not preserve mtime when creating fsaverage
+  directories (nipreps/niworkflows#703)
+* FIX: Set pixdim[4] to match RepetitionTime (nipreps/niworkflows#679)
+
 20.2.7 (January 24, 2022)
 =========================
 Bug-fix release in the 20.2.x LTS series.
