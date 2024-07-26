@@ -815,8 +815,13 @@ def init_spaces(checkpoint=True):
     # Ensure user-defined spatial references for outputs are correctly parsed.
     # Certain options require normalization to a space not explicitly defined by users.
     # These spaces will not be included in the final outputs.
-    cifti_output = workflow.cifti_output
-    if cifti_output:
+    if spaces.get_spaces(cifti=True):
+        # Figure out the surface spaces and volume spaces we need
+        cifti_spaces = spaces.get_spaces(cifti=True)
+        for cifti_space in cifti_spaces:
+            surface_space = cifti_space
+            volume_space = cifti_space
+
         # CIFTI grayordinates to corresponding FSL-MNI resolutions.
         vol_res = '2' if cifti_output == '91k' else '1'
         spaces.add(Reference('MNI152NLin6Asym', {'res': vol_res}))
