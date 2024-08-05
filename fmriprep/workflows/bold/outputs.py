@@ -441,7 +441,7 @@ def init_ds_boldref_wf(
         BIDSURI(
             numinputs=1,
             dataset_links=config.execution.dataset_links,
-            out_dir=str(config.execution.fmriprep_dir.absolute()),
+            out_dir=str(output_dir),
         ),
         name='sources',
     )
@@ -490,7 +490,7 @@ def init_ds_boldmask_wf(
         BIDSURI(
             numinputs=1,
             dataset_links=config.execution.dataset_links,
-            out_dir=str(config.execution.fmriprep_dir.absolute()),
+            out_dir=str(output_dir),
         ),
         name='sources',
     )
@@ -540,7 +540,7 @@ def init_ds_registration_wf(
         BIDSURI(
             numinputs=1,
             dataset_links=config.execution.dataset_links,
-            out_dir=str(config.execution.fmriprep_dir.absolute()),
+            out_dir=str(output_dir),
         ),
         name='sources',
     )
@@ -590,7 +590,7 @@ def init_ds_hmc_wf(
         BIDSURI(
             numinputs=1,
             dataset_links=config.execution.dataset_links,
-            out_dir=str(config.execution.fmriprep_dir.absolute()),
+            out_dir=str(output_dir),
         ),
         name='sources',
     )
@@ -655,7 +655,7 @@ def init_ds_bold_native_wf(
         BIDSURI(
             numinputs=3,
             dataset_links=config.execution.dataset_links,
-            out_dir=str(config.execution.fmriprep_dir.absolute()),
+            out_dir=str(output_dir),
         ),
         name='sources',
     )
@@ -783,7 +783,7 @@ def init_ds_volumes_wf(
         BIDSURI(
             numinputs=6,
             dataset_links=config.execution.dataset_links,
-            out_dir=str(config.execution.fmriprep_dir.absolute()),
+            out_dir=str(output_dir),
         ),
         name='sources',
     )

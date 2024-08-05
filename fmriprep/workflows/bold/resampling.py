@@ -148,7 +148,7 @@ The BOLD time-series were resampled onto the following surfaces
         BIDSURI(
             numinputs=1,
             dataset_links=config.execution.dataset_links,
-            out_dir=str(config.execution.fmriprep_dir.absolute()),
+            out_dir=str(output_dir),
         ),
         name='surfs_sources',
     )
