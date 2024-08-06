@@ -815,9 +815,18 @@ def init_spaces(checkpoint=True):
     # Ensure user-defined spatial references for outputs are correctly parsed.
     # Certain options require normalization to a space not explicitly defined by users.
     # These spaces will not be included in the final outputs.
-    if spaces.get_spaces(cifti=True):
+    if cifti_output == '91k':
+        spaces.add(
+            Reference('fsLR', {'den': '32k', 'volspace': 'MNI152NLin6Asym', 'volres': '2'})
+        )
+    elif cifti_output == '170k':
+        spaces.add(
+            Reference('fsLR', {'den': '32k', 'volspace': 'MNI152NLin6Asym', 'volres': '1'})
+        )
+
+    if spaces.get_spaces(cifti=(True,)):
         # Figure out the surface spaces and volume spaces we need
-        cifti_spaces = spaces.get_spaces(cifti=True)
+        cifti_spaces = spaces.get_standard(cifti=(True,))
         for cifti_space in cifti_spaces:
             surface_space = cifti_space
             volume_space = cifti_space
