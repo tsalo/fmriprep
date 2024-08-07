@@ -119,9 +119,12 @@ NORDIC was applied to the BOLD data.
     split_noise = pe.Node(RemoveNoise(), name='split_noise')
 
     workflow.connect([
-        (inputnode, add_noise, [('bold_file', 'in_file')]),
+        (inputnode, add_noise, [
+            ('mag_file', 'bold_file'),
+            ('norf_file', 'norf_file'),
+        ]),
         (nordic, split_noise, [('mag_file', 'bold_file')]),
-        (split_noise, outputnode, [('bold_file', 'nordic_file')]),
+        (split_noise, outputnode, [('bold_file', 'mag_file')]),
     ])  # fmt:skip
 
     if phase:

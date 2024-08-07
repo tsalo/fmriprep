@@ -760,8 +760,9 @@ def init_bold_native_wf(
         # Look for (1) phase data, (2) magnitude noRF data, (3) phase noRF data
         bids_filters = config.execution.get().get('bids_filters', {})
 
-        norf_files = get_norfs(
+        norf_files = get_associated(
             bold_series,
+            suffix='noRF',
             entity_overrides=bids_filters.get('norf', {}),
             layout=layout,
         )
@@ -776,6 +777,43 @@ def init_bold_native_wf(
                 ','.join([os.path.basename(norf) for norf in norf_files])
             )
         config.loggers.workflow.info(norf_msg)
+
+        phase_files = get_associated(
+            bold_series,
+            suffix='phase',
+            entity_overrides=bids_filters.get('phase', {}),
+            layout=layout,
+        )
+        phase_msg = f'No noise scans found for {os.path.basename(bold_series[0])}.'
+        if phase_files and 'phase' in config.workflow.ignore:
+            phase_msg = (
+                f'Noise scan file(s) found for {os.path.basename(bold_series[0])} and ignored.'
+            )
+            phase_files = []
+        elif phase_files:
+            phase_msg = 'Using noise scan file(s) {}.'.format(
+                ','.join([os.path.basename(phase) for phase in phase_files])
+            )
+        config.loggers.workflow.info(phase_msg)
+        has_phase = bool(len(phase_files))
+
+        phase_norf_files = get_associated(
+            bold_series,
+            suffix='noRF',
+            entity_overrides=bids_filters.get('norf', {}),
+            layout=layout,
+        )
+        phase_norf_msg = f'No noise scans found for {os.path.basename(bold_series[0])}.'
+        if phase_norf_files and 'phase_norf' in config.workflow.ignore:
+            phase_norf_msg = (
+                f'Noise scan file(s) found for {os.path.basename(bold_series[0])} and ignored.'
+            )
+            phase_norf_files = []
+        elif phase_norf_files:
+            phase_norf_msg = 'Using noise scan file(s) {}.'.format(
+                ','.join([os.path.basename(phase_norf) for phase_norf in phase_norf_files])
+            )
+        config.loggers.workflow.info(phase_norf_msg)
 
     run_stc = bool(metadata.get('SliceTiming')) and 'slicetiming' not in config.workflow.ignore
 
@@ -841,10 +879,34 @@ def init_bold_native_wf(
     ])  # fmt:skip
 
     if config.workflow.use_nordic:
-        nordic_wf = init_bold_nordic_wf(norf_files, mem_gb=mem_gb)
+        norf_source = pe.Node(niu.Select(inlist=norf_files), name='norf_source')
+        validate_norf = pe.Node(ValidateImage(), name='validate_norf')
         workflow.connect([
-            (validate_bold, nordic_wf, [('out_file', 'inputnode.bold_file')]),
-            (nordic_wf, nordicbuffer, [('outputnode.bold_file', 'bold_file')]),
+            (echo_index, norf_source, [('echoidx', 'index')]),
+            (norf_source, validate_norf, [('out', 'in_file')]),
+        ])  # fmt:skip
+
+        phase_source = pe.Node(niu.Select(inlist=phase_files), name='phase_source')
+        validate_phase = pe.Node(ValidateImage(), name='validate_phase')
+        workflow.connect([
+            (echo_index, phase_source, [('echoidx', 'index')]),
+            (phase_source, validate_phase, [('out', 'in_file')]),
+        ])  # fmt:skip
+
+        phase_norf_source = pe.Node(niu.Select(inlist=phase_norf_files), name='phase_norf_source')
+        validate_phase_norf = pe.Node(ValidateImage(), name='validate_phase_norf')
+        workflow.connect([
+            (echo_index, phase_norf_source, [('echoidx', 'index')]),
+            (phase_norf_source, validate_phase_norf, [('out', 'in_file')]),
+        ])  # fmt:skip
+
+        nordic_wf = init_bold_nordic_wf(phase=has_phase, mem_gb=mem_gb)
+        workflow.connect([
+            (validate_bold, nordic_wf, [('out_file', 'inputnode.mag_file')]),
+            (validate_norf, nordic_wf, [('out_file', 'inputnode.norf_file')]),
+            (validate_phase, nordic_wf, [('out_file', 'inputnode.phase_file')]),
+            (validate_phase_norf, nordic_wf, [('out_file', 'inputnode.phase_norf_file')]),
+            (nordic_wf, nordicbuffer, [('outputnode.mag_file', 'bold_file')]),
         ])  # fmt:skip
     else:
         workflow.connect([(validate_bold, nordicbuffer, [('out_file', 'bold_file')])])
