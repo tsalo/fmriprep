@@ -32,6 +32,7 @@ from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
 
 from ... import config
+from ...interfaces.nordic import AppendNoise, RemoveNoise, ValidateComplex
 
 LOGGER = config.loggers.workflow
 
@@ -74,8 +75,10 @@ def init_bold_nordic_wf(
 
     Outputs
     -------
-    nordic_file
+    mag_file
         NORDIC-denoised BOLD series NIfTI file
+    phase_file
+        NORDIC-denoised phase series NIfTI file
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 
@@ -85,27 +88,25 @@ NORDIC was applied to the BOLD data.
 """
     inputnode = pe.Node(
         niu.IdentityInterface(
-            fields=['bold_file', 'norf_file', 'phase_file', 'phase_norf_file'],
+            fields=['mag_file', 'norf_file', 'phase_file', 'phase_norf_file'],
         ),
         name='inputnode',
     )
-    outputnode = pe.Node(niu.IdentityInterface(fields=['nordic_file']), name='outputnode')
+    outputnode = pe.Node(
+        niu.IdentityInterface(
+            fields=['mag_file', 'phase_file'],
+        ),
+        name='outputnode',
+    )
 
     # Add noRF file to end of bold_file if available
-    add_noise = pe.Node(niu.IdentityInterface(fields=['bold_file']), name='add_noise')
+    add_noise = pe.Node(AppendNoise(), name='add_noise')
 
     if phase:
         # Do the same for the phase data if available
-        add_phase_noise = pe.Node(
-            niu.IdentityInterface(fields=['bold_file', 'norf_file']),
-            name='add_phase_noise',
-        )
-        validate_complex = pe.Node(
-            niu.IdentityInterface(
-                fields=['mag_file', 'phase_file', 'n_mag_noise_volumes', 'n_phase_noise_volumes'],
-            ),
-            name='validate_complex',
-        )
+        add_phase_noise = pe.Node(AppendNoise(), name='add_phase_noise')
+        validate_complex = pe.Node(ValidateComplex(), name='validate_complex')
+        split_phase_noise = pe.Node(RemoveNoise(), name='split_phase_noise')
 
     # Run NORDIC
     nordic = pe.Node(
@@ -115,10 +116,7 @@ NORDIC was applied to the BOLD data.
     )
 
     # Split noise volumes out of denoised bold_file
-    split_noise = pe.Node(
-        niu.IdentityInterface(fields=['bold_file', 'n_noise_volumes']),
-        name='split_noise',
-    )
+    split_noise = pe.Node(RemoveNoise(), name='split_noise')
 
     workflow.connect([
         (inputnode, add_noise, [('bold_file', 'in_file')]),
@@ -146,6 +144,8 @@ NORDIC was applied to the BOLD data.
                 ('n_noise_volumes', 'n_noise_volumes'),
             ]),
             (validate_complex, split_noise, [('n_noise_volumes', 'n_noise_volumes')]),
+            (nordic, split_noise, [('phase_file', 'bold_file')]),
+            (split_phase_noise, outputnode, [('bold_file', 'phase_nordic_file')]),
         ])  # fmt:skip
     else:
         workflow.connect([
@@ -154,6 +154,6 @@ NORDIC was applied to the BOLD data.
                 ('n_noise_volumes', 'n_noise_volumes'),
             ]),
             (add_noise, split_noise, [('n_noise_volumes', 'n_noise_volumes')]),
-        ])
+        ])  # fmt:skip
 
     return workflow
