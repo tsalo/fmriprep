@@ -46,6 +46,7 @@ from ...utils.misc import estimate_bold_mem_usage
 
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
+from .nordic import init_bold_nordic_wf
 from .outputs import (
     init_ds_boldmask_wf,
     init_ds_boldref_wf,
@@ -755,6 +756,27 @@ def init_bold_native_wf(
                 'Multi-echo processing requires at least three different echos (found two).'
             )
 
+    if config.workflow.use_nordic:
+        # Look for (1) phase data, (2) magnitude noRF data, (3) phase noRF data
+        bids_filters = config.execution.get().get('bids_filters', {})
+
+        norf_files = get_norfs(
+            bold_series,
+            entity_overrides=bids_filters.get('norf', {}),
+            layout=layout,
+        )
+        norf_msg = f'No noise scans found for {os.path.basename(bold_series[0])}.'
+        if norf_files and 'norf' in config.workflow.ignore:
+            norf_msg = (
+                f'Noise scan file(s) found for {os.path.basename(bold_series[0])} and ignored.'
+            )
+            norf_files = []
+        elif norf_files:
+            norf_msg = 'Using noise scan file(s) {}.'.format(
+                ','.join([os.path.basename(norf) for norf in norf_files])
+            )
+        config.loggers.workflow.info(norf_msg)
+
     run_stc = bool(metadata.get('SliceTiming')) and 'slicetiming' not in config.workflow.ignore
 
     workflow = pe.Workflow(name=name)
@@ -794,6 +816,10 @@ def init_bold_native_wf(
     )
     outputnode.inputs.metadata = metadata
 
+    nordicbuffer = pe.Node(
+        niu.IdentityInterface(fields=['bold_file']),
+        name='nordicbuffer',
+    )
     boldbuffer = pe.Node(
         niu.IdentityInterface(fields=['bold_file', 'ro_time', 'pe_dir']), name='boldbuffer'
     )
@@ -814,16 +840,25 @@ def init_bold_native_wf(
         (bold_source, validate_bold, [('out', 'in_file')]),
     ])  # fmt:skip
 
+    if config.workflow.use_nordic:
+        nordic_wf = init_bold_nordic_wf(norf_files, mem_gb=mem_gb)
+        workflow.connect([
+            (validate_bold, nordic_wf, [('out_file', 'inputnode.bold_file')]),
+            (nordic_wf, nordicbuffer, [('outputnode.bold_file', 'bold_file')]),
+        ])  # fmt:skip
+    else:
+        workflow.connect([(validate_bold, nordicbuffer, [('out_file', 'bold_file')])])
+
     # Slice-timing correction
     if run_stc:
         bold_stc_wf = init_bold_stc_wf(metadata=metadata, mem_gb=mem_gb)
         workflow.connect([
             (inputnode, bold_stc_wf, [('dummy_scans', 'inputnode.skip_vols')]),
-            (validate_bold, bold_stc_wf, [('out_file', 'inputnode.bold_file')]),
+            (nordicbuffer, bold_stc_wf, [('out_file', 'inputnode.bold_file')]),
             (bold_stc_wf, boldbuffer, [('outputnode.stc_file', 'bold_file')]),
         ])  # fmt:skip
     else:
-        workflow.connect([(validate_bold, boldbuffer, [('out_file', 'bold_file')])])
+        workflow.connect([(nordicbuffer, boldbuffer, [('out_file', 'bold_file')])])
 
     # Prepare fieldmap metadata
     if fieldmap_id:
