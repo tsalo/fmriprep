@@ -41,7 +41,7 @@ from ...interfaces.resampling import (
     ReconstructFieldmap,
     ResampleSeries,
 )
-from ...utils.bids import extract_entities
+from ...utils.bids import extract_entities, get_associated
 from ...utils.misc import estimate_bold_mem_usage
 
 # BOLD workflows
@@ -762,7 +762,7 @@ def init_bold_native_wf(
 
         norf_files = get_associated(
             bold_series,
-            suffix='noRF',
+            query={'suffix': 'noRF'},
             entity_overrides=bids_filters.get('norf', {}),
             layout=layout,
         )
@@ -780,7 +780,7 @@ def init_bold_native_wf(
 
         phase_files = get_associated(
             bold_series,
-            suffix='phase',
+            query={'part': 'phase'},
             entity_overrides=bids_filters.get('phase', {}),
             layout=layout,
         )
@@ -799,7 +799,7 @@ def init_bold_native_wf(
 
         phase_norf_files = get_associated(
             bold_series,
-            suffix='noRF',
+            query={'part': 'phase', 'suffix': 'noRF'},
             entity_overrides=bids_filters.get('norf', {}),
             layout=layout,
         )
