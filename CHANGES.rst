@@ -1,3 +1,16 @@
+24.1.0 (To be Determined)
+=========================
+New feature release in the 24.1.x series.
+
+Handling of gradient echo fieldmaps is improved.
+
+  * FIX: Select volumetric dseg.tsv from recent TemplateFlow releases (#3257)
+  * RF: Adapt to less T1w-centric smriprep (#3333)
+  * RF: Use acres over vendored data loader (#3323)
+  * DOC: Add benchmark page (#3312)
+  * MAINT: Move to tox to simplify test/CI setup (#3326)
+  * CI: Fix expected outputs for fieldmaps (#3321)
+
 24.0.1 (July 16, 2024)
 ======================
 Bug fix release in the 24.0.x series.
