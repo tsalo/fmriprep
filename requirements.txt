@@ -230,7 +230,7 @@ nipype==1.8.6
     #   smriprep
 nireports==23.2.2
     # via fmriprep (pyproject.toml)
-nitime==0.11
+nitime==0.10.2
     # via fmriprep (pyproject.toml)
 nitransforms==24.0.0
     # via
