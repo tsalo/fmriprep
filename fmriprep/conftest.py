@@ -32,7 +32,7 @@ def _populate_namespace(doctest_namespace, tmp_path):
     doctest_namespace['testdir'] = tmp_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def minimal_bids(tmp_path):
     bids = tmp_path / 'bids'
     bids.mkdir()
