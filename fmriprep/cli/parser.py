@@ -516,7 +516,13 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         help='Disable Multimodal Surface Matching surface registration.',
     )
 
-    g_aroma = parser.add_argument_group('[DEPRECATED] Options for running ICA_AROMA')
+    g_aroma = parser.add_argument_group(
+        '[DEPRECATED] Options for running ICA_AROMA',
+        description=(
+            'If you would like to apply ICA-AROMA to fMRIPrep derivatives, '
+            'please consider using fMRIPost-AROMA (https://fmripost-aroma.readthedocs.io/)'
+        ),
+    )
     g_aroma.add_argument(
         '--use-aroma',
         action=DeprecatedAction,
