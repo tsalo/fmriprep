@@ -232,7 +232,7 @@ nireports==23.2.2
     # via fmriprep (pyproject.toml)
 nitime==0.10.2
     # via fmriprep (pyproject.toml)
-nitransforms==24.0.0
+nitransforms==23.0.1
     # via
     #   fmriprep (pyproject.toml)
     #   niworkflows
@@ -300,8 +300,6 @@ pandas==2.2.2
     #   pybids
     #   seaborn
     #   tedana
-pathlib==1.0.1
-    # via nitransforms
 patool==2.4.0
     # via datalad
 pillow==10.4.0
