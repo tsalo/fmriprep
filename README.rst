@@ -4,13 +4,13 @@
 (`www.nipreps.org <https://www.nipreps.org>`__) for the preprocessing of
 task-based and resting-state functional MRI (fMRI).
 
-.. image:: https://img.shields.io/badge/docker-nipreps/fmriprep-brightgreen.svg?logo=docker&style=flat
-  :target: https://hub.docker.com/r/nipreps/fmriprep/tags/
-  :alt: Docker image available!
+.. image:: https://img.shields.io/badge/RRID-SCR__016216-blue.svg
+  :target: https://doi.org/10.1038/s41592-018-0235-4
+  :alt: RRID:SCR_016216
 
-.. image:: https://codeocean.com/codeocean-assets/badge/open-in-code-ocean.svg
-  :target: https://doi.org/10.24433/CO.ed5ddfef-76a3-4996-b298-e3200f69141b
-  :alt: Available in CodeOcean!
+.. image:: https://img.shields.io/pypi/v/fmriprep.svg
+  :target: https://pypi.python.org/pypi/fmriprep/
+  :alt: Latest Version
 
 .. image:: https://circleci.com/gh/nipreps/fmriprep/tree/master.svg?style=shield
   :target: https://circleci.com/gh/nipreps/fmriprep/tree/master
@@ -19,17 +19,21 @@ task-based and resting-state functional MRI (fMRI).
   :target: https://fmriprep.org/en/latest/?badge=latest
   :alt: Documentation Status
 
-.. image:: https://img.shields.io/pypi/v/fmriprep.svg
-  :target: https://pypi.python.org/pypi/fmriprep/
-  :alt: Latest Version
-
 .. image:: https://img.shields.io/badge/doi-10.1038%2Fs41592--018--0235--4-blue.svg
   :target: https://doi.org/10.1038/s41592-018-0235-4
   :alt: Published in Nature Methods
 
-.. image:: https://img.shields.io/badge/RRID-SCR__016216-blue.svg
-  :target: https://doi.org/10.1038/s41592-018-0235-4
-  :alt: RRID:SCR_016216
+.. image:: https://img.shields.io/badge/docker-nipreps/fmriprep-brightgreen.svg?logo=docker&style=flat
+  :target: https://hub.docker.com/r/nipreps/fmriprep/tags/
+  :alt: Docker image available!
+
+.. image:: https://codeocean.com/codeocean-assets/badge/open-in-code-ocean.svg
+  :target: https://doi.org/10.24433/CO.ed5ddfef-76a3-4996-b298-e3200f69141b
+  :alt: Available in CodeOcean!
+
+.. image:: https://chanzuckerberg.github.io/open-science/badges/CZI-EOSS.svg
+  :target: https://czi.co/EOSS
+  :alt: CZI's Essential Open Source Software for Science
 
 About
 -----
