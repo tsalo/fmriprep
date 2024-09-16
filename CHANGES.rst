@@ -1,5 +1,5 @@
-24.1.0 (To be Determined)
-=========================
+24.1.0 (September 16, 2024)
+===========================
 New feature release in the 24.1.x series.
 
 Handling of gradient echo fieldmaps is improved.
