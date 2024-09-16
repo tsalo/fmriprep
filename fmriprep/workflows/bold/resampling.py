@@ -575,10 +575,10 @@ def init_bold_fsLR_resampling_wf(
         Path to BOLD series resampled as functional GIFTI files in fsLR space
 
     """
+    import smriprep.data
     import templateflow.api as tf
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
     from niworkflows.interfaces.utility import KeySelect
-    from smriprep import data as smriprep_data
 
     from fmriprep.interfaces.workbench import VolumeToSurfaceMapping
 
@@ -652,7 +652,7 @@ The BOLD time-series were resampled onto the left/right-symmetric template
             extension='.surf.gii',
         )
     ]
-    atlases = smriprep_data.load_resource('atlases')
+    atlases = smriprep.data.load('atlases')
     select_surfaces.inputs.template_roi = [
         str(atlases / f'L.atlasroi.{fslr_density}_fs_LR.shape.gii'),
         str(atlases / f'R.atlasroi.{fslr_density}_fs_LR.shape.gii'),
