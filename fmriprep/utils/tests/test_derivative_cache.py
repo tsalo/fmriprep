@@ -1,15 +1,13 @@
-import json
 from pathlib import Path
 
 import pytest
 
-from fmriprep.data import load as load_data
 from fmriprep.utils import bids
 
 
 @pytest.mark.parametrize('xfm', ['boldref2fmap', 'boldref2anat', 'hmc'])
 def test_transforms_found_as_str(tmp_path: Path, xfm: str):
-    sub = '0'
+    subject = '0'
     task = 'rest'
     fromto = {
         'hmc': 'from-orig_to-boldref',
