@@ -41,4 +41,3 @@ def test_transforms_found_as_str(tmp_path: Path, xfm: str):
     xfm_in_transforms = xfm in derivs.get('transforms')
     transform_is_str = isinstance(derivs.get('transforms').get(xfm), str)
     assert all((transforms_in_derivs, xfm_in_transforms, transform_is_str))
-

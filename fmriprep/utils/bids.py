@@ -76,11 +76,7 @@ def collect_derivatives(
         #   whereas relevant src file will be "bold".
         query = {
             **q,
-            **{
-                k: v
-                for k, v in entities.items()
-                if k not in ['suffix', 'extension']
-            },
+            **{k: v for k, v in entities.items() if k not in ['suffix', 'extension']},
         }
         if xfm == 'boldref2fmap':
             # fieldmaps have ids like auto_00000
