@@ -14,7 +14,7 @@ def test_transforms_found_as_str(tmp_path: Path, xfm: str):
         'boldref2fmap': 'from-boldref_to-auto00000',
         'boldref2anat': 'from-boldref_to-anat',
     }[xfm]
-    
+
     to_find = tmp_path.joinpath(
         f'sub-{subject}',
         'func',
