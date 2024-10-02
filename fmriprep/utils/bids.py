@@ -62,7 +62,7 @@ def collect_derivatives(
 
     # search for both boldrefs
     for k, q in spec['baseline'].items():
-        query = {**q, **entities}
+        query = {**entities, **q}
         item = layout.get(return_type='filename', **query)
         if not item:
             continue
