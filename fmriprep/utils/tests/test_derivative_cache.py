@@ -29,7 +29,4 @@ def test_transforms_found_as_str(tmp_path: Path, xfm: str):
         entities=entities,
         fieldmap_id='auto_00000',
     )
-    transforms_in_derivs = 'transforms' in derivs
-    xfm_in_transforms = xfm in derivs.get('transforms')
-    transform_is_str = isinstance(derivs.get('transforms').get(xfm), str)
-    assert all((transforms_in_derivs, xfm_in_transforms, transform_is_str))
+    assert derivs == {'transforms': {xfm: str(to_find)}}
