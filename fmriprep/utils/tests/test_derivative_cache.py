@@ -9,20 +9,28 @@ from fmriprep.utils import bids
 
 @pytest.mark.parametrize('xfm', ['boldref2fmap', 'boldref2anat', 'hmc'])
 def test_transforms_found_as_str(tmp_path: Path, xfm: str):
+    sub = '0'
+    task = 'rest'
+    fromto = {
+        'hmc': 'from-orig_to-boldref',
+        'boldref2fmap': 'from-boldref_to-auto00000',
+        'boldref2anat': 'from-boldref_to-anat',
+    }[xfm]
+    
+    to_find = tmp_path.joinpath(
+        f'sub-{subject}',
+        'func',
+         f'sub-{subject}_task-{task}_{fromto}_mode-image_xfm.txt'
+     )
+    to_find.parent.mkdir(parents=True)
+    to_find.touch()
+
     entities = {
-        'subject': '0',
-        'task': 'rest',
+        'subject': subject,
+        'task': task,
         'suffix': 'bold',
         'extension': '.nii.gz',
     }
-    if xfm == 'boldref2fmap':
-        to_find = f'sub-{entities["subject"]}_task-{entities["task"]}_from-{spec["from"]}_to-auto00000_mode-image_xfm.txt'  # noqa: E501
-    else:
-        to_find = f'sub-{entities["subject"]}_task-{entities["task"]}_from-{spec["from"]}_to-{spec["to"]}_mode-image_xfm.txt'  # noqa: E501
-
-    funcd = tmp_path / f'sub-{entities["subject"]}' / 'func'
-    funcd.mkdir(parents=True)
-    (funcd / to_find).touch()
 
     derivs = bids.collect_derivatives(
         derivatives_dir=tmp_path,
