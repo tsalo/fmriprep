@@ -74,10 +74,7 @@ def collect_derivatives(
         #   (e.g., ".nii.gz" vs ".txt").
         # And transform suffixes will be "xfm",
         #   whereas relevant src file will be "bold".
-        query = {
-            **q,
-            **{k: v for k, v in entities.items() if k not in ['suffix', 'extension']},
-        }
+        query = {**entities, **q}
         if xfm == 'boldref2fmap' and fieldmap_id:
             # fieldmaps have ids like auto_00000
             query['to'] = fieldmap_id.replace('_', '')
