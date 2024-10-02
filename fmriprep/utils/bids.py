@@ -78,7 +78,7 @@ def collect_derivatives(
             **q,
             **{k: v for k, v in entities.items() if k not in ['suffix', 'extension']},
         }
-        if xfm == 'boldref2fmap':
+        if xfm == 'boldref2fmap' and fieldmap_id:
             # fieldmaps have ids like auto_00000
             query['to'] = fieldmap_id.replace('_', '')
         item = layout.get(return_type='filename', **query)
