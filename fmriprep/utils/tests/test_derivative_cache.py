@@ -16,10 +16,8 @@ def test_transforms_found_as_str(tmp_path: Path, xfm: str):
     }[xfm]
 
     to_find = tmp_path.joinpath(
-        f'sub-{subject}',
-        'func',
-         f'sub-{subject}_task-{task}_{fromto}_mode-image_xfm.txt'
-     )
+        f'sub-{subject}', 'func', f'sub-{subject}_task-{task}_{fromto}_mode-image_xfm.txt'
+    )
     to_find.parent.mkdir(parents=True)
     to_find.touch()
 
