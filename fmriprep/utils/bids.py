@@ -41,7 +41,7 @@ from ..data import load as load_data
 def collect_derivatives(
     derivatives_dir: Path,
     entities: dict,
-    fieldmap_id: str | None,
+    fieldmap_id: str | None = None,
     spec: dict | None = None,
     patterns: list[str] | None = None,
 ):
