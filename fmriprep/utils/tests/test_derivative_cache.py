@@ -9,12 +9,6 @@ from fmriprep.utils import bids
 
 @pytest.mark.parametrize('xfm', ['boldref2fmap', 'boldref2anat', 'hmc'])
 def test_transforms_found_as_str(tmp_path: Path, xfm: str):
-    spec = (
-        json.loads(load_data.readable('io_spec.json').read_text())
-        .get('queries')
-        .get('transforms')
-        .get(xfm)
-    )
     entities = {
         'subject': '0',
         'task': 'rest',
