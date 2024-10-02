@@ -22,11 +22,9 @@ def test_transforms_found_as_str(tmp_path: Path, xfm: str):
         'extension': '.nii.gz',
     }
     if xfm == 'boldref2fmap':
-        to_find = f'sub-{entities['subject']}_task-{entities['task']} \
-            _from-{spec['from']}_to-auto00000_mode-image_xfm.txt'
+        to_find = f'sub-{entities['subject']}_task-{entities['task']}_from-{spec['from']}_to-auto00000_mode-image_xfm.txt'
     else:
-        to_find = f'sub-{entities['subject']}_task-{entities['task']} \
-            _from-{spec['from']}_to-{spec['to']}_mode-image_xfm.txt'
+        to_find = f'sub-{entities['subject']}_task-{entities['task']}_from-{spec['from']}_to-{spec['to']}_mode-image_xfm.txt'
 
     funcd = tmp_path / f'sub-{entities['subject']}' / 'func'
     funcd.mkdir(parents=True)
