@@ -78,11 +78,11 @@ def load_ants_h5(filename: Path) -> nt.base.TransformBase:
     spacing = transform2['TransformFixedParameters'][6:9]
     direction = transform2['TransformFixedParameters'][9:].reshape((3, 3))
 
-    # We are not yet confident that we handle non-unit spacing
+    # We are not yet confident that we handle anisotropic spacing
     # or direction cosine ordering correctly.
     # If we confirm or fix, we can remove these checks.
-    if not np.allclose(spacing, 1):
-        raise ValueError(f'Unexpected spacing: {spacing}')
+    if not np.allclose(spacing, spacing[0]):
+        raise ValueError(f'Anisotropic spacing: {spacing}')
     if not np.allclose(direction, direction.T):
         raise ValueError(f'Asymmetric direction matrix: {direction}')
 
