@@ -30,5 +30,5 @@ def load_transforms(xfm_paths: list[Path], inverse: list[bool]) -> nt.base.Trans
         else:
             chain += xfm
     if chain is None:
-        chain = nt.base.TransformBase()
+        chain = nt.Affine()  # Identity
     return chain

@@ -757,7 +757,7 @@ def _conditional_downsampling(in_file, in_mask, zoom_th=4.0):
     offset = old_center - newrot.dot((newshape - 1) * 0.5)
     newaffine = nb.affines.from_matvec(newrot, offset)
 
-    identity = nt.base.TransformBase()
+    identity = nt.Affine()
 
     newref = nb.Nifti1Image(np.zeros(newshape, dtype=np.uint8), newaffine)
     transform(identity, img, reference=newref).to_filename(out_file)
