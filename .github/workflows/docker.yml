@@ -3,7 +3,7 @@ name: Docker build
 on:
   workflow_dispatch:
   push:
-    branches: [ "master", "maint/*" ]
+    branches: [ "master", "maint/*", "ci/gha-docker-build" ]
     tags: "*"
   pull_request:
     branches: [ "master" ]
