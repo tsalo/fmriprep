@@ -49,7 +49,8 @@ def load_ants_h5(filename: Path) -> nt.base.TransformBase:
     #   * Always return a nitransforms TransformBase
     #   * Construct warp affine from fixed parameters
     #
-    # This should be upstreamed into nitransforms
+    # This has been upstreamed into nitransforms.
+    # Future versions should switch to using nitransforms directly.
     h = h5py.File(filename)
     xform = ITKCompositeH5.from_h5obj(h)
 
@@ -77,14 +78,6 @@ def load_ants_h5(filename: Path) -> nt.base.TransformBase:
     origin = transform2['TransformFixedParameters'][3:6]
     spacing = transform2['TransformFixedParameters'][6:9]
     direction = transform2['TransformFixedParameters'][9:].reshape((3, 3))
-
-    # We are not yet confident that we handle anisotropic spacing
-    # or direction cosine ordering correctly.
-    # If we confirm or fix, we can remove these checks.
-    if not np.allclose(spacing, spacing[0]):
-        raise ValueError(f'Anisotropic spacing: {spacing}')
-    if not np.allclose(direction, direction.T):
-        raise ValueError(f'Asymmetric direction matrix: {direction}')
 
     # ITK uses LPS affines
     lps_affine = compose_affine(T=origin, R=direction, Z=spacing)
