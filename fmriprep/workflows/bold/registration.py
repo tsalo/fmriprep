@@ -737,7 +737,7 @@ def _conditional_downsampling(in_file, in_mask, zoom_th=4.0):
     import nibabel as nb
     import nitransforms as nt
     import numpy as np
-    from nitransforms.resampling import apply as transform
+    from nitransforms.resampling import apply as applyxfm
     from scipy.ndimage.filters import gaussian_filter
 
     img = nb.load(in_file)
@@ -760,13 +760,13 @@ def _conditional_downsampling(in_file, in_mask, zoom_th=4.0):
     identity = nt.Affine()
 
     newref = nb.Nifti1Image(np.zeros(newshape, dtype=np.uint8), newaffine)
-    transform(identity, img, reference=newref).to_filename(out_file)
+    applyxfm(identity, img, reference=newref).to_filename(out_file)
 
     mask = nb.load(in_mask)
     mask.set_data_dtype(float)
     mdata = gaussian_filter(mask.get_fdata(dtype=float), scaling)
     floatmask = nb.Nifti1Image(mdata, mask.affine, mask.header)
-    newmask = transform(identity, floatmask, reference=newref)
+    newmask = applyxfm(identity, floatmask, reference=newref)
     hdr = newmask.header.copy()
     hdr.set_data_dtype(np.uint8)
     newmaskdata = (newmask.get_fdata(dtype=float) > 0.5).astype(np.uint8)
