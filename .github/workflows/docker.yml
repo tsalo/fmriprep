@@ -3,10 +3,10 @@ name: Docker build
 on:
   workflow_dispatch:
   push:
-    branches: [ "master", "maint/*", "ci/gha-docker-build" ]
+    branches: [ "master", "main", "maint/*", "ci/gha-docker-build" ]
     tags: "*"
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "main", "maint/*" ]
 
 env:
   REGISTRY: ghcr.io
@@ -40,12 +40,18 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
-        id: build-and-push
         uses: docker/build-push-action@v4
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ fromJSON(steps.meta.outputs.json).tags[0] }}
-          cache-to: inline
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cache
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cache-${{ env.TARGET_BRANCH }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cache-${{ github.ref_name }}
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cache,mode=max
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cache-${{ github.ref_name }},mode=max
+        env:
+          TARGET_BRANCH: ${{ github.base_ref || github.ref_name }}
