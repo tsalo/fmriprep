@@ -2,7 +2,7 @@
 =========================
 Bug fix release in the 24.1.x series.
 
-Precomputed functional derivatives were not being correcly detected,
+Precomputed functional derivatives were not being correctly detected,
 and a couple fixes for rare issues.
 
   * FIX: Remove checks for unit zooms and symmetric rotations in template warp (#3376)
