@@ -1,3 +1,15 @@
+24.1.1 (October 10, 2024)
+=========================
+Bug fix release in the 24.1.x series.
+
+Precomputed functional derivatives were not being correcly detected,
+and a couple fixes for rare issues.
+
+  * FIX: Remove checks for unit zooms and symmetric rotations in template warp (#3376)
+  * FIX: Stop excluding FS minc_modify_header used during fallback registration (#3372)
+  * FIX: Repair search for precomputed bold references (#3370)
+  * FIX: Repair search for precomputed transforms (#3369)
+
 24.1.0 (September 16, 2024)
 ===========================
 New feature release in the 24.1.x series.
