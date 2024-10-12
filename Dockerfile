@@ -86,12 +86,6 @@ RUN mkdir /opt/workbench && \
     rm -rf /opt/workbench/libs_linux64_software_opengl /opt/workbench/plugins_linux64 && \
     strip --remove-section=.note.ABI-tag /opt/workbench/libs_linux64/libQt5Core.so.5
 
-# Convert3d 1.4.0
-FROM downloader AS c3d
-RUN mkdir /opt/convert3d && \
-    curl -fsSL --retry 5 https://sourceforge.net/projects/c3d/files/c3d/Experimental/c3d-1.4.0-Linux-gcc64.tar.gz/download \
-    | tar -xz -C /opt/convert3d --strip-components 1
-
 # Micromamba
 FROM downloader AS micromamba
 
@@ -181,7 +175,6 @@ RUN apt-get update -qq \
 COPY --from=freesurfer /opt/freesurfer /opt/freesurfer
 COPY --from=afni /opt/afni-latest /opt/afni-latest
 COPY --from=workbench /opt/workbench /opt/workbench
-COPY --from=c3d /opt/convert3d/bin/c3d_affine_tool /usr/bin/c3d_affine_tool
 
 # Simulate SetUpFreeSurfer.sh
 ENV OS="Linux" \
