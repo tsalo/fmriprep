@@ -47,6 +47,7 @@ _check_skip_job: &check_skip_job
     cd /tmp/src/fmriprep
     COMMIT_MSG="$(git show -s --format=%s)"
     DOCBUILD="$(echo ${COMMIT_MSG} | grep -i -E '^docs?(\(\w+\))?:')"
+    SKIP_ALL="$(echo ${COMMIT_MSG} | grep -i -E '\[skipcircle\]')"
     SKIP_PYTEST="$(echo ${COMMIT_MSG} | grep -i -E '\[skip[ _]?tests\]')"
     SKIP_DS005="$(echo ${COMMIT_MSG} | grep -i -E '\[skip[ _]?ds005\]' )"
     SKIP_DS054="$(echo ${COMMIT_MSG} | grep -i -E '\[skip[ _]?ds054\]' )"
@@ -61,6 +62,9 @@ _check_skip_job: &check_skip_job
       exit 0
     elif [[ -n "$DOCSBUILD" ]]; then  # always try to skip docs builds
       echo "Only docs build"
+      circleci step halt
+    elif [ -n "$SKIP_ALL" ]; then
+      echo "Skipping all!"
       circleci step halt
     elif [ -n "$CHECK_PYTEST" -a -n "$SKIP_PYTEST" ]; then
       echo "Skipping pytest"
