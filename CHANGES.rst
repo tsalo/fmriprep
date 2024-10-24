@@ -1,3 +1,10 @@
+24.1.2 (To be determined)
+=========================
+Bug fix release in the 24.1.x series.
+
+* FIX: Ensure fieldmap is resampled correctly in report (#3387)
+
+
 24.1.1 (October 10, 2024)
 =========================
 Bug fix release in the 24.1.x series.
