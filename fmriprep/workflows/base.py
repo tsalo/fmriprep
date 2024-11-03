@@ -586,12 +586,8 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
                 #    (typically, more than two EPI PE directions), or
                 # 2. Two modalities are involved, with at most two images to pass
                 #    into FSL TOPUP.
-                if (
-                    len(set(suffices)) == 1
-                    or (
-                        len(suffices) == 2
-                        and all(suf in ('epi', 'bold', 'sbref') for suf in suffices)
-                    )
+                if len(set(suffices)) == 1 or (
+                    len(suffices) == 2 and all(suf in ('epi', 'bold', 'sbref') for suf in suffices)
                 ):
                     wf_inputs = getattr(fmap_wf.inputs, f'in_{estimator.bids_id}')
                     wf_inputs.in_data = [str(s.path) for s in estimator.sources]
