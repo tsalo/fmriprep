@@ -580,7 +580,10 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
             suffices = [s.suffix for s in estimator.sources]
 
             if estimator.method == fm.EstimatorType.PEPOLAR:
-                if len(suffices) == 2 and all(suf in ('epi', 'bold', 'sbref') for suf in suffices):
+                if (
+                    len(set(suffices)) == 1
+                    or (len(suffices) == 2 and all(suf in ('epi', 'bold', 'sbref') for suf in suffices))
+                ):
                     wf_inputs = getattr(fmap_wf.inputs, f'in_{estimator.bids_id}')
                     wf_inputs.in_data = [str(s.path) for s in estimator.sources]
                     wf_inputs.metadata = [s.metadata for s in estimator.sources]
