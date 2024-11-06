@@ -84,22 +84,17 @@ def build_workflow(config_file, retval):
 
     # Called with reports only
     if config.execution.reports_only:
-        build_log.log(25, 'Running --reports-only on participants %s', ', '.join(subject_list))
-        session_list = (
-            config.execution.bids_filters.get('bold', {}).get('session')
-            if config.execution.bids_filters
-            else None
-        )
+        build_log.log(25, 'Running --reports-only for %s', config.execution.processing_list)
 
         failed_reports = generate_reports(
-            config.execution.participant_label,
-            config.execution.fmriprep_dir,
-            config.execution.run_uuid,
-            session_list=session_list,
+            processing_list=config.execution.processing_list,
+            output_level=config.workflow.subject_anatomical_reference,
+            output_dir=config.execution.fmriprep_dir,
+            run_uuid=config.execution.run_uuid,
         )
         if failed_reports:
             config.loggers.cli.error(
-                'Report generation was not successful for the following participants : %s.',
+                'Report generation was not successful for the following processing groups : %s.',
                 ', '.join(failed_reports),
             )
 

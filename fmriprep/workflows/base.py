@@ -90,8 +90,8 @@ def init_fmriprep_wf():
         if config.execution.fs_subjects_dir is not None:
             fsdir.inputs.subjects_dir = str(config.execution.fs_subjects_dir.absolute())
 
-    for subject_id in config.execution.participant_label:
-        single_subject_wf = init_single_subject_wf(subject_id)
+    for subject_id, session_ids in config.execution.processing_list:
+        single_subject_wf = init_single_subject_wf(subject_id, session_ids)
 
         single_subject_wf.config['execution']['crashdump_dir'] = str(
             config.execution.fmriprep_dir / f'sub-{subject_id}' / 'log' / config.execution.run_uuid
@@ -113,7 +113,7 @@ def init_fmriprep_wf():
     return fmriprep_wf
 
 
-def init_single_subject_wf(subject_id: str):
+def init_single_subject_wf(subject_id: str, session_ids: list):
     """
     Organize the preprocessing pipeline for a single subject.
 
@@ -138,6 +138,8 @@ def init_single_subject_wf(subject_id: str):
     ----------
     subject_id : :obj:`str`
         Subject label for this single-subject workflow.
+    session_ids : :obj:`list`
+        List of session labels for this single-subject workflow.
 
     Inputs
     ------
@@ -167,7 +169,8 @@ def init_single_subject_wf(subject_id: str):
 
     from fmriprep.workflows.bold.base import init_bold_wf
 
-    workflow = Workflow(name=f'sub_{subject_id}_wf')
+    _ses_name = '_ses_' + '_'.join(map(str, session_ids)) if session_ids else ''
+    workflow = Workflow(name=f'sub_{subject_id}{_ses_name}_wf')
     workflow.__desc__ = f"""
 Results included in this manuscript come from preprocessing
 performed using *fMRIPrep* {config.environment.version}
@@ -202,6 +205,7 @@ It is released under the [CC0]\
     subject_data = collect_data(
         config.execution.layout,
         subject_id,
+        session_id=session_ids,
         task=config.execution.task_id,
         echo=config.execution.echo_idx,
         bids_filters=config.execution.bids_filters,

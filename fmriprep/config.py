@@ -233,7 +233,17 @@ class _Config:
                 else:
                     setattr(cls, k, Path(v).absolute())
             elif hasattr(cls, k):
-                setattr(cls, k, v)
+                if k == 'processing_list':
+                    new_v = []
+                    for el in v:
+                        sub, ses_list = el.split(':')
+                        if ses_list:
+                            new_v.append((sub, [ses for ses in ses_list.split(',')]))
+                        else:
+                            new_v.append((sub, []))
+                    setattr(cls, k, new_v)
+                else:
+                    setattr(cls, k, v)
 
         if init:
             try:
@@ -437,6 +447,10 @@ class execution(_Config):
     """Unique identifier of this particular run."""
     participant_label = None
     """List of participant identifiers that are to be preprocessed."""
+    session_id = None
+    """List of session identifiers that are to be preprocessed"""
+    processing_list = []
+    """List of (subject_id, [session_id, ...]) to be preprocessed together."""
     task_id = None
     """Select a particular task from all available in the dataset."""
     templateflow_home = _templateflow_home
@@ -584,8 +598,9 @@ class workflow(_Config):
     """Ignore particular steps for *fMRIPrep*."""
     level = None
     """Level of preprocessing to complete. One of ['minimal', 'resampling', 'full']."""
-    longitudinal = False
-    """Run FreeSurfer ``recon-all`` with the ``-logitudinal`` flag."""
+    subject_anatomical_reference = None
+    """How should the anatomical space be defined: sessionwise, unbiased or
+    first-alphabetically"""
     run_msmsulc = True
     """Run Multimodal Surface Matching surface registration."""
     medial_surface_nan = None
@@ -772,6 +787,11 @@ def get(flat=False):
         'nipype': nipype.get(),
         'seeds': seeds.get(),
     }
+    if 'processing_list' in settings['execution']:
+        settings['execution']['processing_list'] = [
+            f"{el[0]}:{','.join(el[1])}" for el in settings['execution']['processing_list']
+        ]
+
     if not flat:
         return settings
 

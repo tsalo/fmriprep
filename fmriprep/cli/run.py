@@ -221,15 +221,11 @@ def main():
         from fmriprep.reports.core import generate_reports
 
         # Generate reports phase
-        session_list = (
-            config.execution.get().get('bids_filters', {}).get('bold', {}).get('session')
-        )
-
         failed_reports = generate_reports(
-            config.execution.participant_label,
-            config.execution.fmriprep_dir,
-            config.execution.run_uuid,
-            session_list=session_list,
+            processing_list=config.execution.processing_list,
+            output_level=config.workflow.subject_anatomical_reference,
+            output_dir=config.execution.fmriprep_dir,
+            run_uuid=config.execution.run_uuid,
         )
         write_derivative_description(
             config.execution.bids_dir,
