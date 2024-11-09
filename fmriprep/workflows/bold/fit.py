@@ -46,7 +46,7 @@ from ...utils.misc import estimate_bold_mem_usage
 
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
-from .nordic import init_bold_nordic_wf
+from .denoise import init_bold_dwidenoise_wf
 from .outputs import (
     init_ds_boldmask_wf,
     init_ds_boldref_wf,
@@ -764,64 +764,73 @@ def init_bold_native_wf(
                 'Multi-echo processing requires at least three different echos (found two).'
             )
 
-    if config.workflow.use_nordic:
+    if config.workflow.thermal_denoise_method:
         # Look for (1) phase data, (2) magnitude noRF data, (3) phase noRF data
         bids_filters = config.execution.get().get('bids_filters', {})
 
-        norf_files = get_associated(
-            bold_series,
-            query={'suffix': 'noRF'},
-            entity_overrides=bids_filters.get('norf', {}),
-            layout=layout,
-        )
-        norf_msg = f'No noise scans found for {os.path.basename(bold_series[0])}.'
-        if norf_files and 'norf' in config.workflow.ignore:
-            norf_msg = (
-                f'Noise scan file(s) found for {os.path.basename(bold_series[0])} and ignored.'
+        has_norf = False
+        norf_files = []
+        if 'norf' not in config.workflow.ignore:
+            norf_files = get_associated(
+                bold_series,
+                query={'suffix': 'noRF'},
+                entity_overrides=bids_filters.get('norf', {}),
+                layout=layout,
             )
-            norf_files = []
-        elif norf_files:
-            norf_msg = 'Using noise scan file(s) {}.'.format(
-                ','.join([os.path.basename(norf) for norf in norf_files])
-            )
-        config.loggers.workflow.info(norf_msg)
+            norf_msg = f'No noise scans found for {os.path.basename(bold_series[0])}.'
+            if norf_files and 'norf' in config.workflow.ignore:
+                norf_msg = (
+                    f'Noise scan file(s) found for {os.path.basename(bold_series[0])} and ignored.'
+                )
+                norf_files = []
+            elif norf_files:
+                norf_msg = 'Using noise scan file(s) {}.'.format(
+                    ','.join([os.path.basename(norf) for norf in norf_files])
+                )
+            config.loggers.workflow.info(norf_msg)
+            has_norf = bool(len(norf_files))
 
-        phase_files = get_associated(
-            bold_series,
-            query={'part': 'phase'},
-            entity_overrides=bids_filters.get('phase', {}),
-            layout=layout,
-        )
-        phase_msg = f'No noise scans found for {os.path.basename(bold_series[0])}.'
-        if phase_files and 'phase' in config.workflow.ignore:
-            phase_msg = (
-                f'Noise scan file(s) found for {os.path.basename(bold_series[0])} and ignored.'
+        has_phase = False
+        phase_files = []
+        if 'phase' not in config.workflow.ignore:
+            phase_files = get_associated(
+                bold_series,
+                query={'part': 'phase'},
+                entity_overrides=bids_filters.get('phase', {}),
+                layout=layout,
             )
-            phase_files = []
-        elif phase_files:
-            phase_msg = 'Using noise scan file(s) {}.'.format(
-                ','.join([os.path.basename(phase) for phase in phase_files])
-            )
-        config.loggers.workflow.info(phase_msg)
-        has_phase = bool(len(phase_files))
+            phase_msg = f'No noise scans found for {os.path.basename(bold_series[0])}.'
+            if phase_files and 'phase' in config.workflow.ignore:
+                phase_msg = (
+                    f'Noise scan file(s) found for {os.path.basename(bold_series[0])} and ignored.'
+                )
+                phase_files = []
+            elif phase_files:
+                phase_msg = 'Using noise scan file(s) {}.'.format(
+                    ','.join([os.path.basename(phase) for phase in phase_files])
+                )
+            config.loggers.workflow.info(phase_msg)
+            has_phase = bool(len(phase_files))
 
-        phase_norf_files = get_associated(
-            bold_series,
-            query={'part': 'phase', 'suffix': 'noRF'},
-            entity_overrides=bids_filters.get('norf', {}),
-            layout=layout,
-        )
-        phase_norf_msg = f'No noise scans found for {os.path.basename(bold_series[0])}.'
-        if phase_norf_files and 'phase_norf' in config.workflow.ignore:
-            phase_norf_msg = (
-                f'Noise scan file(s) found for {os.path.basename(bold_series[0])} and ignored.'
+        phase_norf_files = []
+        if has_phase and has_norf:
+            phase_norf_files = get_associated(
+                bold_series,
+                query={'part': 'phase', 'suffix': 'noRF'},
+                entity_overrides=bids_filters.get('norf', {}),
+                layout=layout,
             )
-            phase_norf_files = []
-        elif phase_norf_files:
-            phase_norf_msg = 'Using noise scan file(s) {}.'.format(
-                ','.join([os.path.basename(phase_norf) for phase_norf in phase_norf_files])
-            )
-        config.loggers.workflow.info(phase_norf_msg)
+            phase_norf_msg = f'No noise scans found for {os.path.basename(bold_series[0])}.'
+            if phase_norf_files and 'phase_norf' in config.workflow.ignore:
+                phase_norf_msg = (
+                    f'Noise scan file(s) found for {os.path.basename(bold_series[0])} and ignored.'
+                )
+                phase_norf_files = []
+            elif phase_norf_files:
+                phase_norf_msg = 'Using noise scan file(s) {}.'.format(
+                    ','.join([os.path.basename(phase_norf) for phase_norf in phase_norf_files])
+                )
+            config.loggers.workflow.info(phase_norf_msg)
 
     run_stc = bool(metadata.get('SliceTiming')) and 'slicetiming' not in config.workflow.ignore
 
@@ -862,9 +871,9 @@ def init_bold_native_wf(
     )
     outputnode.inputs.metadata = metadata
 
-    nordicbuffer = pe.Node(
-        niu.IdentityInterface(fields=['bold_file']),
-        name='nordicbuffer',
+    denoisebuffer = pe.Node(
+        niu.IdentityInterface(fields=['bold_file', 'phase_file']),
+        name='denoisebuffer',
     )
     boldbuffer = pe.Node(
         niu.IdentityInterface(fields=['bold_file', 'ro_time', 'pe_dir']), name='boldbuffer'
@@ -886,7 +895,7 @@ def init_bold_native_wf(
         (bold_source, validate_bold, [('out', 'in_file')]),
     ])  # fmt:skip
 
-    if config.workflow.use_nordic:
+    if config.workflow.thermal_denoise_method:
         norf_source = pe.Node(niu.Select(inlist=norf_files), name='norf_source')
         validate_norf = pe.Node(ValidateImage(), name='validate_norf')
         workflow.connect([
@@ -908,27 +917,34 @@ def init_bold_native_wf(
             (phase_norf_source, validate_phase_norf, [('out', 'in_file')]),
         ])  # fmt:skip
 
-        nordic_wf = init_bold_nordic_wf(phase=has_phase, mem_gb=mem_gb)
+        dwidenoise_wf = init_bold_dwidenoise_wf(
+            has_phase=has_phase,
+            has_norf=has_norf,
+            mem_gb=mem_gb,
+        )
         workflow.connect([
-            (validate_bold, nordic_wf, [('out_file', 'inputnode.mag_file')]),
-            (validate_norf, nordic_wf, [('out_file', 'inputnode.norf_file')]),
-            (validate_phase, nordic_wf, [('out_file', 'inputnode.phase_file')]),
-            (validate_phase_norf, nordic_wf, [('out_file', 'inputnode.phase_norf_file')]),
-            (nordic_wf, nordicbuffer, [('outputnode.mag_file', 'bold_file')]),
+            (validate_bold, dwidenoise_wf, [('out_file', 'inputnode.mag_file')]),
+            (validate_norf, dwidenoise_wf, [('out_file', 'inputnode.norf_file')]),
+            (validate_phase, dwidenoise_wf, [('out_file', 'inputnode.phase_file')]),
+            (validate_phase_norf, dwidenoise_wf, [('out_file', 'inputnode.phase_norf_file')]),
+            (dwidenoise_wf, denoisebuffer, [
+                ('outputnode.mag_file', 'bold_file'),
+                ('outputnode.phase_file', 'phase_file'),
+            ]),
         ])  # fmt:skip
     else:
-        workflow.connect([(validate_bold, nordicbuffer, [('out_file', 'bold_file')])])
+        workflow.connect([(validate_bold, denoisebuffer, [('out_file', 'bold_file')])])
 
     # Slice-timing correction
     if run_stc:
         bold_stc_wf = init_bold_stc_wf(metadata=metadata, mem_gb=mem_gb)
         workflow.connect([
             (inputnode, bold_stc_wf, [('dummy_scans', 'inputnode.skip_vols')]),
-            (nordicbuffer, bold_stc_wf, [('out_file', 'inputnode.bold_file')]),
+            (denoisebuffer, bold_stc_wf, [('out_file', 'inputnode.bold_file')]),
             (bold_stc_wf, boldbuffer, [('outputnode.stc_file', 'bold_file')]),
         ])  # fmt:skip
     else:
-        workflow.connect([(nordicbuffer, boldbuffer, [('out_file', 'bold_file')])])
+        workflow.connect([(denoisebuffer, boldbuffer, [('out_file', 'bold_file')])])
 
     # Prepare fieldmap metadata
     if fieldmap_id:

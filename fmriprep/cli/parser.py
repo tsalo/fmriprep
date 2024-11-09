@@ -337,7 +337,16 @@ def _build_parser(**kwargs):
         action='store',
         nargs='+',
         default=[],
-        choices=['fieldmaps', 'slicetiming', 'sbref', 't2w', 'flair', 'fmap-jacobian'],
+        choices=[
+            'fieldmaps',
+            'slicetiming',
+            'sbref',
+            't2w',
+            'flair',
+            'fmap-jacobian',
+            'phase',
+            'norf',
+        ],
         help='Ignore selected aspects of the input dataset to disable corresponding '
         'parts of the workflow (a space delimited list)',
     )
@@ -448,11 +457,12 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         ),
     )
     g_conf.add_argument(
-        '--use-nordic',
-        action='store_true',
-        dest='use_nordic',
+        '--thermal-denoise-method',
+        action='store',
+        dest='thermal_denoise_method',
         default=None,
-        help='Apply NORDIC denoising to the BOLD data',
+        choices=['nordic', 'mppca'],
+        help='Apply NORDIC or MP-PCA denoising to the BOLD data to remove thermal noise',
     )
 
     g_outputs = parser.add_argument_group('Options for modulating outputs')
