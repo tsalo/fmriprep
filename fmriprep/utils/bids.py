@@ -428,7 +428,7 @@ def get_associated(source_files, query, entity_overrides, layout):
     query.update(entity_overrides)
     associated = []
     for source_file in source_files:
-        associated.append(layout.get_nearest(source_file, strict=True,**query))
+        associated.append(layout.get_nearest(source_file, strict=True, **query))
 
     if len(associated) not in (0, len(source_files)):
         raise ValueError(

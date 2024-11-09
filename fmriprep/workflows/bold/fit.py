@@ -43,10 +43,10 @@ from ...interfaces.resampling import (
 )
 from ...utils.bids import extract_entities, get_associated
 from ...utils.misc import estimate_bold_mem_usage
+from .denoise import init_bold_dwidenoise_wf
 
 # BOLD workflows
 from .hmc import init_bold_hmc_wf
-from .denoise import init_bold_dwidenoise_wf
 from .outputs import (
     init_ds_boldmask_wf,
     init_ds_boldref_wf,
