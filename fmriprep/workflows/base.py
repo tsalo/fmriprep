@@ -387,10 +387,10 @@ It is released under the [CC0]\
                 ]),
                 (anat_fit_wf, ds_std_volumes_wf, [
                     ('outputnode.t1w_valid_list', 'inputnode.source_files'),
-                    ('outputnode.t1w_preproc', 'inputnode.t1w_preproc'),
-                    ('outputnode.t1w_mask', 'inputnode.t1w_mask'),
-                    ('outputnode.t1w_dseg', 'inputnode.t1w_dseg'),
-                    ('outputnode.t1w_tpms', 'inputnode.t1w_tpms'),
+                    ('outputnode.t1w_preproc', 'inputnode.anat_preproc'),
+                    ('outputnode.t1w_mask', 'inputnode.anat_mask'),
+                    ('outputnode.t1w_dseg', 'inputnode.anat_dseg'),
+                    ('outputnode.t1w_tpms', 'inputnode.anat_tpms'),
                 ]),
                 (template_iterator_wf, ds_std_volumes_wf, [
                     ('outputnode.std_t1w', 'inputnode.ref_file'),
@@ -580,7 +580,15 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
             suffices = [s.suffix for s in estimator.sources]
 
             if estimator.method == fm.EstimatorType.PEPOLAR:
-                if len(suffices) == 2 and all(suf in ('epi', 'bold', 'sbref') for suf in suffices):
+                # "Sophisticated" PEPOLAR schemes should be run "manually" with SDCFlows
+                # The following two cases are not considered sophisticated:
+                # 1. All PEPOLAR entities are the same modality
+                #    (typically, more than two EPI PE directions), or
+                # 2. Two modalities are involved, with at most two images to pass
+                #    into FSL TOPUP.
+                if len(set(suffices)) == 1 or (
+                    len(suffices) == 2 and all(suf in ('epi', 'bold', 'sbref') for suf in suffices)
+                ):
                     wf_inputs = getattr(fmap_wf.inputs, f'in_{estimator.bids_id}')
                     wf_inputs.in_data = [str(s.path) for s in estimator.sources]
                     wf_inputs.metadata = [s.metadata for s in estimator.sources]

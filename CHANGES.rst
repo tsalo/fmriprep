@@ -1,6 +1,43 @@
+24.1.1 (October 10, 2024)
+=========================
+Bug fix release in the 24.1.x series.
+
+Precomputed functional derivatives were not being correctly detected,
+and a couple fixes for rare issues.
+
+  * FIX: Remove checks for unit zooms and symmetric rotations in template warp (#3376)
+  * FIX: Stop excluding FS minc_modify_header used during fallback registration (#3372)
+  * FIX: Repair search for precomputed bold references (#3370)
+  * FIX: Repair search for precomputed transforms (#3369)
+
+24.1.0 (September 16, 2024)
+===========================
+New feature release in the 24.1.x series.
+
+Handling of gradient echo fieldmaps is improved.
+
+  * FIX: Select volumetric dseg.tsv from recent TemplateFlow releases (#3257)
+  * RF: Adapt to less T1w-centric smriprep (#3333)
+  * RF: Use acres over vendored data loader (#3323)
+  * DOC: Add benchmark page (#3312)
+  * MAINT: Move to tox to simplify test/CI setup (#3326)
+  * CI: Fix expected outputs for fieldmaps (#3321)
+
+24.0.1 (July 16, 2024)
+======================
+Bug fix release in the 24.0.x series.
+
+This release resolves a bug with multi-volume single-band references.
+If multiple volumes are found, they are processed in the same way as
+the BOLD series is processed to produce a motion-correction reference.
+
+* FIX: Validate and summarize multi-volume sbrefs (#3320)
+* DOC: Address errors/warnings in RTD builds (#3325)
+* DOC: Read html_baseurl from RTD environment, if available (#3324)
+
+
 24.0.0 (June 17, 2024)
 ======================
-
 New feature release in the 24.0.x series.
 
 This release is an incremental improvement on 23.2.x, with some
@@ -620,6 +657,30 @@ A full list of changes can be found below.
 * MAINT: Migrate from poldracklab to nipreps orgs (#2290)
 * MAINT: Ease CI packaging tests (#2472)
 * RF/FIX: Iterate over echo indices, not filenames, simplifying iteration logic (#2651)
+
+20.2.8 (July 18, 2024)
+======================
+Bug-fix release in the 20.2.x LTS series.
+
+We anticipate this being the final release in the 20.2.x LTS series.
+
+* FIX: Select volumetric dseg.tsv from recent TemplateFlow releases (#3257)
+* FIX: LTS package build (#3328)
+* DOC: Read html_baseurl from RTD environment, if available (#3324)
+* DOCKER: Pin conda environment more strictly (#2853)
+* MNT: Require niworkflows ~1.3.6 (#2740)
+* CI: Upgrade docker orb (#2865)
+
+This release includes a number of fixes that have accumulated in niworkflows,
+including the following fixes that affect fMRIPrep:
+
+* FIX: Remove unused ANTs parameter that was removed in 2.4.1 (nipreps/sdcflows#431)
+* FIX: Limit 3dQwarp to maximum 4 CPUs for stability reasons (nipreps/sdcflows#128)
+* MAINT: Make call to scipy.stats.mode compatible with scipy 1.11.0 (nipreps/sdcflows#371)
+* FIX: TSV2JSON should convert empty TSV files to empty JSON files (nipreps/niworkflows#747)
+* FIX: Use copy function that does not preserve mtime when creating fsaverage
+  directories (nipreps/niworkflows#703)
+* FIX: Set pixdim[4] to match RepetitionTime (nipreps/niworkflows#679)
 
 20.2.7 (January 24, 2022)
 =========================

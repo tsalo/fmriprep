@@ -6,6 +6,7 @@ from functools import partial
 
 import nibabel as nb
 import nitransforms as nt
+import nitransforms.resampling
 import numpy as np
 from nipype.interfaces.base import (
     File,
@@ -689,7 +690,7 @@ def reconstruct_fieldmap(
     )
 
     if not direct:
-        fmap_img = transforms.apply(fmap_img, reference=target)
+        fmap_img = nt.resampling.apply(transforms, fmap_img, reference=target)
 
     fmap_img.header.set_intent('estimate', name='fieldmap Hz')
     fmap_img.header.set_data_dtype('float32')

@@ -33,7 +33,7 @@
       },
       "boldref2anat": {
         "datatype": "func",
-        "from": "orig",
+        "from": "boldref",
         "to": "anat",
         "mode": "image",
         "suffix": "xfm",
@@ -41,7 +41,7 @@
       },
       "boldref2fmap": {
         "datatype": "func",
-        "from": "orig",
+        "from": "boldref",
         "mode": "image",
         "suffix": "xfm",
         "extension": ".txt"

@@ -41,7 +41,7 @@ from ..data import load as load_data
 def collect_derivatives(
     derivatives_dir: Path,
     entities: dict,
-    fieldmap_id: str | None,
+    fieldmap_id: str | None = None,
     spec: dict | None = None,
     patterns: list[str] | None = None,
 ):
@@ -62,20 +62,27 @@ def collect_derivatives(
 
     # search for both boldrefs
     for k, q in spec['baseline'].items():
-        query = {**q, **entities}
+        query = {**entities, **q}
         item = layout.get(return_type='filename', **query)
         if not item:
             continue
         derivs_cache[f'{k}_boldref'] = item[0] if len(item) == 1 else item
 
+    transforms_cache = {}
     for xfm, q in spec['transforms'].items():
-        query = {**q, **entities}
-        if xfm == 'boldref2fmap':
-            query['to'] = fieldmap_id
-        item = layout.get(return_type='filename', **q)
+        # Transform extension will often not match provided entities
+        #   (e.g., ".nii.gz" vs ".txt").
+        # And transform suffixes will be "xfm",
+        #   whereas relevant src file will be "bold".
+        query = {**entities, **q}
+        if xfm == 'boldref2fmap' and fieldmap_id:
+            # fieldmaps have ids like auto_00000
+            query['to'] = fieldmap_id.replace('_', '')
+        item = layout.get(return_type='filename', **query)
         if not item:
             continue
-        derivs_cache[xfm] = item[0] if len(item) == 1 else item
+        transforms_cache[xfm] = item[0] if len(item) == 1 else item
+    derivs_cache['transforms'] = transforms_cache
     return derivs_cache
 
 

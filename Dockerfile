@@ -28,19 +28,17 @@ ARG BASE_IMAGE=ubuntu:jammy-20240125
 #
 # Build wheel
 #
-FROM python:slim AS src
-RUN pip install build
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git
+FROM ghcr.io/astral-sh/uv:python3.12-alpine AS src
+RUN apk add git
 COPY . /src
-RUN python -m build /src
+RUN uvx --from build pyproject-build --installer uv -w /src
 
 #
 # Download stages
 #
 
 # Utilities for downloading packages
-FROM ${BASE_IMAGE} as downloader
+FROM ${BASE_IMAGE} AS downloader
 # Bump the date to current to refresh curl/certificates/etc
 RUN echo "2023.07.20"
 RUN apt-get update && \
@@ -53,13 +51,13 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # FreeSurfer 7.3.2
-FROM downloader as freesurfer
+FROM downloader AS freesurfer
 COPY docker/files/freesurfer7.3.2-exclude.txt /usr/local/etc/freesurfer7.3.2-exclude.txt
 RUN curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer-linux-ubuntu22_amd64-7.3.2.tar.gz \
      | tar zxv --no-same-owner -C /opt --exclude-from=/usr/local/etc/freesurfer7.3.2-exclude.txt
 
 # AFNI
-FROM downloader as afni
+FROM downloader AS afni
 # Bump the date to current to update AFNI
 RUN echo "2023.07.20"
 RUN mkdir -p /opt/afni-latest \
@@ -80,7 +78,7 @@ RUN mkdir -p /opt/afni-latest \
         -name "3dvolreg" \) -delete
 
 # Connectome Workbench 1.5.0
-FROM downloader as workbench
+FROM downloader AS workbench
 RUN mkdir /opt/workbench && \
     curl -sSLO https://www.humanconnectome.org/storage/app/media/workbench/workbench-linux64-v1.5.0.zip && \
     unzip workbench-linux64-v1.5.0.zip -d /opt && \
@@ -88,14 +86,8 @@ RUN mkdir /opt/workbench && \
     rm -rf /opt/workbench/libs_linux64_software_opengl /opt/workbench/plugins_linux64 && \
     strip --remove-section=.note.ABI-tag /opt/workbench/libs_linux64/libQt5Core.so.5
 
-# Convert3d 1.4.0
-FROM downloader as c3d
-RUN mkdir /opt/convert3d && \
-    curl -fsSL --retry 5 https://sourceforge.net/projects/c3d/files/c3d/Experimental/c3d-1.4.0-Linux-gcc64.tar.gz/download \
-    | tar -xz -C /opt/convert3d --strip-components 1
-
 # Micromamba
-FROM downloader as micromamba
+FROM downloader AS micromamba
 
 # Install a C compiler to build extensions when needed.
 # traits<6.4 wheels are not available for Python 3.11+, but build easily.
@@ -119,13 +111,13 @@ RUN micromamba create -y -f /tmp/env.yml && \
 # Check if this is still necessary when updating the base image.
 ENV PATH="/opt/conda/envs/fmriprep/bin:$PATH" \
     UV_USE_IO_URING=0
-RUN npm install -g svgo@^3.2.0 bids-validator@^1.14.0 && \
+RUN npm install -g svgo@^3.2.0 bids-validator@1.14.10 && \
     rm -r ~/.npm
 
 #
 # Main stage
 #
-FROM ${BASE_IMAGE} as fmriprep
+FROM ${BASE_IMAGE} AS fmriprep
 
 # Configure apt
 ENV DEBIAN_FRONTEND="noninteractive" \
@@ -183,7 +175,6 @@ RUN apt-get update -qq \
 COPY --from=freesurfer /opt/freesurfer /opt/freesurfer
 COPY --from=afni /opt/afni-latest /opt/afni-latest
 COPY --from=workbench /opt/workbench /opt/workbench
-COPY --from=c3d /opt/convert3d/bin/c3d_affine_tool /usr/bin/c3d_affine_tool
 
 # Simulate SetUpFreeSurfer.sh
 ENV OS="Linux" \
