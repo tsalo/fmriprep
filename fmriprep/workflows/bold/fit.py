@@ -940,11 +940,11 @@ def init_bold_native_wf(
         bold_stc_wf = init_bold_stc_wf(metadata=metadata, mem_gb=mem_gb)
         workflow.connect([
             (inputnode, bold_stc_wf, [('dummy_scans', 'inputnode.skip_vols')]),
-            (denoisebuffer, bold_stc_wf, [('out_file', 'inputnode.bold_file')]),
+            (denoisebuffer, bold_stc_wf, [('bold_file', 'inputnode.bold_file')]),
             (bold_stc_wf, boldbuffer, [('outputnode.stc_file', 'bold_file')]),
         ])  # fmt:skip
     else:
-        workflow.connect([(denoisebuffer, boldbuffer, [('out_file', 'bold_file')])])
+        workflow.connect([(denoisebuffer, boldbuffer, [('bold_file', 'bold_file')])])
 
     # Prepare fieldmap metadata
     if fieldmap_id:
