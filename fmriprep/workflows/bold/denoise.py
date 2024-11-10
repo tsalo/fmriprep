@@ -110,7 +110,7 @@ def init_bold_dwidenoise_wf(
         'The BOLD time-series were denoised to remove thermal noise using '
         '`dwidenoise` [@tournier2019mrtrix3] '
     )
-    if config.workflow.thermal_noise_estimator == 'nordic':
+    if config.workflow.thermal_denoise_method == 'nordic':
         workflow.__desc__ += 'with the NORDIC method [@moeller2021noise;@dowdle2023evaluating].'
     else:
         workflow.__desc__ += (
@@ -213,7 +213,7 @@ def init_bold_dwidenoise_wf(
     }
     dwidenoise = pe.Node(
         DWIDenoise(
-            estimator=estimator[config.workflow.thermal_noise_estimator],
+            estimator=estimator[config.workflow.thermal_denoise_method],
         ),
         mem_gb=mem_gb['filesize'] * 2,
         name='dwidenoise',
