@@ -29,6 +29,7 @@ Denoising of BOLD images
 """
 
 from nipype.interfaces import utility as niu
+from nipype.interfaces.afni.utils import Calc
 from nipype.pipeline import engine as pe
 
 from ... import config
@@ -72,18 +73,26 @@ def init_bold_dwidenoise_wf(
     Parameters
     ----------
     has_phase : :obj:`bool`
-        True if phase data is available. False if not.
+        True if phase data are available. False if not.
     has_norf : :obj:`bool`
-        True if noRF data is available. False if not.
-    metadata : :obj:`dict`
-        BIDS metadata for BOLD file
+        True if noRF data are available. False if not.
+    mem_gb : :obj:`dict`
+        Size of BOLD file in GB - please note that this size
+        should be calculated after resamplings that may extend
+        the FoV
     name : :obj:`str`
-        Name of workflow (default: ``bold_stc_wf``)
+        Name of workflow (default: ``bold_dwidenoise_wf``)
 
     Inputs
     ------
-    bold_file
+    mag_file
         BOLD series NIfTI file
+    phase_file
+        Phase series NIfTI file
+    norf_file
+        Noise map NIfTI file
+    phase_norf_file
+        Phase noise map NIfTI file
 
     Outputs
     -------
@@ -91,13 +100,24 @@ def init_bold_dwidenoise_wf(
         Denoised BOLD series NIfTI file
     phase_file
         Denoised phase series NIfTI file
+    noise_file
+        Noise map NIfTI file
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 
     workflow = Workflow(name=name)
-    workflow.__desc__ = """\
-NORDIC or MP-PCA was applied to the BOLD data.
-"""
+    workflow.__desc__ = (
+        'The BOLD time-series were denoised to remove thermal noise using '
+        '`dwidenoise` [@tournier2019mrtrix3] '
+    )
+    if config.workflow.thermal_noise_estimator == 'nordic':
+        workflow.__desc__ += 'with the NORDIC method [@moeller2021noise;@dowdle2023evaluating].'
+    else:
+        workflow.__desc__ += (
+            'with the Marchenko-Pastur principal components analysis method '
+            '[@cordero2019complex].'
+        )
+
     inputnode = pe.Node(
         niu.IdentityInterface(
             fields=['mag_file', 'norf_file', 'phase_file', 'phase_norf_file'],
@@ -106,12 +126,17 @@ NORDIC or MP-PCA was applied to the BOLD data.
     )
     outputnode = pe.Node(
         niu.IdentityInterface(
-            fields=['mag_file', 'phase_file'],
+            fields=[
+                'mag_file',
+                'phase_file',
+                'noise_file',
+            ],
         ),
         name='outputnode',
     )
 
     if has_norf:
+        workflow.__desc__ += ' An empirical noise map was estimated from no-excitation volumes.'
         # Calculate noise map from noise volumes
         # TODO: Figure out how to estimate the noise map from the noRF data
         noise_estimate = pe.Node(
@@ -129,6 +154,7 @@ NORDIC or MP-PCA was applied to the BOLD data.
             ])  # fmt:skip
 
             # Combine magnitude and phase data into complex-valued data
+            # XXX: Maybe we can rescale using hardcoded values if the data are from Siemens?
             phase_to_radians_norf = pe.Node(
                 PhaseToRad(),
                 name='phase_to_radians_norf',
@@ -152,9 +178,16 @@ NORDIC or MP-PCA was applied to the BOLD data.
 
     complex_buffer = pe.Node(niu.IdentityInterface(fields=['bold_file']), name='complex_buffer')
     if has_phase:
+        workflow.__desc__ += (
+            ' Magnitude and phase BOLD data were combined into complex-valued data prior to '
+            'denoising, then the denoised complex-valued data were split back into magnitude '
+            'and phase data.'
+        )
+
         validate_complex = pe.Node(ValidateComplex(), name='validate_complex')
 
         # Combine magnitude and phase data into complex-valued data
+        # XXX: Maybe we can rescale using hardcoded values if the data are from Siemens?
         phase_to_radians = pe.Node(
             PhaseToRad(),
             name='phase_to_radians',
@@ -174,8 +207,14 @@ NORDIC or MP-PCA was applied to the BOLD data.
         workflow.connect([(inputnode, complex_buffer, [('mag_file', 'bold_file')])])
 
     # Run NORDIC
+    estimator = {
+        'nordic': 'nordic',
+        'mppca': 'Est2',
+    }
     dwidenoise = pe.Node(
-        DWIDenoise(),
+        DWIDenoise(
+            estimator=estimator[config.workflow.thermal_noise_estimator],
+        ),
         mem_gb=mem_gb['filesize'] * 2,
         name='dwidenoise',
     )
@@ -203,7 +242,22 @@ NORDIC or MP-PCA was applied to the BOLD data.
             (dwidenoise, split_phase, [('out_file', 'complex_file')]),
             (split_phase, outputnode, [('out_file', 'phase_file')]),
         ])  # fmt:skip
+
+        # Apply sqrt(2) scaling factor to noise map
+        rescale_noise = pe.Node(
+            Calc(expr='a*sqrt(2)', outputtype='NIFTI_GZ'),
+            name='rescale_noise',
+        )
+        workflow.connect([
+            (noise_estimate, rescale_noise, [('noise_map', 'in_file_a')]),
+            (rescale_noise, outputnode, [('out_file', 'noise_file')]),
+        ])  # fmt:skip
     else:
-        workflow.connect([(dwidenoise, outputnode, [('out_file', 'mag_file')])])
+        workflow.connect([
+            (dwidenoise, outputnode, [
+                ('out_file', 'mag_file'),
+                ('noise_image', 'noise_file'),
+            ]),
+        ])  # fmt:skip
 
     return workflow

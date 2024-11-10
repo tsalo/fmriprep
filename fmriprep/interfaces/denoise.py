@@ -65,6 +65,11 @@ class ValidateComplex(SimpleInterface):
 
 class DWIDenoiseInputSpec(MRTrix3BaseInputSpec):
     in_file = File(exists=True, argstr='%s', position=-2, mandatory=True, desc='input DWI image')
+    estimator = traits.Enum(
+        'Exp2',
+        argstr='-estimator %s',
+        desc='noise estimator to use. (default = Exp2)',
+    )
     mask = File(exists=True, argstr='-mask %s', position=1, desc='mask image')
     extent = traits.Tuple(
         (traits.Int, traits.Int, traits.Int),
@@ -85,9 +90,6 @@ class DWIDenoiseInputSpec(MRTrix3BaseInputSpec):
         argstr='%s',
         position=-1,
         desc='the output denoised DWI image',
-    )
-    out_report = File(
-        'dwidenoise_report.svg', usedefault=True, desc='filename for the visual report'
     )
 
 
@@ -115,6 +117,11 @@ class DWIDenoise(MRTrix3Base):
     For more information, see
     <https://mrtrix.readthedocs.io/en/latest/reference/commands/dwidenoise.html>
 
+    Notes
+    -----
+    There is a -rank option to output a map of the degrees of freedom in dev,
+    but it won't be released until 3.1.0.
+    NORDIC is on the roadmap, but it's unknown when it will be implemented.
     """
 
     _cmd = 'dwidenoise'

@@ -722,6 +722,9 @@ def init_bold_native_wf(
         Motion correction transforms for further correcting bold_minimal.
         For multi-echo data, motion correction has already been applied, so
         this will be undefined.
+    thermal_noise
+        The estimated thermal noise level in the BOLD series.
+        May be a list if multi-echo processing was performed.
     bold_echos
         The individual, corrected echos, suitable for use in Tedana.
         (Multi-echo only.)
@@ -788,7 +791,8 @@ def init_bold_native_wf(
                     ','.join([os.path.basename(norf) for norf in norf_files])
                 )
             config.loggers.workflow.info(norf_msg)
-            has_norf = bool(len(norf_files))
+            # XXX: disabled until MRTrix3 implements dwi2noise
+            has_norf = bool(len(norf_files)) and False
 
         has_phase = False
         phase_files = []
@@ -862,6 +866,8 @@ def init_bold_native_wf(
                 'metadata',
                 # Transforms
                 'motion_xfm',
+                # Thermal denoising outputs
+                'thermal_noise',  # Thermal noise map
                 # Multiecho outputs
                 'bold_echos',  # Individual corrected echos
                 't2star_map',  # T2* map
@@ -907,6 +913,7 @@ def init_bold_native_wf(
                 ('outputnode.mag_file', 'bold_file'),
                 ('outputnode.phase_file', 'phase_file'),
             ]),
+            (dwidenoise_wf, outputnode, [('outputnode.noise_file', 'thermal_noise')]),
         ])  # fmt:skip
 
         if has_norf:

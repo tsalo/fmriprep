@@ -461,8 +461,8 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         action='store',
         dest='thermal_denoise_method',
         default=None,
-        choices=['nordic', 'mppca'],
-        help='Apply NORDIC or MP-PCA denoising to the BOLD data to remove thermal noise',
+        choices=['mppca'],
+        help='Apply MP-PCA denoising to the BOLD data to remove thermal noise',
     )
 
     g_outputs = parser.add_argument_group('Options for modulating outputs')
