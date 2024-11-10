@@ -209,7 +209,7 @@ def init_bold_dwidenoise_wf(
     # Run NORDIC
     estimator = {
         'nordic': 'nordic',
-        'mppca': 'Est2',
+        'mppca': 'Exp2',
     }
     dwidenoise = pe.Node(
         DWIDenoise(
