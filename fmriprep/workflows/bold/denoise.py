@@ -111,7 +111,7 @@ def init_bold_dwidenoise_wf(
         '`dwidenoise` [@tournier2019mrtrix3] '
     )
     if config.workflow.thermal_denoise_method == 'nordic':
-        workflow.__desc__ += 'with the NORDIC method [@moeller2021noise;@dowdle2023evaluating].'
+        workflow.__desc__ += 'with the NORDIC method [@moeller2021noise;@vizioli2021lowering].'
     else:
         workflow.__desc__ += (
             'with the Marchenko-Pastur principal components analysis method '
