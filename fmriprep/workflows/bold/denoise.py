@@ -245,7 +245,7 @@ def init_bold_dwidenoise_wf(
 
         # Apply sqrt(2) scaling factor to noise map
         rescale_noise = pe.Node(
-            Calc(expr='a*sqrt(2)', outputtype='NIFTI_GZ'),
+            Calc(expr='a/sqrt(2)', outputtype='NIFTI_GZ'),
             name='rescale_noise',
         )
         workflow.connect([
