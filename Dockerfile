@@ -77,15 +77,6 @@ RUN mkdir -p /opt/afni-latest \
         -name "3dAutomask" -or \
         -name "3dvolreg" \) -delete
 
-# Connectome Workbench 1.5.0
-FROM downloader AS workbench
-RUN mkdir /opt/workbench && \
-    curl -sSLO https://www.humanconnectome.org/storage/app/media/workbench/workbench-linux64-v1.5.0.zip && \
-    unzip workbench-linux64-v1.5.0.zip -d /opt && \
-    rm workbench-linux64-v1.5.0.zip && \
-    rm -rf /opt/workbench/libs_linux64_software_opengl /opt/workbench/plugins_linux64 && \
-    strip --remove-section=.note.ABI-tag /opt/workbench/libs_linux64/libQt5Core.so.5
-
 # Micromamba
 FROM downloader AS micromamba
 
@@ -174,7 +165,6 @@ RUN apt-get update -qq \
 # Install files from stages
 COPY --from=freesurfer /opt/freesurfer /opt/freesurfer
 COPY --from=afni /opt/afni-latest /opt/afni-latest
-COPY --from=workbench /opt/workbench /opt/workbench
 
 # Simulate SetUpFreeSurfer.sh
 ENV OS="Linux" \
@@ -197,10 +187,6 @@ ENV PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5" \
 ENV PATH="/opt/afni-latest:$PATH" \
     AFNI_IMSAVE_WARNINGS="NO" \
     AFNI_PLUGINPATH="/opt/afni-latest"
-
-# Workbench config
-ENV PATH="/opt/workbench/bin_linux64:$PATH" \
-    LD_LIBRARY_PATH="/opt/workbench/lib_linux64:$LD_LIBRARY_PATH"
 
 # Create a shared $HOME directory
 RUN useradd -m -s /bin/bash -G users fmriprep
