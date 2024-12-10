@@ -76,6 +76,8 @@ def generate_reports(
 
     if isinstance(subject_list, str):
         subject_list = [subject_list]
+    if isinstance(session_list, str):
+        session_list = [session_list]
 
     errors = []
     for subject_label in subject_list:
