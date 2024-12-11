@@ -105,9 +105,6 @@ def _build_parser(**kwargs):
         units = value[len(digits) :] or 'M'
         return int(digits) * scale[units[0]]
 
-    def _drop_sub(value):
-        return value[4:] if value.startswith('sub-') else value
-
     def _process_value(value):
         import bids
 
@@ -205,7 +202,7 @@ def _build_parser(**kwargs):
         '--participant_label',
         action='store',
         nargs='+',
-        type=_drop_sub,
+        type=lambda label: label.removeprefix('sub-'),
         help='A space delimited list of participant identifiers or a single '
         'identifier (the sub- prefix can be removed)',
     )

@@ -81,6 +81,7 @@ def generate_reports(
 
     errors = []
     for subject_label in subject_list:
+        subject_label = subject_label.removeprefix('sub-')
         # The number of sessions is intentionally not based on session_list but
         # on the total number of sessions, because I want the final derivatives
         # folder to be the same whether sessions were run one at a time or all-together.
@@ -97,7 +98,7 @@ def generate_reports(
         else:
             # Beyond a threshold, we separate the anatomical report from the functional.
             bootstrap_file = data.load('reports-spec-anat.yml')
-            html_report = f'sub-{subject_label.lstrip("sub-")}_anat.html'
+            html_report = f'sub-{subject_label}_anat.html'
 
         report_error = run_reports(
             output_dir,
@@ -123,12 +124,11 @@ def generate_reports(
                     subject=subject_label, **filters
                 )
 
-            # Drop ses- prefixes
-            session_list = [ses[4:] if ses.startswith('ses-') else ses for ses in session_list]
+            session_list = [ses.removeprefix('ses-') for ses in session_list]
 
             for session_label in session_list:
                 bootstrap_file = data.load('reports-spec-func.yml')
-                html_report = f'sub-{subject_label.lstrip("sub-")}_ses-{session_label}_func.html'
+                html_report = f'sub-{subject_label}_ses-{session_label}_func.html'
 
                 report_error = run_reports(
                     output_dir,
