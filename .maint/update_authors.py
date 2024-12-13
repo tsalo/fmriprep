@@ -259,7 +259,7 @@ def publication(
     aff_indexes = [
         ', '.join(
             [
-                '%d' % (affiliations.index(a) + 1)
+                str(affiliations.index(a) + 1)
                 for a in _aslist(author.get('affiliation', 'Unaffiliated'))
             ]
         )
@@ -272,7 +272,7 @@ def publication(
             file=sys.stderr,
         )
 
-    print('Authors (%d):' % len(hits))
+    print(f'Authors ({len(hits)}):')
     print(
         '{}.'.format(
             '; '.join(
