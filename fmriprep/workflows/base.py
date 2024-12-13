@@ -156,13 +156,14 @@ def init_single_subject_wf(subject_id: str):
     from smriprep.workflows.outputs import (
         init_ds_anat_volumes_wf,
         init_ds_grayord_metrics_wf,
+        init_ds_surfaces_wf,
         init_template_iterator_wf,
     )
     from smriprep.workflows.surfaces import (
         init_gifti_morphometrics_wf,
         init_hcp_morphometrics_wf,
         init_morph_grayords_wf,
-        init_resample_midthickness_wf,
+        init_resample_surfaces_wf,
     )
 
     from fmriprep.workflows.bold.base import init_bold_wf
@@ -449,7 +450,8 @@ It is released under the [CC0]\
                 grayord_density=config.workflow.cifti_output,
                 omp_nthreads=omp_nthreads,
             )
-            resample_midthickness_wf = init_resample_midthickness_wf(
+            resample_surfaces_wf = init_resample_surfaces_wf(
+                surfaces=['white', 'pial', 'midthickness'],
                 grayord_density=config.workflow.cifti_output,
             )
             ds_grayord_metrics_wf = init_ds_grayord_metrics_wf(
@@ -457,6 +459,15 @@ It is released under the [CC0]\
                 output_dir=fmriprep_dir,
                 metrics=['curv', 'thickness', 'sulc'],
                 cifti_output=config.workflow.cifti_output,
+            )
+            ds_fsLR_surfaces_wf = init_ds_surfaces_wf(
+                output_dir=fmriprep_dir,
+                surfaces=['white', 'pial', 'midthickness'],
+                entities={
+                    'space': 'fsLR',
+                    'density': '32k' if config.workflow.cifti_output == '91k' else '59k',
+                },
+                name='ds_fsLR_surfaces_wf',
             )
 
             workflow.connect([
@@ -473,7 +484,9 @@ It is released under the [CC0]\
                 (curv_wf, hcp_morphometrics_wf, [
                     ('outputnode.curv', 'inputnode.curv'),
                 ]),
-                (anat_fit_wf, resample_midthickness_wf, [
+                (anat_fit_wf, resample_surfaces_wf, [
+                    ('outputnode.white', 'inputnode.white'),
+                    ('outputnode.pial', 'inputnode.pial'),
                     ('outputnode.midthickness', 'inputnode.midthickness'),
                     (
                         f"outputnode.sphere_reg_{'msm' if msm_sulc else 'fsLR'}",
@@ -493,10 +506,13 @@ It is released under the [CC0]\
                     ('outputnode.sulc', 'inputnode.sulc'),
                     ('outputnode.roi', 'inputnode.roi'),
                 ]),
-                (resample_midthickness_wf, morph_grayords_wf, [
+                (resample_surfaces_wf, morph_grayords_wf, [
                     ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
                 ]),
                 (anat_fit_wf, ds_grayord_metrics_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                ]),
+                (anat_fit_wf, ds_fsLR_surfaces_wf, [
                     ('outputnode.t1w_valid_list', 'inputnode.source_files'),
                 ]),
                 (morph_grayords_wf, ds_grayord_metrics_wf, [
@@ -506,6 +522,11 @@ It is released under the [CC0]\
                     ('outputnode.thickness_metadata', 'inputnode.thickness_metadata'),
                     ('outputnode.sulc_fsLR', 'inputnode.sulc'),
                     ('outputnode.sulc_metadata', 'inputnode.sulc_metadata'),
+                ]),
+                (resample_surfaces_wf, ds_fsLR_surfaces_wf, [
+                    ('outputnode.white_fsLR', 'inputnode.white'),
+                    ('outputnode.pial_fsLR', 'inputnode.pial'),
+                    ('outputnode.midthickness_fsLR', 'inputnode.midthickness'),
                 ]),
             ])  # fmt:skip
 
@@ -740,7 +761,7 @@ tasks and sessions), the following preprocessing was performed.
                     (hcp_morphometrics_wf, bold_wf, [
                         ('outputnode.roi', 'inputnode.cortex_mask'),
                     ]),
-                    (resample_midthickness_wf, bold_wf, [
+                    (resample_surfaces_wf, bold_wf, [
                         ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
                     ]),
                 ])  # fmt:skip
