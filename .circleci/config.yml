@@ -712,6 +712,7 @@ jobs:
                     /tmp/data/${DATASET} /tmp/${DATASET}/fmriprep participant \
                     --fs-no-reconall --sloppy --write-graph \
                     --output-spaces MNI152NLin2009cAsym \
+                    --thermal-denoise-method mppca \
                     --mem-mb 14336 --nthreads 4 --anat-only -vv --notrack
             fi
       - run:
