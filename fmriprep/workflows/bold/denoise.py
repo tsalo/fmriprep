@@ -63,7 +63,7 @@ def init_bold_dwidenoise_wf(
             :graph2use: orig
             :simple_form: yes
 
-            from fmriprep.workflows.bold import init_bold_dwidenoise_wf
+            from fmriprep.workflows.bold.denoise  import init_bold_dwidenoise_wf
             wf = init_bold_dwidenoise_wf(
                 has_phase=True,
                 has_norf=True,
@@ -75,7 +75,7 @@ def init_bold_dwidenoise_wf(
     has_phase : :obj:`bool`
         True if phase data are available. False if not.
     has_norf : :obj:`bool`
-        True if noRF data are available. False if not.
+        True if no-excitation (noRF) data are available. False if not.
     mem_gb : :obj:`dict`
         Size of BOLD file in GB - please note that this size
         should be calculated after resamplings that may extend
@@ -85,22 +85,22 @@ def init_bold_dwidenoise_wf(
 
     Inputs
     ------
-    mag_file
+    magnitude
         BOLD series NIfTI file
-    phase_file
+    phase
         Phase series NIfTI file
-    norf_file
+    magnitude_norf
         Noise map NIfTI file
-    phase_norf_file
+    phase_norf
         Phase noise map NIfTI file
 
     Outputs
     -------
-    mag_file
+    magnitude
         Denoised BOLD series NIfTI file
-    phase_file
+    phase
         Denoised phase series NIfTI file
-    noise_file
+    noise
         Noise map NIfTI file
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
@@ -120,16 +120,16 @@ def init_bold_dwidenoise_wf(
 
     inputnode = pe.Node(
         niu.IdentityInterface(
-            fields=['mag_file', 'norf_file', 'phase_file', 'phase_norf_file'],
+            fields=['magnitude', 'magnitude_norf', 'phase', 'phase_norf'],
         ),
         name='inputnode',
     )
     outputnode = pe.Node(
         niu.IdentityInterface(
             fields=[
-                'mag_file',
-                'phase_file',
-                'noise_file',
+                'magnitude',
+                'phase',
+                'noise',
             ],
         ),
         name='outputnode',
@@ -138,7 +138,9 @@ def init_bold_dwidenoise_wf(
     if has_norf:
         workflow.__desc__ += ' An empirical noise map was estimated from no-excitation volumes.'
         # Calculate noise map from noise volumes
-        # TODO: Figure out how to estimate the noise map from the noRF data
+        # TODO: Calculate the noise level from the noise volumes
+        # XXX: In NORDIC, noise level is estimated after scaling, phase filtering,
+        # and g-factor correction.
         noise_estimate = pe.Node(
             NoiseEstimate(),
             name='noise_estimate',
@@ -148,8 +150,8 @@ def init_bold_dwidenoise_wf(
             validate_complex_norf = pe.Node(ValidateComplex(), name='validate_complex_norf')
             workflow.connect([
                 (inputnode, validate_complex_norf, [
-                    ('mag_norf_file', 'mag_file'),
-                    ('phase_norf_file', 'phase_file'),
+                    ('magnitude_norf', 'magnitude'),
+                    ('phase_norf', 'phase'),
                 ]),
             ])  # fmt:skip
 
@@ -160,7 +162,7 @@ def init_bold_dwidenoise_wf(
                 name='phase_to_radians_norf',
             )
             workflow.connect([
-                (validate_complex_norf, phase_to_radians_norf, [('phase_file', 'phase_file')]),
+                (validate_complex_norf, phase_to_radians_norf, [('phase', 'phase')]),
             ])  # fmt:skip
 
             combine_complex_norf = pe.Node(
@@ -168,13 +170,13 @@ def init_bold_dwidenoise_wf(
                 name='combine_complex_norf',
             )
             workflow.connect([
-                (validate_complex_norf, combine_complex_norf, [('mag_file', 'mag_file')]),
-                (phase_to_radians_norf, combine_complex_norf, [('phase_file', 'phase_file')]),
+                (validate_complex_norf, combine_complex_norf, [('magnitude', 'magnitude')]),
+                (phase_to_radians_norf, combine_complex_norf, [('phase', 'phase')]),
                 (combine_complex_norf, noise_estimate, [('out_file', 'in_file')]),
             ])  # fmt:skip
 
         else:
-            workflow.connect([(inputnode, noise_estimate, [('mag_norf_file', 'in_file')])])
+            workflow.connect([(inputnode, noise_estimate, [('magnitude_norf', 'in_file')])])
 
     complex_buffer = pe.Node(niu.IdentityInterface(fields=['bold_file']), name='complex_buffer')
     if has_phase:
@@ -192,19 +194,19 @@ def init_bold_dwidenoise_wf(
             PhaseToRad(),
             name='phase_to_radians',
         )
-        workflow.connect([(validate_complex, phase_to_radians, [('phase_file', 'phase_file')])])
+        workflow.connect([(validate_complex, phase_to_radians, [('phase', 'phase')])])
 
         combine_complex = pe.Node(
             PolarToComplex(),
             name='combine_complex',
         )
         workflow.connect([
-            (validate_complex, combine_complex, [('mag_file', 'mag_file')]),
-            (phase_to_radians, combine_complex, [('phase_file', 'phase_file')]),
-            (combine_complex, complex_buffer, [('out_file', 'bold_file')]),
+            (validate_complex, combine_complex, [('magnitude', 'magnitude')]),
+            (phase_to_radians, combine_complex, [('phase', 'phase')]),
+            (combine_complex, complex_buffer, [('complex', 'bold_file')]),
         ])  # fmt:skip
     else:
-        workflow.connect([(inputnode, complex_buffer, [('mag_file', 'bold_file')])])
+        workflow.connect([(inputnode, complex_buffer, [('magnitude', 'bold_file')])])
 
     # Run NORDIC
     estimator = {
@@ -230,8 +232,8 @@ def init_bold_dwidenoise_wf(
             name='split_complex',
         )
         workflow.connect([
-            (dwidenoise, split_magnitude, [('out_file', 'complex_file')]),
-            (split_magnitude, outputnode, [('out_file', 'mag_file')]),
+            (dwidenoise, split_magnitude, [('out_file', 'complex')]),
+            (split_magnitude, outputnode, [('out_file', 'magnitude')]),
         ])  # fmt:skip
 
         split_phase = pe.Node(
@@ -239,8 +241,8 @@ def init_bold_dwidenoise_wf(
             name='split_phase',
         )
         workflow.connect([
-            (dwidenoise, split_phase, [('out_file', 'complex_file')]),
-            (split_phase, outputnode, [('out_file', 'phase_file')]),
+            (dwidenoise, split_phase, [('out_file', 'complex')]),
+            (split_phase, outputnode, [('out_file', 'phase')]),
         ])  # fmt:skip
 
         # Apply sqrt(2) scaling factor to noise map
@@ -250,13 +252,13 @@ def init_bold_dwidenoise_wf(
         )
         workflow.connect([
             (noise_estimate, rescale_noise, [('noise_map', 'in_file_a')]),
-            (rescale_noise, outputnode, [('out_file', 'noise_file')]),
+            (rescale_noise, outputnode, [('out_file', 'noise')]),
         ])  # fmt:skip
     else:
         workflow.connect([
             (dwidenoise, outputnode, [
-                ('out_file', 'mag_file'),
-                ('noise_image', 'noise_file'),
+                ('out_file', 'magnitude'),
+                ('noise_image', 'noise'),
             ]),
         ])  # fmt:skip
 

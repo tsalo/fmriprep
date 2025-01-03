@@ -878,7 +878,7 @@ def init_bold_native_wf(
     outputnode.inputs.metadata = metadata
 
     denoisebuffer = pe.Node(
-        niu.IdentityInterface(fields=['bold_file', 'phase_file']),
+        niu.IdentityInterface(fields=['bold_file', 'phase']),
         name='denoisebuffer',
     )
     boldbuffer = pe.Node(
@@ -908,12 +908,12 @@ def init_bold_native_wf(
             mem_gb=mem_gb,
         )
         workflow.connect([
-            (validate_bold, dwidenoise_wf, [('out_file', 'inputnode.mag_file')]),
+            (validate_bold, dwidenoise_wf, [('out_file', 'inputnode.magnitude')]),
             (dwidenoise_wf, denoisebuffer, [
-                ('outputnode.mag_file', 'bold_file'),
-                ('outputnode.phase_file', 'phase_file'),
+                ('outputnode.magnitude', 'bold_file'),
+                ('outputnode.phase', 'phase'),
             ]),
-            (dwidenoise_wf, outputnode, [('outputnode.noise_file', 'thermal_noise')]),
+            (dwidenoise_wf, outputnode, [('outputnode.noise', 'thermal_noise')]),
         ])  # fmt:skip
 
         if has_norf:
@@ -922,7 +922,7 @@ def init_bold_native_wf(
             workflow.connect([
                 (echo_index, norf_source, [('echoidx', 'index')]),
                 (norf_source, validate_norf, [('out', 'in_file')]),
-                (validate_norf, dwidenoise_wf, [('out_file', 'inputnode.norf_file')]),
+                (validate_norf, dwidenoise_wf, [('out_file', 'inputnode.magnitude_norf')]),
             ])  # fmt:skip
 
         if has_phase:
@@ -931,7 +931,7 @@ def init_bold_native_wf(
             workflow.connect([
                 (echo_index, phase_source, [('echoidx', 'index')]),
                 (phase_source, validate_phase, [('out', 'in_file')]),
-                (validate_phase, dwidenoise_wf, [('out_file', 'inputnode.phase_file')]),
+                (validate_phase, dwidenoise_wf, [('out_file', 'inputnode.phase')]),
             ])  # fmt:skip
 
         if has_phase and has_norf:
@@ -943,7 +943,7 @@ def init_bold_native_wf(
             workflow.connect([
                 (echo_index, phase_norf_source, [('echoidx', 'index')]),
                 (phase_norf_source, validate_phase_norf, [('out', 'in_file')]),
-                (validate_phase_norf, dwidenoise_wf, [('out_file', 'inputnode.phase_norf_file')]),
+                (validate_phase_norf, dwidenoise_wf, [('out_file', 'inputnode.phase_norf')]),
             ])  # fmt:skip
     else:
         workflow.connect([(validate_bold, denoisebuffer, [('out_file', 'bold_file')])])

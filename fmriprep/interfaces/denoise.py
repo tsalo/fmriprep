@@ -16,12 +16,12 @@ from nipype.utils.filemanip import fname_presuffix
 
 
 class _ValidateComplexInputSpec(BaseInterfaceInputSpec):
-    mag_file = File(
+    magnitude = File(
         exists=True,
         mandatory=True,
         desc='Magnitude BOLD EPI',
     )
-    phase_file = File(
+    phase = File(
         exists=True,
         mandatory=False,
         desc='Phase BOLD EPI',
@@ -29,8 +29,8 @@ class _ValidateComplexInputSpec(BaseInterfaceInputSpec):
 
 
 class _ValidateComplexOutputSpec(TraitedSpec):
-    mag_file = File(exists=True, desc='Validated magnitude file')
-    phase_file = File(exists=True, desc='Validated phase file')
+    magnitude = File(exists=True, desc='Validated magnitude file')
+    phase = File(exists=True, desc='Validated phase file')
 
 
 class ValidateComplex(SimpleInterface):
@@ -42,12 +42,12 @@ class ValidateComplex(SimpleInterface):
     def _run_interface(self, runtime):
         import nibabel as nb
 
-        if not isdefined(self.inputs.phase_file):
-            self._results['mag_file'] = self.inputs.mag_file
+        if not isdefined(self.inputs.phase):
+            self._results['magnitude'] = self.inputs.magnitude
             return runtime
 
-        mag_img = nb.load(self.inputs.mag_file)
-        phase_img = nb.load(self.inputs.phase_file)
+        mag_img = nb.load(self.inputs.magnitude)
+        phase_img = nb.load(self.inputs.phase)
         n_mag_vols = mag_img.shape[3]
         n_phase_vols = phase_img.shape[3]
 
@@ -57,8 +57,8 @@ class ValidateComplex(SimpleInterface):
                 f'!= number of volumes in phase file ({n_phase_vols})'
             )
 
-        self._results['mag_file'] = self.inputs.mag_file
-        self._results['phase_file'] = self.inputs.phase_file
+        self._results['magnitude'] = self.inputs.magnitude
+        self._results['phase'] = self.inputs.phase
 
         return runtime
 
@@ -139,11 +139,11 @@ class DWIDenoise(MRTrix3Base):
 
 
 class _PolarToComplexInputSpec(MRTrix3BaseInputSpec):
-    mag_file = traits.File(exists=True, mandatory=True, position=0, argstr='%s')
-    phase_file = traits.File(exists=True, mandatory=True, position=1, argstr='%s')
-    out_file = traits.File(
+    magnitude = traits.File(exists=True, mandatory=True, position=0, argstr='%s')
+    phase = traits.File(exists=True, mandatory=True, position=1, argstr='%s')
+    complex = traits.File(
         exists=False,
-        name_source='mag_file',
+        name_source='magnitude',
         name_template='%s_complex.nii.gz',
         keep_extension=False,
         position=-1,
@@ -152,7 +152,7 @@ class _PolarToComplexInputSpec(MRTrix3BaseInputSpec):
 
 
 class _PolarToComplexOutputSpec(TraitedSpec):
-    out_file = File(exists=True)
+    complex = File(exists=True)
 
 
 class PolarToComplex(MRTrix3Base):
@@ -251,7 +251,7 @@ class _PhaseToRadInputSpec(BaseInterfaceInputSpec):
 
     """
 
-    phase_file = File(exists=True, mandatory=True)
+    phase = File(exists=True, mandatory=True)
 
 
 class _PhaseToRadOutputSpec(TraitedSpec):
@@ -291,7 +291,7 @@ class _PhaseToRadOutputSpec(TraitedSpec):
 
     """
 
-    phase_file = File(exists=True)
+    phase = File(exists=True)
 
 
 class PhaseToRad(SimpleInterface):
@@ -338,7 +338,7 @@ class PhaseToRad(SimpleInterface):
     output_spec = _PhaseToRadOutputSpec
 
     def _run_interface(self, runtime):
-        im = nb.load(self.inputs.phase_file)
+        im = nb.load(self.inputs.phase)
         data = im.get_fdata(caching='unchanged')  # Read as float64 for safety
         hdr = im.header.copy()
 
@@ -352,15 +352,15 @@ class PhaseToRad(SimpleInterface):
         hdr.set_xyzt_units('mm')
 
         # Set the output file name
-        self._results['phase_file'] = fname_presuffix(
-            self.inputs.phase_file,
+        self._results['phase'] = fname_presuffix(
+            self.inputs.phase,
             suffix='_rad.nii.gz',
             newpath=runtime.cwd,
             use_ext=False,
         )
 
         # Save the output image
-        nb.Nifti1Image(data, None, hdr).to_filename(self._results['phase_file'])
+        nb.Nifti1Image(data, None, hdr).to_filename(self._results['phase'])
 
         return runtime
 
