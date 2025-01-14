@@ -54,8 +54,8 @@ def _build_parser(**kwargs):
         def __call__(self, parser, namespace, values, option_string=None):
             new_opt, rem_vers = deprecations.get(self.dest, (None, None))
             msg = (
-                f"{self.option_strings} has been deprecated and will be removed in "
-                f"{rem_vers or 'a later version'}."
+                f'{self.option_strings} has been deprecated and will be removed in '
+                f'{rem_vers or "a later version"}.'
             )
             if new_opt:
                 msg += f' Please use `{new_opt}` instead.'
@@ -557,8 +557,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         action='store',
         default=0.5,
         type=float,
-        help='Threshold for flagging a frame as an outlier on the basis of framewise '
-        'displacement',
+        help='Threshold for flagging a frame as an outlier on the basis of framewise displacement',
     )
     g_confounds.add_argument(
         '--dvars-spike-threshold',
@@ -900,8 +899,7 @@ applied."""
         from ..utils.bids import validate_input_dir
 
         build_log.info(
-            'Making sure the input data is BIDS compliant (warnings can be ignored in most '
-            'cases).'
+            'Making sure the input data is BIDS compliant (warnings can be ignored in most cases).'
         )
         validate_input_dir(
             config.environment.exec_env,
