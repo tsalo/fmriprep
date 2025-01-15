@@ -142,6 +142,7 @@ jobs:
             docker build --rm \
               --cache-from=nipreps/fmriprep \
               -t nipreps/fmriprep:latest \
+              --platform linux/amd64 \
               --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
               --build-arg VCS_REF=`git rev-parse --short HEAD` \
               --build-arg VERSION="$THISVERSION" .
@@ -189,6 +190,7 @@ jobs:
                 --cache-from localhost:5000/fmriprep \
                 --cache-from nipreps/fmriprep:latest \
                 -t nipreps/fmriprep:latest \
+                --platform linux/amd64 \
                 --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
                 --build-arg VCS_REF=`git rev-parse --short HEAD` \
                 --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
