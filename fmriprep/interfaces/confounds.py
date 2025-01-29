@@ -144,6 +144,39 @@ class FSLMotionParams(SimpleInterface):
         return runtime
 
 
+class _FramewiseDisplacementInputSpec(BaseInterfaceInputSpec):
+    in_file = File(exists=True, desc='Head motion transform file')
+    radius = traits.Float(50, usedefault=True, desc='Radius of the head in mm')
+
+
+class _FramewiseDisplacementOutputSpec(TraitedSpec):
+    out_file = File(desc='Output framewise displacement file')
+
+
+class FramewiseDisplacement(SimpleInterface):
+    """Calculate framewise displacement estimates."""
+
+    input_spec = _FramewiseDisplacementInputSpec
+    output_spec = _FramewiseDisplacementOutputSpec
+
+    def _run_interface(self, runtime):
+        self._results['out_file'] = fname_presuffix(
+            self.inputs.in_file, suffix='_fd.tsv', newpath=runtime.cwd
+        )
+
+        motion = pd.read_csv(self.inputs.in_file, delimiter='\t')
+
+        # Filter and ensure we have all parameters
+        diff = motion[['trans_x', 'trans_y', 'trans_z', 'rot_x', 'rot_y', 'rot_z']].diff()
+        diff[['rot_x', 'rot_y', 'rot_z']] *= self.inputs.radius
+
+        fd = pd.DataFrame(diff.abs().sum(axis=1), columns=['FramewiseDisplacement'])
+
+        fd.to_csv(self._results['out_file'], sep='\t', index=False)
+
+        return runtime
+
+
 class _FilterDroppedInputSpec(BaseInterfaceInputSpec):
     in_file = File(exists=True, desc='input CompCor metadata')
 
