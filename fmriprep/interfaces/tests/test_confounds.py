@@ -46,8 +46,9 @@ def test_FSLMotionParams(tmp_path, data_dir):
     )
     res = motion.run()
 
-    orig_params = pd.read_csv(orig_timeseries, sep='\t')
     derived_params = pd.read_csv(res.outputs.out_file, sep='\t')
+    # orig_timeseries includes framewise_displacement
+    orig_params = pd.read_csv(orig_timeseries, sep='\t')[derived_params.columns]
 
     # Motion parameters are in mm and rad
     # These are empirically determined bounds, but they seem reasonable
