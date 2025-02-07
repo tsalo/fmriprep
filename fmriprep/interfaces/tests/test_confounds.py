@@ -64,3 +64,19 @@ def test_FSLMotionParams(tmp_path, data_dir):
     )
     max_diff = (orig_params - derived_params).abs().max()
     assert np.all(max_diff < limits)
+
+
+def test_FramewiseDisplacement(tmp_path, data_dir):
+    timeseries = data_dir / 'sub-01_task-mixedgamblestask_run-01_desc-motion_timeseries.tsv'
+
+    framewise_displacement = pe.Node(
+        confounds.FramewiseDisplacement(in_file=str(timeseries)),
+        name='framewise_displacement',
+        base_dir=str(tmp_path),
+    )
+    res = framewise_displacement.run()
+
+    orig = pd.read_csv(timeseries, sep='\t')['framewise_displacement']
+    derived = pd.read_csv(res.outputs.out_file, sep='\t')['FramewiseDisplacement']
+
+    assert np.allclose(orig.values, derived.values, equal_nan=True)
