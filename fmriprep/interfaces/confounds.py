@@ -170,7 +170,7 @@ class FramewiseDisplacement(SimpleInterface):
         diff = motion[['trans_x', 'trans_y', 'trans_z', 'rot_x', 'rot_y', 'rot_z']].diff()
         diff[['rot_x', 'rot_y', 'rot_z']] *= self.inputs.radius
 
-        fd = pd.DataFrame(diff.abs().sum(axis=1), columns=['FramewiseDisplacement'])
+        fd = pd.DataFrame(diff.abs().sum(axis=1, skipna=False), columns=['FramewiseDisplacement'])
 
         fd.to_csv(self._results['out_file'], sep='\t', index=False)
 
