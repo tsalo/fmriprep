@@ -191,7 +191,7 @@ class FSLMotionParams(SimpleInterface):
             columns=['trans_x', 'trans_y', 'trans_z', 'rot_x', 'rot_y', 'rot_z'],
         )
 
-        params.to_csv(self._results['out_file'], sep='\t', index=False)
+        params.to_csv(self._results['out_file'], sep='\t', index=False, na_rep='n/a')
 
         return runtime
 
@@ -224,7 +224,7 @@ class FramewiseDisplacement(SimpleInterface):
 
         fd = pd.DataFrame(diff.abs().sum(axis=1, skipna=False), columns=['FramewiseDisplacement'])
 
-        fd.to_csv(self._results['out_file'], sep='\t', index=False)
+        fd.to_csv(self._results['out_file'], sep='\t', index=False, na_rep='n/a')
 
         return runtime
 
@@ -252,7 +252,9 @@ class FilterDropped(SimpleInterface):
         )
 
         metadata = pd.read_csv(self.inputs.in_file, sep='\t')
-        metadata[metadata.retained].to_csv(self._results['out_file'], sep='\t', index=False)
+        metadata[metadata.retained].to_csv(
+            self._results['out_file'], sep='\t', index=False, na_rep='n/a'
+        )
 
         return runtime
 
@@ -315,13 +317,15 @@ class RenameACompCor(SimpleInterface):
         final_components = components.rename(columns=dict(zip(c_orig, c_new, strict=False)))
         final_components.rename(columns=dict(zip(w_orig, w_new, strict=False)), inplace=True)
         final_components.rename(columns=dict(zip(a_orig, a_new, strict=False)), inplace=True)
-        final_components.to_csv(self._results['components_file'], sep='\t', index=False)
+        final_components.to_csv(
+            self._results['components_file'], sep='\t', index=False, na_rep='n/a'
+        )
 
         metadata.loc[c_comp_cor.index, 'component'] = c_new
         metadata.loc[w_comp_cor.index, 'component'] = w_new
         metadata.loc[a_comp_cor.index, 'component'] = a_new
 
-        metadata.to_csv(self._results['metadata_file'], sep='\t', index=False)
+        metadata.to_csv(self._results['metadata_file'], sep='\t', index=False, na_rep='n/a')
 
         return runtime
 
