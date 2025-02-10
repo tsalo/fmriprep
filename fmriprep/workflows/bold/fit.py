@@ -178,8 +178,6 @@ def init_bold_fit_wf(
     boldref2fmap_xfm
         Affine transform mapping from BOLD reference space to the fieldmap
         space, if applicable.
-    rmsd_file
-        Root mean squared deviation as measured by ``fsl_motion_outliers`` [Jenkinson2002]_.
     dummy_scans
         The number of dummy scans declared or detected at the beginning of the series.
 
@@ -285,7 +283,6 @@ def init_bold_fit_wf(
                 'motion_xfm',
                 'boldref2anat_xfm',
                 'boldref2fmap_xfm',
-                'rmsd_file',
             ],
         ),
         name='outputnode',
@@ -299,9 +296,7 @@ def init_bold_fit_wf(
         name='hmcref_buffer',
     )
     fmapref_buffer = pe.Node(niu.Function(function=_select_ref), name='fmapref_buffer')
-    hmc_buffer = pe.Node(
-        niu.IdentityInterface(fields=['hmc_xforms', 'rmsd_file']), name='hmc_buffer'
-    )
+    hmc_buffer = pe.Node(niu.IdentityInterface(fields=['hmc_xforms']), name='hmc_buffer')
     fmapreg_buffer = pe.Node(
         niu.IdentityInterface(fields=['boldref2fmap_xfm']), name='fmapreg_buffer'
     )
@@ -354,7 +349,6 @@ def init_bold_fit_wf(
         (fmapreg_buffer, outputnode, [('boldref2fmap_xfm', 'boldref2fmap_xfm')]),
         (hmc_buffer, outputnode, [
             ('hmc_xforms', 'motion_xfm'),
-            ('rmsd_file', 'rmsd_file'),
         ]),
         (inputnode, func_fit_reports_wf, [
             ('bold_file', 'inputnode.source_file'),
@@ -444,9 +438,6 @@ def init_bold_fit_wf(
                 ('bold_file', 'inputnode.bold_file'),
             ]),
             (bold_hmc_wf, ds_hmc_wf, [('outputnode.xforms', 'inputnode.xforms')]),
-            (bold_hmc_wf, hmc_buffer, [
-                ('outputnode.rmsd_file', 'rmsd_file'),
-            ]),
             (ds_hmc_wf, hmc_buffer, [('outputnode.xforms', 'hmc_xforms')]),
         ])  # fmt:skip
     else:

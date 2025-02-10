@@ -40,6 +40,7 @@ from ...interfaces.confounds import (
     FMRISummary,
     FramewiseDisplacement,
     FSLMotionParams,
+    FSLRMSDeviation,
     GatherConfounds,
     RenameACompCor,
 )
@@ -124,8 +125,6 @@ def init_bold_confs_wf(
         BOLD series mask
     motion_xfm
         ITK-formatted head motion transforms
-    rmsd_file
-        Root mean squared deviation as measured by ``fsl_motion_outliers`` [Jenkinson2002]_.
     skip_vols
         number of non steady state volumes
     t1w_mask
@@ -225,7 +224,6 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
                 'bold_mask',
                 'hmc_boldref',
                 'motion_xfm',
-                'rmsd_file',
                 'skip_vols',
                 't1w_mask',
                 't1w_tpms',
@@ -269,7 +267,8 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
     motion_params = pe.Node(FSLMotionParams(), name='motion_params')
 
     # Frame displacement
-    fdisp = pe.Node(FramewiseDisplacement(), name='fdisp', mem_gb=mem_gb)
+    fdisp = pe.Node(FramewiseDisplacement(), name='fdisp')
+    rmsd = pe.Node(FSLRMSDeviation(), name='rmsd')
 
     # Generate aCompCor probseg maps
     acc_masks = pe.Node(aCompCorMasks(is_aseg=freesurfer), name='acc_masks')
@@ -370,12 +369,6 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
     add_std_dvars_header = pe.Node(
         AddTSVHeader(columns=['std_dvars']),
         name='add_std_dvars_header',
-        mem_gb=0.01,
-        run_without_submitting=True,
-    )
-    add_rmsd_header = pe.Node(
-        AddTSVHeader(columns=['rmsd']),
-        name='add_rmsd_header',
         mem_gb=0.01,
         run_without_submitting=True,
     )
@@ -524,6 +517,8 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
                             ('bold_mask', 'in_mask')]),
         (inputnode, motion_params, [('motion_xfm', 'xfm_file'),
                                     ('hmc_boldref', 'boldref_file')]),
+        (inputnode, rmsd, [('motion_xfm', 'xfm_file'),
+                           ('hmc_boldref', 'boldref_file')]),
         (motion_params, fdisp, [('out_file', 'in_file')]),
         # Brain mask
         (inputnode, t1w_mask_tfm, [('t1w_mask', 'input_image'),
@@ -567,7 +562,6 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         (merge_rois, signals, [('out', 'label_files')]),
 
         # Collate computed confounds together
-        (inputnode, add_rmsd_header, [('rmsd_file', 'in_file')]),
         (dvars, add_dvars_header, [('out_nstd', 'in_file')]),
         (dvars, add_std_dvars_header, [('out_std', 'in_file')]),
         (signals, concat, [('out_file', 'signals')]),
@@ -577,7 +571,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         (rename_acompcor, concat, [('components_file', 'acompcor')]),
         (crowncompcor, concat, [('components_file', 'crowncompcor')]),
         (motion_params, concat, [('out_file', 'motion')]),
-        (add_rmsd_header, concat, [('out_file', 'rmsd')]),
+        (rmsd, concat, [('out_file', 'rmsd')]),
         (add_dvars_header, concat, [('out_file', 'dvars')]),
         (add_std_dvars_header, concat, [('out_file', 'std_dvars')]),
 
