@@ -90,6 +90,58 @@ class aCompCorMasks(SimpleInterface):
         return runtime
 
 
+class _FSLRMSDeviationInputSpec(BaseInterfaceInputSpec):
+    xfm_file = File(exists=True, desc='Head motion transform file')
+    boldref_file = File(exists=True, desc='BOLD reference file')
+
+
+class _FSLRMSDeviationOutputSpec(TraitedSpec):
+    out_file = File(desc='Output motion parameters file')
+
+
+class FSLRMSDeviation(SimpleInterface):
+    """Reconstruct FSL root mean square deviation from affine transforms."""
+
+    input_spec = _FSLRMSDeviationInputSpec
+    output_spec = _FSLRMSDeviationOutputSpec
+
+    def _run_interface(self, runtime):
+        self._results['out_file'] = fname_presuffix(
+            self.inputs.boldref_file, suffix='_motion.tsv', newpath=runtime.cwd
+        )
+
+        boldref = nb.load(self.inputs.boldref_file)
+        hmc = nt.linear.load(self.inputs.xfm_file)
+
+        center = 0.5 * (np.array(boldref.shape[:3]) - 1) * boldref.header.get_zooms()[:3]
+
+        # Revert to vox2vox transforms
+        fsl_hmc = nt.io.fsl.FSLLinearTransformArray.from_ras(
+            hmc.matrix, reference=boldref, moving=boldref
+        )
+        fsl_matrix = np.stack([xfm['parameters'] for xfm in fsl_hmc.xforms])
+
+        diff = fsl_matrix[1:] @ np.linalg.inv(fsl_matrix[:-1]) - np.eye(4)
+        M = diff[:, :3, :3]
+        t = diff[:, :3, 3] + M @ center
+        Rmax = 80.0
+
+        rmsd = np.concatenate(
+            [
+                [np.nan],
+                np.sqrt(
+                    np.diag(t @ t.T)
+                    + np.trace(M.transpose(0, 2, 1) @ M, axis1=1, axis2=2) * Rmax**2 / 5
+                ),
+            ]
+        )
+
+        params = pd.DataFrame(data=rmsd, columns=['rmsd'])
+        params.to_csv(self._results['out_file'], sep='\t', index=False, na_rep='n/a')
+
+        return runtime
+
+
 class _FSLMotionParamsInputSpec(BaseInterfaceInputSpec):
     xfm_file = File(exists=True, desc='Head motion transform file')
     boldref_file = File(exists=True, desc='BOLD reference file')
