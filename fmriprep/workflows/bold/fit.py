@@ -591,6 +591,14 @@ def init_bold_fit_wf(
         config.loggers.workflow.info('Found coregistration reference - skipping Stage 3')
         regref_buffer.inputs.boldref = precomputed['coreg_boldref']
 
+        # TODO: Allow precomputed bold masks to be passed
+        # Also needs consideration for how it interacts above
+        skullstrip_precomp_ref_wf = init_skullstrip_bold_wf(name='skullstrip_precomp_ref_wf')
+        skullstrip_precomp_ref_wf.inputs.inputnode.in_file = precomputed['coreg_boldref']
+        workflow.connect([
+            (skullstrip_precomp_ref_wf, regref_buffer, [('outputnode.mask_file', 'boldmask')])
+        ])  # fmt:skip
+
     if not boldref2anat_xform:
         # calculate BOLD registration to T1w
         bold_reg_wf = init_bold_reg_wf(
