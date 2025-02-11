@@ -53,7 +53,7 @@ from .outputs import (
     init_ds_registration_wf,
     init_func_fit_reports_wf,
 )
-from .reference import init_raw_boldref_wf
+from .reference import init_raw_boldref_wf, init_validation_and_dummies_wf
 from .registration import init_bold_reg_wf
 from .stc import init_bold_stc_wf
 from .t2s import init_bold_t2s_wf
@@ -407,15 +407,18 @@ def init_bold_fit_wf(
         ])  # fmt:skip
     else:
         config.loggers.workflow.info('Found HMC boldref - skipping Stage 1')
-
-        validate_bold = pe.Node(ValidateImage(), name='validate_bold')
-        validate_bold.inputs.in_file = bold_file
-
         hmcref_buffer.inputs.boldref = precomputed['hmc_boldref']
 
+        validation_and_dummies_wf = init_validation_and_dummies_wf(bold_file=bold_file)
+
         workflow.connect([
-            (validate_bold, hmcref_buffer, [('out_file', 'bold_file')]),
-            (validate_bold, func_fit_reports_wf, [('out_report', 'inputnode.validation_report')]),
+            (validation_and_dummies_wf, hmcref_buffer, [
+                ('outputnode.bold_file', 'bold_file'),
+                ('outputnode.skip_vols', 'dummy_scans'),
+            ]),
+            (validation_and_dummies_wf, func_fit_reports_wf, [
+                ('outputnode.validation_report', 'inputnode.validation_report'),
+            ]),
             (hmcref_buffer, hmc_boldref_source_buffer, [('boldref', 'in_file')]),
         ])  # fmt:skip
 
