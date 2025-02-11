@@ -80,7 +80,6 @@ def init_raw_boldref_wf(
         beginning of ``bold_file``
 
     """
-    from niworkflows.interfaces.bold import NonsteadyStatesDetector
     from niworkflows.interfaces.images import RobustAverage
 
     workflow = Workflow(name=name)
@@ -110,6 +109,96 @@ using a custom methodology of *fMRIPrep*, for use in head motion correction.
     if bold_file is not None:
         inputnode.inputs.bold_file = bold_file
 
+    validation_and_dummies_wf = init_validation_and_dummies_wf()
+
+    gen_avg = pe.Node(RobustAverage(), name='gen_avg', mem_gb=1)
+
+    workflow.connect([
+        (inputnode, validation_and_dummies_wf, [
+            ('bold_file', 'inputnode.bold_file'),
+            ('dummy_scans', 'inputnode.dummy_scans'),
+        ]),
+        (validation_and_dummies_wf, gen_avg, [
+            ('outputnode.bold_file', 'in_file'),
+            ('outputnode.t_mask', 't_mask'),
+        ]),
+        (validation_and_dummies_wf, outputnode, [
+            ('outputnode.bold_file', 'bold_file'),
+            ('outputnode.skip_vols', 'skip_vols'),
+            ('outputnode.algo_dummy_scans', 'algo_dummy_scans'),
+            ('outputnode.validation_report', 'validation_report'),
+        ]),
+        (gen_avg, outputnode, [('out_file', 'boldref')]),
+    ])  # fmt:skip
+
+    return workflow
+
+
+def init_validation_and_dummies_wf(
+    bold_file=None,
+    name='validation_and_dummies_wf',
+):
+    """
+    Build a workflow that validates a BOLD image and detects non-steady-state volumes.
+
+    Workflow Graph
+        .. workflow::
+            :graph2use: orig
+            :simple_form: yes
+
+            from fmriprep.workflows.bold.reference import init_validation_and_dummies_wf
+            wf = init_validation_and_dummies_wf()
+
+    Parameters
+    ----------
+    bold_file : :obj:`str`
+        BOLD series NIfTI file
+    name : :obj:`str`
+        Name of workflow (default: ``validation_and_dummies_wf``)
+
+    Inputs
+    ------
+    bold_file : str
+        BOLD series NIfTI file
+    dummy_scans : int or None
+        Number of non-steady-state volumes specified by user at beginning of ``bold_file``
+
+    Outputs
+    -------
+    bold_file : str
+        Validated BOLD series NIfTI file
+    skip_vols : int
+        Number of non-steady-state volumes selected at beginning of ``bold_file``
+    algo_dummy_scans : int
+        Number of non-steady-state volumes agorithmically detected at
+        beginning of ``bold_file``
+
+    """
+    from niworkflows.interfaces.bold import NonsteadyStatesDetector
+
+    workflow = Workflow(name=name)
+
+    inputnode = pe.Node(
+        niu.IdentityInterface(fields=['bold_file', 'dummy_scans']),
+        name='inputnode',
+    )
+    outputnode = pe.Node(
+        niu.IdentityInterface(
+            fields=[
+                'bold_file',
+                'skip_vols',
+                'algo_dummy_scans',
+                't_mask',
+                'validation_report',
+            ]
+        ),
+        name='outputnode',
+    )
+
+    # Simplify manually setting input image
+    if bold_file is not None:
+        inputnode.inputs.bold_file = bold_file
+
     val_bold = pe.Node(
         ValidateImage(),
         name='val_bold',
@@ -117,7 +206,6 @@ using a custom methodology of *fMRIPrep*, for use in head motion correction.
     )
 
     get_dummy = pe.Node(NonsteadyStatesDetector(), name='get_dummy')
-    gen_avg = pe.Node(RobustAverage(), name='gen_avg', mem_gb=1)
 
     calc_dummy_scans = pe.Node(
         niu.Function(function=pass_dummy_scans, output_names=['skip_vols_num']),
@@ -126,22 +214,20 @@ using a custom methodology of *fMRIPrep*, for use in head motion correction.
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
-    # fmt: off
     workflow.connect([
         (inputnode, val_bold, [('bold_file', 'in_file')]),
-        (inputnode, get_dummy, [('bold_file', 'in_file')]),
-        (inputnode, calc_dummy_scans, [('dummy_scans', 'dummy_scans')]),
-        (val_bold, gen_avg, [('out_file', 'in_file')]),
-        (get_dummy, gen_avg, [('t_mask', 't_mask')]),
-        (get_dummy, calc_dummy_scans, [('n_dummy', 'algo_dummy_scans')]),
         (val_bold, outputnode, [
             ('out_file', 'bold_file'),
             ('out_report', 'validation_report'),
         ]),
+        (inputnode, get_dummy, [('bold_file', 'in_file')]),
+        (inputnode, calc_dummy_scans, [('dummy_scans', 'dummy_scans')]),
+        (get_dummy, calc_dummy_scans, [('n_dummy', 'algo_dummy_scans')]),
+        (get_dummy, outputnode, [
+            ('n_dummy', 'algo_dummy_scans'),
+            ('t_mask', 't_mask'),
+        ]),
         (calc_dummy_scans, outputnode, [('skip_vols_num', 'skip_vols')]),
-        (gen_avg, outputnode, [('out_file', 'boldref')]),
-        (get_dummy, outputnode, [('n_dummy', 'algo_dummy_scans')]),
-    ])
-    # fmt: on
+    ])  # fmt:skip
 
     return workflow
