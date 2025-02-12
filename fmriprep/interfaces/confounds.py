@@ -91,8 +91,8 @@ class aCompCorMasks(SimpleInterface):
 
 
 class _FSLRMSDeviationInputSpec(BaseInterfaceInputSpec):
-    xfm_file = File(exists=True, desc='Head motion transform file')
-    boldref_file = File(exists=True, desc='BOLD reference file')
+    xfm_file = File(exists=True, mandatory=True, desc='Head motion transform file')
+    boldref_file = File(exists=True, mandatory=True, desc='BOLD reference file')
 
 
 class _FSLRMSDeviationOutputSpec(TraitedSpec):
