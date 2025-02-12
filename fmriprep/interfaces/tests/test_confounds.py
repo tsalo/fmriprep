@@ -33,6 +33,26 @@ def test_FilterDropped(tmp_path, data_dir):
     assert filtered_meta == target_meta
 
 
+def test_FSLRMSDeviation(tmp_path, data_dir):
+    base = 'sub-01_task-mixedgamblestask_run-01'
+    xfms = data_dir / f'{base}_from-orig_to-boldref_mode-image_desc-hmc_xfm.txt'
+    boldref = data_dir / f'{base}_desc-hmc_boldref.nii.gz'
+    timeseries = data_dir / f'{base}_desc-motion_timeseries.tsv'
+
+    rmsd = pe.Node(
+        confounds.FSLRMSDeviation(xfm_file=str(xfms), boldref_file=str(boldref)),
+        name='rmsd',
+        base_dir=str(tmp_path),
+    )
+    res = rmsd.run()
+
+    orig = pd.read_csv(timeseries, sep='\t')['rmsd']
+    derived = pd.read_csv(res.outputs.out_file, sep='\t')['rmsd']
+
+    # RMSD is nominally in mm, so 0.1um is an acceptable deviation
+    assert np.allclose(orig.values, derived.values, equal_nan=True, atol=1e-4)
+
+
 def test_FSLMotionParams(tmp_path, data_dir):
     base = 'sub-01_task-mixedgamblestask_run-01'
     xfms = data_dir / f'{base}_from-orig_to-boldref_mode-image_desc-hmc_xfm.txt'

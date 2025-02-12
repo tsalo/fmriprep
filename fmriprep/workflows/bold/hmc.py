@@ -71,8 +71,6 @@ def init_bold_hmc_wf(mem_gb: float, omp_nthreads: int, name: str = 'bold_hmc_wf'
     -------
     xforms
         ITKTransform file aligning each volume to ``ref_image``
-    rmsd_file
-        Root mean squared deviation as measured by ``fsl_motion_outliers`` [Jenkinson2002]_.
 
     """
     from niworkflows.engine.workflows import LiterateWorkflow as Workflow
@@ -89,19 +87,12 @@ parameters) are estimated before any spatiotemporal filtering using
     inputnode = pe.Node(
         niu.IdentityInterface(fields=['bold_file', 'raw_ref_image']), name='inputnode'
     )
-    outputnode = pe.Node(niu.IdentityInterface(fields=['xforms', 'rmsd_file']), name='outputnode')
+    outputnode = pe.Node(niu.IdentityInterface(fields=['xforms']), name='outputnode')
 
     # Head motion correction (hmc)
-    mcflirt = pe.Node(
-        fsl.MCFLIRT(save_mats=True, save_plots=True, save_rms=True),
-        name='mcflirt',
-        mem_gb=mem_gb * 3,
-    )
+    mcflirt = pe.Node(fsl.MCFLIRT(save_mats=True), name='mcflirt', mem_gb=mem_gb * 3)
 
     fsl2itk = pe.Node(MCFLIRT2ITK(), name='fsl2itk', mem_gb=0.05, n_procs=omp_nthreads)
-
-    def _pick_rel(rms_files):
-        return rms_files[-1]
 
     workflow.connect([
         (inputnode, mcflirt, [('raw_ref_image', 'ref_file'),
@@ -109,7 +100,6 @@ parameters) are estimated before any spatiotemporal filtering using
         (inputnode, fsl2itk, [('raw_ref_image', 'in_source'),
                               ('raw_ref_image', 'in_reference')]),
         (mcflirt, fsl2itk, [('mat_file', 'in_files')]),
-        (mcflirt, outputnode, [(('rms_files', _pick_rel), 'rmsd_file')]),
         (fsl2itk, outputnode, [('out_file', 'xforms')]),
     ])  # fmt:skip
 

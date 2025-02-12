@@ -90,6 +90,58 @@ class aCompCorMasks(SimpleInterface):
         return runtime
 
 
+class _FSLRMSDeviationInputSpec(BaseInterfaceInputSpec):
+    xfm_file = File(exists=True, mandatory=True, desc='Head motion transform file')
+    boldref_file = File(exists=True, mandatory=True, desc='BOLD reference file')
+
+
+class _FSLRMSDeviationOutputSpec(TraitedSpec):
+    out_file = File(desc='Output motion parameters file')
+
+
+class FSLRMSDeviation(SimpleInterface):
+    """Reconstruct FSL root mean square deviation from affine transforms."""
+
+    input_spec = _FSLRMSDeviationInputSpec
+    output_spec = _FSLRMSDeviationOutputSpec
+
+    def _run_interface(self, runtime):
+        self._results['out_file'] = fname_presuffix(
+            self.inputs.boldref_file, suffix='_motion.tsv', newpath=runtime.cwd
+        )
+
+        boldref = nb.load(self.inputs.boldref_file)
+        hmc = nt.linear.load(self.inputs.xfm_file)
+
+        center = 0.5 * (np.array(boldref.shape[:3]) - 1) * boldref.header.get_zooms()[:3]
+
+        # Revert to vox2vox transforms
+        fsl_hmc = nt.io.fsl.FSLLinearTransformArray.from_ras(
+            hmc.matrix, reference=boldref, moving=boldref
+        )
+        fsl_matrix = np.stack([xfm['parameters'] for xfm in fsl_hmc.xforms])
+
+        diff = fsl_matrix[1:] @ np.linalg.inv(fsl_matrix[:-1]) - np.eye(4)
+        M = diff[:, :3, :3]
+        t = diff[:, :3, 3] + M @ center
+        Rmax = 80.0
+
+        rmsd = np.concatenate(
+            [
+                [np.nan],
+                np.sqrt(
+                    np.diag(t @ t.T)
+                    + np.trace(M.transpose(0, 2, 1) @ M, axis1=1, axis2=2) * Rmax**2 / 5
+                ),
+            ]
+        )
+
+        params = pd.DataFrame(data=rmsd, columns=['rmsd'])
+        params.to_csv(self._results['out_file'], sep='\t', index=False, na_rep='n/a')
+
+        return runtime
+
+
 class _FSLMotionParamsInputSpec(BaseInterfaceInputSpec):
     xfm_file = File(exists=True, desc='Head motion transform file')
     boldref_file = File(exists=True, desc='BOLD reference file')
@@ -139,7 +191,7 @@ class FSLMotionParams(SimpleInterface):
             columns=['trans_x', 'trans_y', 'trans_z', 'rot_x', 'rot_y', 'rot_z'],
         )
 
-        params.to_csv(self._results['out_file'], sep='\t', index=False)
+        params.to_csv(self._results['out_file'], sep='\t', index=False, na_rep='n/a')
 
         return runtime
 
@@ -172,7 +224,7 @@ class FramewiseDisplacement(SimpleInterface):
 
         fd = pd.DataFrame(diff.abs().sum(axis=1, skipna=False), columns=['FramewiseDisplacement'])
 
-        fd.to_csv(self._results['out_file'], sep='\t', index=False)
+        fd.to_csv(self._results['out_file'], sep='\t', index=False, na_rep='n/a')
 
         return runtime
 
@@ -200,7 +252,9 @@ class FilterDropped(SimpleInterface):
         )
 
         metadata = pd.read_csv(self.inputs.in_file, sep='\t')
-        metadata[metadata.retained].to_csv(self._results['out_file'], sep='\t', index=False)
+        metadata[metadata.retained].to_csv(
+            self._results['out_file'], sep='\t', index=False, na_rep='n/a'
+        )
 
         return runtime
 
@@ -263,13 +317,15 @@ class RenameACompCor(SimpleInterface):
         final_components = components.rename(columns=dict(zip(c_orig, c_new, strict=False)))
         final_components.rename(columns=dict(zip(w_orig, w_new, strict=False)), inplace=True)
         final_components.rename(columns=dict(zip(a_orig, a_new, strict=False)), inplace=True)
-        final_components.to_csv(self._results['components_file'], sep='\t', index=False)
+        final_components.to_csv(
+            self._results['components_file'], sep='\t', index=False, na_rep='n/a'
+        )
 
         metadata.loc[c_comp_cor.index, 'component'] = c_new
         metadata.loc[w_comp_cor.index, 'component'] = w_new
         metadata.loc[a_comp_cor.index, 'component'] = a_new
 
-        metadata.to_csv(self._results['metadata_file'], sep='\t', index=False)
+        metadata.to_csv(self._results['metadata_file'], sep='\t', index=False, na_rep='n/a')
 
         return runtime
 
