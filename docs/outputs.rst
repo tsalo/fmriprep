@@ -231,7 +231,7 @@ to the reference image::
   sub-<subject_label>/
     func/
       sub-<subject_label>_[specifiers]_desc-hmc_boldref.nii.gz
-      sub-<subject_label>_[specifiers]_from-orig_to_boldref_mode-image_desc-hmc_xfm.nii.gz
+      sub-<subject_label>_[specifiers]_from-orig_to_boldref_mode-image_desc-hmc_xfm.txt
 
 .. note::
 
@@ -259,7 +259,7 @@ is identified with ``"B0Identifier": "TOPUP"``, the generated transform will be 
 
   sub-<subject_label>/
     func/
-      sub-<subject_label>_[specifiers]_from-boldref_to-TOPUP_mode-image_xfm.nii.gz
+      sub-<subject_label>_[specifiers]_from-boldref_to-TOPUP_mode-image_xfm.txt
 
 If the association is discovered through the ``IntendedFor`` field of the
 fieldmap metadata, then the transform will be given an auto-generated name::
