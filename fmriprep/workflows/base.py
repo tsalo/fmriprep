@@ -556,21 +556,10 @@ It is released under the [CC0]\
         filters=config.execution.get().get('bids_filters', {}).get('fmap'),
     )
 
-    fmap_merge_nodes = {
+    fmap_buffers = {
         field: pe.Node(niu.Merge(2), name=f'{field}_merge', run_without_submitting=True)
         for field in ['fmap', 'fmap_ref', 'fmap_coeff', 'fmap_mask', 'fmap_id', 'sdc_method']
     }
-
-    fmap_buffer = pe.Node(
-        niu.IdentityInterface(
-            fields=['fmap', 'fmap_ref', 'fmap_coeff', 'fmap_mask', 'fmap_id', 'sdc_method']
-        ),
-        name='fmap_buffer',
-    )
-
-    workflow.connect(
-        [(fmap_merge_nodes[field], fmap_buffer, [('out', field)]) for field in fmap_merge_nodes]
-    )
 
     missing_estimators = []
     if fmap_estimators:
@@ -588,23 +577,23 @@ It is released under the [CC0]\
                 f'{len(pared_cache)} estimator(s): {list(pared_cache)}.'
             )
 
-            fmap_merge_nodes['fmap'].inputs.in1 = [
+            fmap_buffers['fmap'].inputs.in1 = [
                 pared_cache[fmapid]['fieldmap'] for fmapid in pared_cache
             ]
-            fmap_merge_nodes['fmap_ref'].inputs.in1 = [
+            fmap_buffers['fmap_ref'].inputs.in1 = [
                 pared_cache[fmapid]['magnitude'] for fmapid in pared_cache
             ]
-            fmap_merge_nodes['fmap_coeff'].inputs.in1 = [
+            fmap_buffers['fmap_coeff'].inputs.in1 = [
                 pared_cache[fmapid]['coeffs'] for fmapid in pared_cache
             ]
             # Note that masks are not emitted. The BOLD-fmap transforms cannot be
             # computed with precomputed fieldmaps until we either start emitting masks
             # or start skull-stripping references on the fly.
-            fmap_merge_nodes['fmap_mask'].inputs.in1 = [
+            fmap_buffers['fmap_mask'].inputs.in1 = [
                 pared_cache[fmapid].get('mask', 'MISSING') for fmapid in pared_cache
             ]
-            fmap_merge_nodes['fmap_id'].inputs.in1 = list(pared_cache)
-            fmap_merge_nodes['sdc_method'].inputs.in1 = ['precomputed'] * len(pared_cache)
+            fmap_buffers['fmap_id'].inputs.in1 = list(pared_cache)
+            fmap_buffers['sdc_method'].inputs.in1 = ['precomputed'] * len(pared_cache)
 
     if missing_estimators:
         config.loggers.workflow.info(
@@ -637,12 +626,12 @@ BIDS structure for this particular subject.
                 fmap_wf.get_node(node).interface.out_path_base = ''
 
         workflow.connect([
-            (fmap_wf, fmap_merge_nodes[field], [
+            (fmap_wf, fmap_buffers[field], [
                 # We get "sdc_method" as "method" from estimator workflows
                 # All else stays the same, and no other sdc_ prefixes are used
                 (f'outputnode.{field.removeprefix("sdc_")}', 'in2'),
             ])
-            for field in fmap_merge_nodes
+            for field in fmap_buffers
         ])  # fmt:skip
 
         fmap_select_std = pe.Node(
@@ -785,10 +774,11 @@ tasks and sessions), the following preprocessing was performed.
                     'inputnode.sphere_reg_fsLR',
                 ),
             ]),
-            (fmap_buffer, bold_wf, [
-                (field, f'inputnode.{field}')
-                for field in fmap_merge_nodes
-            ]),
+        ])  # fmt:skip
+
+        workflow.connect([
+            (buffer, bold_wf, [('out', f'inputnode.{field}')])
+            for field, buffer in fmap_buffers.items()
         ])  # fmt:skip
 
         if config.workflow.level == 'full':
