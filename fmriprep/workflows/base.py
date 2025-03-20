@@ -338,7 +338,7 @@ It is released under the [CC0]\
 
     # allow to run with anat-fast-track on fMRI-only dataset
     if 't1w_preproc' in anatomical_cache and not subject_data['t1w']:
-        workflow.debug(
+        config.loggers.workflow.debug(
             'No T1w image found; using precomputed T1w image: %s', anatomical_cache['t1w_preproc']
         )
         workflow.connect([
