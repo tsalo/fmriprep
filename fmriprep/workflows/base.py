@@ -338,6 +338,9 @@ It is released under the [CC0]\
 
     # allow to run with anat-fast-track on fMRI-only dataset
     if 't1w_preproc' in anatomical_cache and not subject_data['t1w']:
+        workflow.debug(
+            'No T1w image found; using precomputed T1w image: %s', anatomical_cache['t1w_preproc']
+        )
         workflow.connect([
             (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
             (anat_fit_wf, summary, [('outputnode.t1w_preproc', 't1w')]),
@@ -539,12 +542,14 @@ It is released under the [CC0]\
         from fmriprep.utils.bids import collect_fieldmaps
 
         for deriv_dir in config.execution.derivatives.values():
-            fmap_cache.update(
-                collect_fieldmaps(
-                    derivatives_dir=deriv_dir,
-                    entities={'subject': subject_id},
-                )
+            fmaps = collect_fieldmaps(
+                derivatives_dir=deriv_dir,
+                entities={'subject': subject_id},
             )
+            config.loggers.workflow.debug(
+                'Detected precomputed fieldmaps in %d for fieldmap IDs: %s', deriv_dir, list(fmaps)
+            )
+            fmap_cache.update(fmaps)
 
     all_estimators, estimator_map = map_fieldmap_estimation(
         layout=config.execution.layout,
@@ -578,15 +583,17 @@ It is released under the [CC0]\
                 f'{len(pared_cache)} estimator(s): {list(pared_cache)}.'
             )
 
-            fmap_buffers['fmap'].inputs.in1 = [
-                pared_cache[fmapid]['fieldmap'] for fmapid in pared_cache
-            ]
-            fmap_buffers['fmap_ref'].inputs.in1 = [
-                pared_cache[fmapid]['magnitude'] for fmapid in pared_cache
-            ]
-            fmap_buffers['fmap_coeff'].inputs.in1 = [
-                pared_cache[fmapid]['coeffs'] for fmapid in pared_cache
-            ]
+            fieldmaps = [fmap['fieldmap'] for fmap in pared_cache.values()]
+            refs = [fmap['magnitude'] for fmap in pared_cache.values()]
+            coeffs = [fmap['coeffs'] for fmap in pared_cache.values()]
+            config.loggers.workflow.debug('Reusing fieldmaps: %s', fieldmaps)
+            config.loggers.workflow.debug('Reusing references: %s', refs)
+            config.loggers.workflow.debug('Reusing coefficients: %s', coeffs)
+
+            fmap_buffers['fmap'].inputs.in1 = fieldmaps
+            fmap_buffers['fmap_ref'].inputs.in1 = refs
+            fmap_buffers['fmap_coeff'].inputs.in1 = coeffs
+
             # Note that masks are not emitted. The BOLD-fmap transforms cannot be
             # computed with precomputed fieldmaps until we either start emitting masks
             # or start skull-stripping references on the fly.
