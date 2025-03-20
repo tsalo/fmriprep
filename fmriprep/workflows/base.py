@@ -571,9 +571,8 @@ It is released under the [CC0]\
         # Find precomputed fieldmaps that apply to this workflow
         pared_cache = {}
         for est in all_estimators:
-            fmapid = re.sub(r'[^a-zA-Z0-9]', '', est.bids_id)
-            if fmapid in fmap_cache:
-                pared_cache[fmapid] = fmap_cache[fmapid]
+            if found := fmap_cache.get(re.sub(r'[^a-zA-Z0-9]', '', est.bids_id)):
+                pared_cache[est.bids_id] = found
             else:
                 fmap_estimators.append(est)
 
