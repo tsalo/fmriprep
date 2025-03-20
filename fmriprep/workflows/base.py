@@ -547,7 +547,7 @@ It is released under the [CC0]\
                 entities={'subject': subject_id},
             )
             config.loggers.workflow.debug(
-                'Detected precomputed fieldmaps in %d for fieldmap IDs: %s', deriv_dir, list(fmaps)
+                'Detected precomputed fieldmaps in %s for fieldmap IDs: %s', deriv_dir, list(fmaps)
             )
             fmap_cache.update(fmaps)
 
