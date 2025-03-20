@@ -546,7 +546,7 @@ It is released under the [CC0]\
                 )
             )
 
-    fmap_estimators, estimator_map = map_fieldmap_estimation(
+    all_estimators, estimator_map = map_fieldmap_estimation(
         layout=config.execution.layout,
         subject_id=subject_id,
         bold_data=bold_runs,
@@ -561,15 +561,16 @@ It is released under the [CC0]\
         for field in ['fmap', 'fmap_ref', 'fmap_coeff', 'fmap_mask', 'fmap_id', 'sdc_method']
     }
 
-    missing_estimators = []
-    if fmap_estimators:
-        # Map fmapid entity to internal bids_id
-        fmapid_map = {re.sub(r'[^a-zA-Z0-9]', '', e.bids_id): e.bids_id for e in fmap_estimators}
-        pared_cache = {
-            fmapid_map[fmapid]: fmap_cache[fmapid] for fmapid in fmap_cache if fmapid in fmapid_map
-        }
-
-        missing_estimators = [e for e in fmap_estimators if e.bids_id not in pared_cache]
+    fmap_estimators = []
+    if all_estimators:
+        # Find precomputed fieldmaps that apply to this workflow
+        pared_cache = {}
+        for est in all_estimators:
+            fmapid = re.sub(r'[^a-zA-Z0-9]', '', est.bids_id)
+            if fmapid in fmap_cache:
+                pared_cache[fmapid] = fmap_cache[fmapid]
+            else:
+                fmap_estimators.append(est)
 
         if pared_cache:
             config.loggers.workflow.info(
@@ -595,11 +596,12 @@ It is released under the [CC0]\
             fmap_buffers['fmap_id'].inputs.in1 = list(pared_cache)
             fmap_buffers['sdc_method'].inputs.in1 = ['precomputed'] * len(pared_cache)
 
-    if missing_estimators:
+    # Estimators without precomputed fieldmaps
+    if fmap_estimators:
         config.loggers.workflow.info(
             'B0 field inhomogeneity map will be estimated with the following '
-            f'{len(missing_estimators)} estimator(s): '
-            f'{[e.method for e in missing_estimators]}.'
+            f'{len(fmap_estimators)} estimator(s): '
+            f'{[e.method for e in fmap_estimators]}.'
         )
 
         from sdcflows import fieldmaps as fm
