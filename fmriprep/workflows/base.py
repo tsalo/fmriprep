@@ -30,6 +30,7 @@ fMRIPrep base processing workflows
 """
 
 import os
+import re
 import sys
 import warnings
 from copy import deepcopy
@@ -337,6 +338,9 @@ It is released under the [CC0]\
 
     # allow to run with anat-fast-track on fMRI-only dataset
     if 't1w_preproc' in anatomical_cache and not subject_data['t1w']:
+        config.loggers.workflow.debug(
+            'No T1w image found; using precomputed T1w image: %s', anatomical_cache['t1w_preproc']
+        )
         workflow.connect([
             (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
             (anat_fit_wf, summary, [('outputnode.t1w_preproc', 't1w')]),
@@ -533,7 +537,21 @@ It is released under the [CC0]\
     if config.workflow.anat_only:
         return clean_datasinks(workflow)
 
-    fmap_estimators, estimator_map = map_fieldmap_estimation(
+    fmap_cache = {}
+    if config.execution.derivatives:
+        from fmriprep.utils.bids import collect_fieldmaps
+
+        for deriv_dir in config.execution.derivatives.values():
+            fmaps = collect_fieldmaps(
+                derivatives_dir=deriv_dir,
+                entities={'subject': subject_id},
+            )
+            config.loggers.workflow.debug(
+                'Detected precomputed fieldmaps in %s for fieldmap IDs: %s', deriv_dir, list(fmaps)
+            )
+            fmap_cache.update(fmaps)
+
+    all_estimators, estimator_map = map_fieldmap_estimation(
         layout=config.execution.layout,
         subject_id=subject_id,
         bold_data=bold_runs,
@@ -543,6 +561,48 @@ It is released under the [CC0]\
         filters=config.execution.get().get('bids_filters', {}).get('fmap'),
     )
 
+    fmap_buffers = {
+        field: pe.Node(niu.Merge(2), name=f'{field}_merge', run_without_submitting=True)
+        for field in ['fmap', 'fmap_ref', 'fmap_coeff', 'fmap_mask', 'fmap_id', 'sdc_method']
+    }
+
+    fmap_estimators = []
+    if all_estimators:
+        # Find precomputed fieldmaps that apply to this workflow
+        pared_cache = {}
+        for est in all_estimators:
+            if found := fmap_cache.get(re.sub(r'[^a-zA-Z0-9]', '', est.bids_id)):
+                pared_cache[est.bids_id] = found
+            else:
+                fmap_estimators.append(est)
+
+        if pared_cache:
+            config.loggers.workflow.info(
+                'Precomputed B0 field inhomogeneity maps found for the following '
+                f'{len(pared_cache)} estimator(s): {list(pared_cache)}.'
+            )
+
+            fieldmaps = [fmap['fieldmap'] for fmap in pared_cache.values()]
+            refs = [fmap['magnitude'] for fmap in pared_cache.values()]
+            coeffs = [fmap['coeffs'] for fmap in pared_cache.values()]
+            config.loggers.workflow.debug('Reusing fieldmaps: %s', fieldmaps)
+            config.loggers.workflow.debug('Reusing references: %s', refs)
+            config.loggers.workflow.debug('Reusing coefficients: %s', coeffs)
+
+            fmap_buffers['fmap'].inputs.in1 = fieldmaps
+            fmap_buffers['fmap_ref'].inputs.in1 = refs
+            fmap_buffers['fmap_coeff'].inputs.in1 = coeffs
+
+            # Note that masks are not emitted. The BOLD-fmap transforms cannot be
+            # computed with precomputed fieldmaps until we either start emitting masks
+            # or start skull-stripping references on the fly.
+            fmap_buffers['fmap_mask'].inputs.in1 = [
+                pared_cache[fmapid].get('mask', 'MISSING') for fmapid in pared_cache
+            ]
+            fmap_buffers['fmap_id'].inputs.in1 = list(pared_cache)
+            fmap_buffers['sdc_method'].inputs.in1 = ['precomputed'] * len(pared_cache)
+
+    # Estimators without precomputed fieldmaps
     if fmap_estimators:
         config.loggers.workflow.info(
             'B0 field inhomogeneity map will be estimated with the following '
@@ -573,24 +633,31 @@ BIDS structure for this particular subject.
             if node.split('.')[-1].startswith('ds_'):
                 fmap_wf.get_node(node).interface.out_path_base = ''
 
+        workflow.connect([
+            (fmap_wf, fmap_buffers[field], [
+                # We get "sdc_method" as "method" from estimator workflows
+                # All else stays the same, and no other sdc_ prefixes are used
+                (f'outputnode.{field.removeprefix("sdc_")}', 'in2'),
+            ])
+            for field in fmap_buffers
+        ])  # fmt:skip
+
         fmap_select_std = pe.Node(
             KeySelect(fields=['std2anat_xfm'], key='MNI152NLin2009cAsym'),
             name='fmap_select_std',
             run_without_submitting=True,
         )
         if any(estimator.method == fm.EstimatorType.ANAT for estimator in fmap_estimators):
-            # fmt:off
             workflow.connect([
                 (anat_fit_wf, fmap_select_std, [
                     ('outputnode.std2anat_xfm', 'std2anat_xfm'),
                     ('outputnode.template', 'keys')]),
-            ])
-            # fmt:on
+            ])  # fmt:skip
 
         for estimator in fmap_estimators:
             config.loggers.workflow.info(
                 f"""\
-Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
+Setting up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
 <{', '.join(s.path.name for s in estimator.sources)}>"""
             )
 
@@ -633,7 +700,6 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
                 syn_preprocessing_wf.inputs.inputnode.in_epis = sources
                 syn_preprocessing_wf.inputs.inputnode.in_meta = source_meta
 
-                # fmt:off
                 workflow.connect([
                     (anat_fit_wf, syn_preprocessing_wf, [
                         ('outputnode.t1w_preproc', 'inputnode.in_anat'),
@@ -649,8 +715,7 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
                         ('outputnode.anat_mask', f'in_{estimator.bids_id}.anat_mask'),
                         ('outputnode.sd_prior', f'in_{estimator.bids_id}.sd_prior'),
                     ]),
-                ])
-                # fmt:on
+                ])  # fmt:skip
 
     # Append the functional section to the existing anatomical excerpt
     # That way we do not need to stream down the number of bold datasets
@@ -718,17 +783,11 @@ tasks and sessions), the following preprocessing was performed.
                 ),
             ]),
         ])  # fmt:skip
-        if fieldmap_id:
-            workflow.connect([
-                (fmap_wf, bold_wf, [
-                    ('outputnode.fmap', 'inputnode.fmap'),
-                    ('outputnode.fmap_ref', 'inputnode.fmap_ref'),
-                    ('outputnode.fmap_coeff', 'inputnode.fmap_coeff'),
-                    ('outputnode.fmap_mask', 'inputnode.fmap_mask'),
-                    ('outputnode.fmap_id', 'inputnode.fmap_id'),
-                    ('outputnode.method', 'inputnode.sdc_method'),
-                ]),
-            ])  # fmt:skip
+
+        workflow.connect([
+            (buffer, bold_wf, [('out', f'inputnode.{field}')])
+            for field, buffer in fmap_buffers.items()
+        ])  # fmt:skip
 
         if config.workflow.level == 'full':
             if template_iterator_wf is not None:
