@@ -48,6 +48,8 @@ def _build_parser(**kwargs):
         'aroma_err_on_warn': (None, '24.0.0'),
         'bold2t1w_init': ('--bold2anat-init', '24.2.0'),
         'bold2t1w_dof': ('--bold2anat-dof', '24.2.0'),
+        'force_bbr': ('--force bbr', '26.0.0'),
+        'force_no_bbr': ('--force no-bbr', '26.0.0'),
     }
 
     class DeprecatedAction(Action):
@@ -339,6 +341,16 @@ def _build_parser(**kwargs):
         'parts of the workflow (a space delimited list)',
     )
     g_conf.add_argument(
+        '--force',
+        required=False,
+        action='store',
+        nargs='+',
+        default=[],
+        choices=['bbr', 'no-bbr'],
+        help='Force selected processing choices, overriding automatic selections '
+        '(a space delimited list)',
+    )
+    g_conf.add_argument(
         '--output-spaces',
         nargs='*',
         action=OutputReferencesAction,
@@ -392,17 +404,13 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     )
     g_conf.add_argument(
         '--force-bbr',
-        action='store_true',
-        dest='use_bbr',
-        default=None,
-        help='Always use boundary-based registration (no goodness-of-fit checks)',
+        action=DeprecatedAction,
+        help='Deprecated - use `--force bbr` instead.',
     )
     g_conf.add_argument(
         '--force-no-bbr',
-        action='store_false',
-        dest='use_bbr',
-        default=None,
-        help='Do not use boundary-based registration (no goodness-of-fit checks)',
+        action=DeprecatedAction,
+        help='Deprecated - use `--force no-bbr` instead.',
     )
     g_conf.add_argument(
         '--slice-time-ref',
