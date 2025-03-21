@@ -50,6 +50,7 @@ def _build_parser(**kwargs):
         'bold2t1w_dof': ('--bold2anat-dof', '24.2.0'),
         'force_bbr': ('--force bbr', '26.0.0'),
         'force_no_bbr': ('--force no-bbr', '26.0.0'),
+        'force_syn': ('--force syn-sdc', '26.0.0'),
     }
 
     class DeprecatedAction(Action):
@@ -346,7 +347,7 @@ def _build_parser(**kwargs):
         action='store',
         nargs='+',
         default=[],
-        choices=['bbr', 'no-bbr'],
+        choices=['bbr', 'no-bbr', 'syn-sdc'],
         help='Force selected processing choices, overriding automatic selections '
         '(a space delimited list)',
     )
@@ -632,10 +633,9 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     )
     g_syn.add_argument(
         '--force-syn',
-        action='store_true',
+        action=DeprecatedAction,
         default=False,
-        help='EXPERIMENTAL/TEMPORARY: Use SyN correction in addition to '
-        'fieldmap correction, if available',
+        help='Deprecated - use `--force syn-sdc` instead.',
     )
 
     # FreeSurfer options

@@ -557,7 +557,7 @@ It is released under the [CC0]\
         bold_data=bold_runs,
         ignore_fieldmaps='fieldmaps' in config.workflow.ignore,
         use_syn=config.workflow.use_syn_sdc,
-        force_syn=config.workflow.force_syn,
+        force_syn='syn-sdc' in config.workflow.force,
         filters=config.execution.get().get('bids_filters', {}).get('fmap'),
     )
 
