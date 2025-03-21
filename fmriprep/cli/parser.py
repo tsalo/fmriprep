@@ -800,6 +800,14 @@ def parse_args(args=None, namespace=None):
     config.execution.log_level = int(max(25 - 5 * opts.verbose_count, logging.DEBUG))
     config.from_dict(vars(opts), init=['nipype'])
 
+    # Consistency checks
+    if 'bbr' in config.workflow.force and 'no-bbr' in config.workflow.force:
+        msg = (
+            'Cannot force and disable boundary-based registration at the same time. '
+            'Remove `bbr` or `no-bbr` from the `--force` options.'
+        )
+        raise ValueError(msg)
+
     if not config.execution.notrack:
         import importlib.util
 
