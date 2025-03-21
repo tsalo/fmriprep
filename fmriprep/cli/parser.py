@@ -349,7 +349,10 @@ def _build_parser(**kwargs):
         default=[],
         choices=['bbr', 'no-bbr', 'syn-sdc'],
         help='Force selected processing choices, overriding automatic selections '
-        '(a space delimited list)',
+        '(a space delimited list).\n'
+        ' * [no-]bbr: Use/disable boundary-based registration for BOLD-to-T1w coregistration\n'
+        '             (No goodness-of-fit checks)\n'
+        ' * syn-sdc: Calculate SyN-SDC correction *in addition* to other fieldmaps\n',
     )
     g_conf.add_argument(
         '--output-spaces',
