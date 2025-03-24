@@ -43,11 +43,6 @@ def _build_parser(**kwargs):
 
     deprecations = {
         # parser attribute name: (replacement flag, version slated to be removed in)
-        'use_aroma': (None, '24.0.0'),
-        'aroma_melodic_dim': (None, '24.0.0'),
-        'aroma_err_on_warn': (None, '24.0.0'),
-        'bold2t1w_init': ('--bold2anat-init', '24.2.0'),
-        'bold2t1w_dof': ('--bold2anat-dof', '24.2.0'),
         'force_bbr': ('--force bbr', '26.0.0'),
         'force_no_bbr': ('--force no-bbr', '26.0.0'),
         'force_syn': ('--force syn-sdc', '26.0.0'),
@@ -377,19 +372,6 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         help='Treat dataset as longitudinal - may increase runtime',
     )
     g_conf.add_argument(
-        '--bold2t1w-init',
-        action=DeprecatedAction,
-        choices=['register', 'header'],
-        help='Deprecated - use `--bold2anat-init` instead.',
-    )
-    g_conf.add_argument(
-        '--bold2t1w-dof',
-        action=DeprecatedAction,
-        choices=[6, 9, 12],
-        type=int,
-        help='Deprecated - use `--bold2anat-dof` instead.',
-    )
-    g_conf.add_argument(
         '--bold2anat-init',
         choices=['auto', 't1w', 't2w', 'header'],
         default='auto',
@@ -523,32 +505,6 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         action='store_false',
         dest='run_msmsulc',
         help='Disable Multimodal Surface Matching surface registration.',
-    )
-
-    g_aroma = parser.add_argument_group(
-        '[DEPRECATED] Options for running ICA_AROMA',
-        description=(
-            'If you would like to apply ICA-AROMA to fMRIPrep derivatives, '
-            'please consider using fMRIPost-AROMA (https://fmripost-aroma.readthedocs.io/)'
-        ),
-    )
-    g_aroma.add_argument(
-        '--use-aroma',
-        action=DeprecatedAction,
-        help='Deprecated. Will raise an error in 24.0.',
-    )
-    g_aroma.add_argument(
-        '--aroma-melodic-dimensionality',
-        dest='aroma_melodic_dim',
-        action=DeprecatedAction,
-        type=int,
-        help='Deprecated. Will raise an error in 24.0.',
-    )
-    g_aroma.add_argument(
-        '--error-on-aroma-warnings',
-        action=DeprecatedAction,
-        dest='aroma_err_on_warn',
-        help='Deprecated. Will raise an error in 24.0.',
     )
 
     g_confounds = parser.add_argument_group('Options relating to confounds')
