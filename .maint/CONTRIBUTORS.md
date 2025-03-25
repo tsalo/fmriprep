@@ -13,6 +13,7 @@ Before every release, unlisted contributors will be invited again to add their n
 | Bellec            | Pierre       |  | 0000-0002-9111-0699 | SIMEXP Lab, CRIUGM, University of Montréal, Montréal, Canada                                                                                 |
 | Benson            | Noah C.      |  | 0000-0002-2365-8265 | Department of Psychology, New York University                                                                                                |
 | Bhagwat           | Nikhil       |  | 0000-0001-6073-7141 | Montreal Neurological Institute, McGill University                                                                                           |
+| Callenberg        | Keith        |  | 0000-0001-7786-9300 | Department of Psychiatry, University of Pittsburgh                                                                                           |
 | Cieslak           | Matthew      |  | 0000-0002-1931-4734 | Perelman School of Medicine, University of Pennsylvania, PA, USA                                                                             |
 | de la Vega        | Alejandro    |  | 0000-0001-9062-3778 | University of Texas at Austin                                                                                                                |
 | Devenyi           | Grabriel A.  |  | 0000-0002-7766-1187 | Department of Psychiatry, McGill University                                                                                                  |
@@ -43,6 +44,7 @@ Before every release, unlisted contributors will be invited again to add their n
 | Plunkett          | Dillon       |  | 0000-0001-7822-6024 | Department of Psychology, Harvard University                                                                                                 |
 | Provins           | Céline       |  | 0000-0002-1668-9629 | Department of Radiology, Lausanne University Hospital and University of Lausanne                                                             |
 | Rivera-Dompenciel | Adriana      |  | 0000-0002-3339-4857 | Neuroscience Program, University of Iowa                                                                                                     |
+| Sadil             | Patrick      |  | 0000-0003-4141-1343 | Department of Biostatistics, Johns Hopkins Bloomberg School of Public Health, MD, USA                                                        |
 | Satterthwaite     | Theodore D.  |  | 0000-0001-7072-9399 | Perelman School of Medicine, University of Pennsylvania, PA, USA                                                                             |
 | Schaefer          | Theo A.J.    |  | 0000-0003-4102-559X | Max Planck Institute for Human Cognitive and Brain Sciences, Leipzig, Germany                                                                |
 | Sitek             | Kevin R.     |  | 0000-0002-2172-5786 | Speech & Hearing Bioscience & Technology Program, Harvard University                                                                         |
@@ -55,6 +57,7 @@ Before every release, unlisted contributors will be invited again to add their n
 | Valabregue        | Romain       |  | 0000-0002-1814-9570 | CENIR, INSERM U1127, CNRS UMR 7225, UPMC Univ Paris 06 UMR S 1127, Institut du Cerveau et de la Moelle épinière, ICM, F-75013, Paris, France |
 | Velasco           | Pablo        |  | 0000-0002-5749-6049 | Center for Brain Imaging, New York University                                                                                                |
 | Waller            | Lea          |  | 0000-0002-3239-6957 | Charite Universitatsmedizin Berlin, Germany                                                                                                  |
+| Wang              | Hao-Ting     |  | 0000-0003-4078-2038 | SIMEXP Lab, CRIUGM, University of Montréal, Montréal, Canada                                                                                 |
 | Wexler            | Joseph B.    |  | 0000-0001-6424-8740 | Department of Psychology, Stanford University                                                                                                |
 | Wright            | Jessey       |  | 0000-0001-5504-8579 | Department of Psychology, Stanford University                                                                                                |
 | Ye                | Zhifang      |  | 0000-0003-0489-2619 | State Key Laboratory of Cognitive Neuroscience and Learning, Beijing Normal University                                                       |
