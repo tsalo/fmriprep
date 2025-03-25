@@ -27,15 +27,15 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "Florey Institute of Neuroscience and Mental Health",
-      "name": "Smith, Robert E.",
-      "orcid": "0000-0003-3636-4642",
-      "type": "Researcher"
-    },
-    {
       "affiliation": "Department of Psychology, Stanford University",
       "name": "Feingold, Franklin",
       "orcid": "0000-0002-6533-2909",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Florey Institute of Neuroscience and Mental Health",
+      "name": "Smith, Robert E.",
+      "orcid": "0000-0003-3636-4642",
       "type": "Researcher"
     },
     {
@@ -45,15 +45,21 @@
       "type": "Researcher"
     },
     {
+      "affiliation": "Montreal Neurological Institute, McGill University",
+      "name": "Bhagwat, Nikhil",
+      "orcid": "0000-0001-6073-7141",
+      "type": "Researcher"
+    },
+    {
       "affiliation": "Dartmouth College: Hanover, NH, United States",
       "name": "Halchenko, Yaroslav O.",
       "orcid": "0000-0003-3456-2493",
       "type": "Researcher"
     },
     {
-      "affiliation": "Montreal Neurological Institute, McGill University",
-      "name": "Bhagwat, Nikhil",
-      "orcid": "0000-0001-6073-7141",
+      "affiliation": "Neuro Data Science ORIGAMI Laboratory, McConnell Brain Imaging Centre, Faculty of Medicine, McGill University, Montréal, Canada",
+      "name": "Gau, Rémi",
+      "orcid": "0000-0002-1535-9767",
       "type": "Researcher"
     },
     {
@@ -87,9 +93,9 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "Neuro Data Science ORIGAMI Laboratory, McConnell Brain Imaging Centre, Faculty of Medicine, McGill University, Montréal, Canada",
-      "name": "Gau, Rémi",
-      "orcid": "0000-0002-1535-9767",
+      "affiliation": "Department of Psychology, University of California, Berkeley",
+      "name": "Lurie, Daniel J.",
+      "orcid": "0000-0001-8012-6399",
       "type": "Researcher"
     },
     {
@@ -117,15 +123,45 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "Department of Psychology, University of California, Berkeley",
-      "name": "Lurie, Daniel J.",
-      "orcid": "0000-0001-8012-6399",
-      "type": "Researcher"
-    },
-    {
       "affiliation": "Computational Neuroimaging Lab, BioCruces Health Research Institute",
       "name": "Erramuzpe, Asier",
       "orcid": "0000-0002-9402-2184",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "State Key Laboratory of Cognitive Neuroscience and Learning, Beijing Normal University",
+      "name": "Ye, Zhifang",
+      "orcid": "0000-0003-0489-2619",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Department of Psychology, Stanford University",
+      "name": "Thompson, William H.",
+      "orcid": "0000-0002-0533-6035",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Department of Psychology, Columbia University",
+      "name": "Jacoby, Nir",
+      "orcid": "0000-0001-7936-9991",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Speech & Hearing Bioscience & Technology Program, Harvard University",
+      "name": "Sitek, Kevin R.",
+      "orcid": "0000-0002-2172-5786",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "Center for Lifespan Changes in Brain and Cognition, University of Oslo",
+      "name": "Amlien, Inge K.",
+      "orcid": "0000-0002-8508-9088",
+      "type": "Researcher"
+    },
+    {
+      "affiliation": "URPP Dynamics of Healthy Aging, University of Zurich",
+      "name": "Liem, Franz",
+      "orcid": "0000-0003-0646-4810",
       "type": "Researcher"
     },
     {
@@ -153,15 +189,15 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "Perelman School of Medicine, University of Pennsylvania, PA, USA",
-      "name": "Adebimpe, Azeez",
-      "orcid": "0000-0001-9049-0135",
+      "affiliation": "Neuroscience Program, University of Iowa",
+      "name": "Rivera-Dompenciel, Adriana",
+      "orcid": "0000-0002-3339-4857",
       "type": "Researcher"
     },
     {
-      "affiliation": "Center for Lifespan Changes in Brain and Cognition, University of Oslo",
-      "name": "Amlien, Inge K.",
-      "orcid": "0000-0002-8508-9088",
+      "affiliation": "Perelman School of Medicine, University of Pennsylvania, PA, USA",
+      "name": "Adebimpe, Azeez",
+      "orcid": "0000-0001-9049-0135",
       "type": "Researcher"
     },
     {
@@ -207,21 +243,9 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "Department of Psychology, Columbia University",
-      "name": "Jacoby, Nir",
-      "orcid": "0000-0001-7936-9991",
-      "type": "Researcher"
-    },
-    {
       "affiliation": "Department of Psychology, University of Washington",
       "name": "Kruper, John",
       "orcid": "0000-0003-0081-391X",
-      "type": "Researcher"
-    },
-    {
-      "affiliation": "URPP Dynamics of Healthy Aging, University of Zurich",
-      "name": "Liem, Franz",
-      "orcid": "0000-0003-0646-4810",
       "type": "Researcher"
     },
     {
@@ -237,21 +261,9 @@
       "type": "Researcher"
     },
     {
-      "affiliation": "Neuroscience Program, University of Iowa",
-      "name": "Rivera-Dompenciel, Adriana",
-      "orcid": "0000-0002-3339-4857",
-      "type": "Researcher"
-    },
-    {
       "affiliation": "Perelman School of Medicine, University of Pennsylvania, PA, USA",
       "name": "Satterthwaite, Theodore D.",
       "orcid": "0000-0001-7072-9399",
-      "type": "Researcher"
-    },
-    {
-      "affiliation": "Speech & Hearing Bioscience & Technology Program, Harvard University",
-      "name": "Sitek, Kevin R.",
-      "orcid": "0000-0002-2172-5786",
       "type": "Researcher"
     },
     {
@@ -264,12 +276,6 @@
       "affiliation": "Max Planck UCL Centre for Computational Psychiatry and Ageing Research, University College London",
       "name": "Stojić, Hrvoje",
       "orcid": "0000-0002-9699-9052",
-      "type": "Researcher"
-    },
-    {
-      "affiliation": "Department of Psychology, Stanford University",
-      "name": "Thompson, William H.",
-      "orcid": "0000-0002-0533-6035",
       "type": "Researcher"
     },
     {
@@ -288,12 +294,6 @@
       "affiliation": "Department of Psychology, Stanford University",
       "name": "Wright, Jessey",
       "orcid": "0000-0001-5504-8579",
-      "type": "Researcher"
-    },
-    {
-      "affiliation": "State Key Laboratory of Cognitive Neuroscience and Learning, Beijing Normal University",
-      "name": "Ye, Zhifang",
-      "orcid": "0000-0003-0489-2619",
       "type": "Researcher"
     },
     {
