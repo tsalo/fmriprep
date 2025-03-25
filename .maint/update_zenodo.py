@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "fuzzywuzzy",
+#     "python-levenshtein",
+# ]
+# ///
 """Update and sort the creators list of the zenodo record."""
 
 import json
