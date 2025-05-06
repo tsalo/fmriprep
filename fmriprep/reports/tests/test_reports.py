@@ -101,11 +101,11 @@ def test_ReportSeparation(
 
     html_content = Path.read_text(tmp_path / expected_files[0])
     if boilerplate:
-        assert (
-            'The boilerplate text was automatically generated' in html_content
-        ), f'The file {expected_files[0]} did not contain the reported error.'
+        assert 'The boilerplate text was automatically generated' in html_content, (
+            f'The file {expected_files[0]} did not contain the reported error.'
+        )
 
     if error:
-        assert (
-            'One or more execution steps failed' in html_content
-        ), f'The file {expected_files[0]} did not contain the reported error.'
+        assert 'One or more execution steps failed' in html_content, (
+            f'The file {expected_files[0]} did not contain the reported error.'
+        )

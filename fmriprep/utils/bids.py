@@ -28,6 +28,7 @@ import json
 import os
 import sys
 from collections import defaultdict
+from functools import cache
 from pathlib import Path
 
 from bids.layout import BIDSLayout
@@ -36,6 +37,15 @@ from packaging.version import Version
 
 from .. import config
 from ..data import load as load_data
+
+
+@cache
+def _get_layout(derivatives_dir: Path) -> BIDSLayout:
+    import niworkflows.data
+
+    return BIDSLayout(
+        derivatives_dir, config=[niworkflows.data.load('nipreps.json')], validate=False
+    )
 
 
 def collect_derivatives(
@@ -57,8 +67,7 @@ def collect_derivatives(
             patterns = _patterns
 
     derivs_cache = defaultdict(list, {})
-    layout = BIDSLayout(derivatives_dir, config=['bids', 'derivatives'], validate=False)
-    derivatives_dir = Path(derivatives_dir)
+    layout = _get_layout(derivatives_dir)
 
     # search for both boldrefs
     for k, q in spec['baseline'].items():
@@ -84,6 +93,31 @@ def collect_derivatives(
         transforms_cache[xfm] = item[0] if len(item) == 1 else item
     derivs_cache['transforms'] = transforms_cache
     return derivs_cache
+
+
+def collect_fieldmaps(
+    derivatives_dir: Path,
+    entities: dict,
+    spec: dict | None = None,
+):
+    """Gather existing derivatives and compose a cache."""
+    if spec is None:
+        spec = json.loads(load_data.readable('fmap_spec.json').read_text())['queries']
+
+    fmap_cache = defaultdict(dict, {})
+    layout = _get_layout(derivatives_dir)
+
+    fmapids = layout.get_fmapids(**entities)
+
+    for fmapid in fmapids:
+        for k, q in spec['fieldmaps'].items():
+            query = {**entities, **q}
+            item = layout.get(return_type='filename', fmapid=fmapid, **query)
+            if not item:
+                continue
+            fmap_cache[fmapid][k] = item[0] if len(item) == 1 else item
+
+    return fmap_cache
 
 
 def write_bidsignore(deriv_dir):
@@ -131,7 +165,7 @@ def write_derivative_description(bids_dir, deriv_dir, dataset_links=None):
     if 'FMRIPREP_DOCKER_TAG' in os.environ:
         desc['GeneratedBy'][0]['Container'] = {
             'Type': 'docker',
-            'Tag': f"nipreps/fmriprep:{os.environ['FMRIPREP_DOCKER_TAG']}",
+            'Tag': f'nipreps/fmriprep:{os.environ["FMRIPREP_DOCKER_TAG"]}',
         }
     if 'FMRIPREP_SINGULARITY_URL' in os.environ:
         desc['GeneratedBy'][0]['Container'] = {
@@ -217,7 +251,7 @@ def validate_input_dir(exec_env, bids_dir, participant_label, need_T1w=True):
     # Limit validation only to data from requested participants
     if participant_label:
         all_subs = {s.name[4:] for s in bids_dir.glob('sub-*')}
-        selected_subs = {s[4:] if s.startswith('sub-') else s for s in participant_label}
+        selected_subs = {s.removeprefix('sub-') for s in participant_label}
         bad_labels = selected_subs.difference(all_subs)
         if bad_labels:
             error_msg = (

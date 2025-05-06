@@ -106,7 +106,7 @@ def init_bold_stc_wf(
     frac = config.workflow.slice_time_ref
     tzero = np.round(first + frac * (last - first), 3)
 
-    afni_ver = ''.join('%02d' % v for v in afni.Info().version() or [])
+    afni_ver = ''.join(f'{v:02d}' for v in afni.Info().version() or [])
     workflow = Workflow(name=name)
     workflow.__desc__ = f"""\
 BOLD runs were slice-time corrected to {tzero:0.3g}s ({frac:g} of slice acquisition range
@@ -121,7 +121,7 @@ BOLD runs were slice-time corrected to {tzero:0.3g}s ({frac:g} of slice acquisit
     slice_timing_correction = pe.Node(
         TShift(
             outputtype='NIFTI_GZ',
-            tr=f"{metadata['RepetitionTime']}s",
+            tr=f'{metadata["RepetitionTime"]}s',
             slice_timing=metadata['SliceTiming'],
             slice_encoding_direction=metadata.get('SliceEncodingDirection', 'k'),
             tzero=tzero,

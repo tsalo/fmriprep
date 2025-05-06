@@ -57,6 +57,7 @@ def init_bold_wf(
     bold_series: list[str],
     precomputed: dict = None,
     fieldmap_id: str | None = None,
+    jacobian: bool = False,
 ) -> pe.Workflow:
     """
     This workflow controls the functional preprocessing stages of *fMRIPrep*.
@@ -253,6 +254,7 @@ configured with cubic B-spline interpolation.
         bold_series=bold_series,
         precomputed=precomputed,
         fieldmap_id=fieldmap_id,
+        jacobian=jacobian,
         omp_nthreads=omp_nthreads,
     )
 
@@ -292,6 +294,7 @@ configured with cubic B-spline interpolation.
     bold_native_wf = init_bold_native_wf(
         bold_series=bold_series,
         fieldmap_id=fieldmap_id,
+        jacobian=jacobian,
         omp_nthreads=omp_nthreads,
     )
 
@@ -383,7 +386,7 @@ configured with cubic B-spline interpolation.
         fieldmap_id=fieldmap_id if not multiecho else None,
         omp_nthreads=omp_nthreads,
         mem_gb=mem_gb,
-        jacobian='fmap-jacobian' not in config.workflow.ignore,
+        jacobian=jacobian,
         name='bold_anat_wf',
     )
     bold_anat_wf.inputs.inputnode.resolution = 'native'
@@ -443,7 +446,7 @@ configured with cubic B-spline interpolation.
             fieldmap_id=fieldmap_id if not multiecho else None,
             omp_nthreads=omp_nthreads,
             mem_gb=mem_gb,
-            jacobian='fmap-jacobian' not in config.workflow.ignore,
+            jacobian=jacobian,
             name='bold_std_wf',
         )
         ds_bold_std_wf = init_ds_volumes_wf(
@@ -550,7 +553,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             fieldmap_id=fieldmap_id if not multiecho else None,
             omp_nthreads=omp_nthreads,
             mem_gb=mem_gb,
-            jacobian='fmap-jacobian' not in config.workflow.ignore,
+            jacobian=jacobian,
             name='bold_MNI6_wf',
         )
 
@@ -673,8 +676,8 @@ excluding voxels whose time-series have a locally high coefficient of variation.
         ]),
         (bold_fit_wf, bold_confounds_wf, [
             ('outputnode.bold_mask', 'inputnode.bold_mask'),
-            ('outputnode.movpar_file', 'inputnode.movpar_file'),
-            ('outputnode.rmsd_file', 'inputnode.rmsd_file'),
+            ('outputnode.hmc_boldref', 'inputnode.hmc_boldref'),
+            ('outputnode.motion_xfm', 'inputnode.motion_xfm'),
             ('outputnode.boldref2anat_xfm', 'inputnode.boldref2anat_xfm'),
             ('outputnode.dummy_scans', 'inputnode.skip_vols'),
         ]),

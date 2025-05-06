@@ -26,6 +26,11 @@ def copytree_or_skip(source, target):
         pytest.skip(f'Cannot copy {data_dir!r} into {target / data_dir.name}. Probably in a zip.')
 
 
+@pytest.fixture(scope='session', autouse=True)
+def _legacy_printoptions():
+    np.set_printoptions(legacy='1.21')
+
+
 @pytest.fixture(autouse=True)
 def _populate_namespace(doctest_namespace, tmp_path):
     doctest_namespace['copytree_or_skip'] = copytree_or_skip

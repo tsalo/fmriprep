@@ -43,11 +43,9 @@ def _build_parser(**kwargs):
 
     deprecations = {
         # parser attribute name: (replacement flag, version slated to be removed in)
-        'use_aroma': (None, '24.0.0'),
-        'aroma_melodic_dim': (None, '24.0.0'),
-        'aroma_err_on_warn': (None, '24.0.0'),
-        'bold2t1w_init': ('--bold2anat-init', '24.2.0'),
-        'bold2t1w_dof': ('--bold2anat-dof', '24.2.0'),
+        'force_bbr': ('--force bbr', '26.0.0'),
+        'force_no_bbr': ('--force no-bbr', '26.0.0'),
+        'force_syn': ('--force syn-sdc', '26.0.0'),
         'longitudinal': ('--subject-anatomical-reference unbiased', '24.2.0'),
     }
 
@@ -55,8 +53,8 @@ def _build_parser(**kwargs):
         def __call__(self, parser, namespace, values, option_string=None):
             new_opt, rem_vers = deprecations.get(self.dest, (None, None))
             msg = (
-                f"{self.option_strings} has been deprecated and will be removed in "
-                f"{rem_vers or 'a later version'}."
+                f'{self.option_strings} has been deprecated and will be removed in '
+                f'{rem_vers or "a later version"}.'
             )
             if new_opt:
                 msg += f' Please use `{new_opt}` instead.'
@@ -354,6 +352,19 @@ def _build_parser(**kwargs):
         'parts of the workflow (a space delimited list)',
     )
     g_conf.add_argument(
+        '--force',
+        required=False,
+        action='store',
+        nargs='+',
+        default=[],
+        choices=['bbr', 'no-bbr', 'syn-sdc', 'fmap-jacobian'],
+        help='Force selected processing choices, overriding automatic selections '
+        '(a space delimited list).\n'
+        ' * [no-]bbr: Use/disable boundary-based registration for BOLD-to-T1w coregistration\n'
+        '             (No goodness-of-fit checks)\n'
+        ' * syn-sdc: Calculate SyN-SDC correction *in addition* to other fieldmaps\n',
+    )
+    g_conf.add_argument(
         '--output-spaces',
         nargs='*',
         action=OutputReferencesAction,
@@ -385,19 +396,6 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         'anatomical space per subject.',
     )
     g_conf.add_argument(
-        '--bold2t1w-init',
-        action=DeprecatedAction,
-        choices=['register', 'header'],
-        help='Deprecated - use `--bold2anat-init` instead.',
-    )
-    g_conf.add_argument(
-        '--bold2t1w-dof',
-        action=DeprecatedAction,
-        choices=[6, 9, 12],
-        type=int,
-        help='Deprecated - use `--bold2anat-dof` instead.',
-    )
-    g_conf.add_argument(
         '--bold2anat-init',
         choices=['auto', 't1w', 't2w', 'header'],
         default='auto',
@@ -416,17 +414,13 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     )
     g_conf.add_argument(
         '--force-bbr',
-        action='store_true',
-        dest='use_bbr',
-        default=None,
-        help='Always use boundary-based registration (no goodness-of-fit checks)',
+        action=DeprecatedAction,
+        help='Deprecated - use `--force bbr` instead.',
     )
     g_conf.add_argument(
         '--force-no-bbr',
-        action='store_false',
-        dest='use_bbr',
-        default=None,
-        help='Do not use boundary-based registration (no goodness-of-fit checks)',
+        action=DeprecatedAction,
+        help='Deprecated - use `--force no-bbr` instead.',
     )
     g_conf.add_argument(
         '--slice-time-ref',
@@ -537,32 +531,6 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         help='Disable Multimodal Surface Matching surface registration.',
     )
 
-    g_aroma = parser.add_argument_group(
-        '[DEPRECATED] Options for running ICA_AROMA',
-        description=(
-            'If you would like to apply ICA-AROMA to fMRIPrep derivatives, '
-            'please consider using fMRIPost-AROMA (https://fmripost-aroma.readthedocs.io/)'
-        ),
-    )
-    g_aroma.add_argument(
-        '--use-aroma',
-        action=DeprecatedAction,
-        help='Deprecated. Will raise an error in 24.0.',
-    )
-    g_aroma.add_argument(
-        '--aroma-melodic-dimensionality',
-        dest='aroma_melodic_dim',
-        action=DeprecatedAction,
-        type=int,
-        help='Deprecated. Will raise an error in 24.0.',
-    )
-    g_aroma.add_argument(
-        '--error-on-aroma-warnings',
-        action=DeprecatedAction,
-        dest='aroma_err_on_warn',
-        help='Deprecated. Will raise an error in 24.0.',
-    )
-
     g_confounds = parser.add_argument_group('Options relating to confounds')
     g_confounds.add_argument(
         '--return-all-components',
@@ -581,8 +549,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         action='store',
         default=0.5,
         type=float,
-        help='Threshold for flagging a frame as an outlier on the basis of framewise '
-        'displacement',
+        help='Threshold for flagging a frame as an outlier on the basis of framewise displacement',
     )
     g_confounds.add_argument(
         '--dvars-spike-threshold',
@@ -649,10 +616,9 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     )
     g_syn.add_argument(
         '--force-syn',
-        action='store_true',
+        action=DeprecatedAction,
         default=False,
-        help='EXPERIMENTAL/TEMPORARY: Use SyN correction in addition to '
-        'fieldmap correction, if available',
+        help='Deprecated - use `--force syn-sdc` instead.',
     )
 
     # FreeSurfer options
@@ -815,6 +781,22 @@ def parse_args(args=None, namespace=None):
     config.execution.log_level = int(max(25 - 5 * opts.verbose_count, logging.DEBUG))
     config.from_dict(vars(opts), init=['nipype'])
 
+    # Consistency checks
+    force_set = set(config.workflow.force)
+    ignore_set = set(config.workflow.ignore)
+    if {'bbr', 'no-bbr'} <= force_set:
+        msg = (
+            'Cannot force and disable boundary-based registration at the same time. '
+            'Remove `bbr` or `no-bbr` from the `--force` options.'
+        )
+        raise ValueError(msg)
+    if 'fmap-jacobian' in force_set & ignore_set:
+        msg = (
+            'Cannot force and ignore fieldmap Jacobian correction. '
+            'Remove `fmap-jacobian` from either the `--force` or the `--ignore` option.'
+        )
+        raise ValueError(msg)
+
     if not config.execution.notrack:
         import importlib.util
 
@@ -925,8 +907,7 @@ applied."""
         from ..utils.bids import validate_input_dir
 
         build_log.info(
-            'Making sure the input data is BIDS compliant (warnings can be ignored in most '
-            'cases).'
+            'Making sure the input data is BIDS compliant (warnings can be ignored in most cases).'
         )
         validate_input_dir(
             config.environment.exec_env,

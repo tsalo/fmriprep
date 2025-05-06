@@ -316,6 +316,18 @@ def init_func_fit_reports_wf(
             mem_gb=1,
         )
 
+        fmap_boldref = pe.Node(
+            ApplyTransforms(
+                dimension=3,
+                default_value=0,
+                float=True,
+                invert_transform_flags=[True],
+                interpolation='LanczosWindowedSinc',
+            ),
+            name='fmap_boldref',
+            mem_gb=1,
+        )
+
         # SDC1
         sdcreg_report = pe.Node(
             FieldmapReportlet(
@@ -323,7 +335,7 @@ def init_func_fit_reports_wf(
                 moving_label='Fieldmap reference',
                 show='both',
             ),
-            name='sdecreg_report',
+            name='sdcreg_report',
             mem_gb=0.1,
         )
 
@@ -360,19 +372,23 @@ def init_func_fit_reports_wf(
             name='ds_sdc_report',
         )
 
-        # fmt:off
         workflow.connect([
             (inputnode, fmapref_boldref, [
                 ('fmap_ref', 'input_image'),
                 ('coreg_boldref', 'reference_image'),
                 ('boldref2fmap_xfm', 'transforms'),
             ]),
+            (inputnode, fmap_boldref, [
+                ('fieldmap', 'input_image'),
+                ('coreg_boldref', 'reference_image'),
+                ('boldref2fmap_xfm', 'transforms'),
+            ]),
             (inputnode, sdcreg_report, [
                 ('sdc_boldref', 'reference'),
-                ('fieldmap', 'fieldmap'),
                 ('bold_mask', 'mask'),
             ]),
             (fmapref_boldref, sdcreg_report, [('output_image', 'moving')]),
+            (fmap_boldref, sdcreg_report, [('output_image', 'fieldmap')]),
             (inputnode, ds_sdcreg_report, [('source_file', 'source_file')]),
             (sdcreg_report, ds_sdcreg_report, [('out_report', 'in_file')]),
             (inputnode, sdc_report, [
@@ -382,8 +398,7 @@ def init_func_fit_reports_wf(
             (boldref_wm, sdc_report, [('output_image', 'wm_seg')]),
             (inputnode, ds_sdc_report, [('source_file', 'source_file')]),
             (sdc_report, ds_sdc_report, [('out_report', 'in_file')]),
-        ])
-        # fmt:on
+        ])  # fmt:skip
 
     # EPI-T1 registration
     # Resample T1w image onto EPI-space

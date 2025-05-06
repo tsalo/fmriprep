@@ -15,32 +15,33 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 license = {file = "LICENSE"}
 requires-python = ">=3.10"
 dependencies = [
-    "acres",
-    "looseversion",
+    "acres >= 0.2.0",
+    "looseversion >= 1.3",
     "nibabel >= 4.0.1",
     "nipype >= 1.8.5",
-    "nireports >= 23.2.2",
-    "nitime",
-    "nitransforms >= 24.0.2",
-    "niworkflows >= 1.11.0",
-    "numpy >= 1.22",
-    "packaging",
-    "pandas",
+    "nireports >= 24.1.0",
+    "nitime >= 0.9",
+    "nitransforms >= 24.1.1",
+    "niworkflows >= 1.12.2",
+    "numpy >= 1.24",
+    "packaging >= 24",
+    "pandas >= 1.2",
     "psutil >= 5.4",
-    "pybids >= 0.15.2",
-    "requests",
-    "sdcflows >= 2.10.0",
-    "smriprep >= 0.16.0",
+    "pybids >= 0.16",
+    "requests >= 2.27",
+    "sdcflows >= 2.11.0",
+    "smriprep >= 0.17.0",
     "tedana >= 23.0.2",
-    "templateflow >= 24.1.0",
-    "transforms3d",
-    "toml",
-    "codecarbon",
-    "APScheduler",
+    "templateflow >= 24.2.2",
+    "transforms3d >= 0.4",
+    "toml >= 0.10",
+    "codecarbon >= 2",
+    "APScheduler >= 3.10",
 ]
 dynamic = ["version"]
 
@@ -59,7 +60,7 @@ doc = [
     "sphinx_rtd_theme>=0.5.2",
 ]
 dev = [
-    "ruff ~= 0.4.3",
+    "ruff",
     "pre-commit",
 ]
 duecredit = ["duecredit"]
@@ -75,11 +76,11 @@ telemetry = [
     "sentry-sdk >= 1.3",
 ]
 test = [
-    "coverage[toml]",
-    "pytest",
-    "pytest-cov",
+    "coverage[toml] >= 5.2.1",
+    "pytest >= 8.1",
+    "pytest-cov >= 2.11",
     "pytest-env",
-    "pytest-xdist",
+    "pytest-xdist >= 2.5",
 ]
 maint = [
     "fuzzywuzzy",
@@ -177,7 +178,6 @@ extend-select = [
 ]
 ignore = [
   "S311",  # We are not using random for cryptographic purposes
-  "ISC001",
   "S603",
 ]
 

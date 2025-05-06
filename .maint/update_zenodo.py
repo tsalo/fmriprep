@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "fuzzywuzzy",
+#     "python-levenshtein",
+# ]
+# ///
 """Update and sort the creators list of the zenodo record."""
 
 import json
@@ -73,7 +80,7 @@ def get_git_lines(fname='line-contributors.txt'):
     if cmd == [None]:
         cmd = [shutil.which('git-summary'), '--line']
     if not lines and cmd[0]:
-        print(f"Running {' '.join(cmd)!r} on repo")
+        print(f'Running {" ".join(cmd)!r} on repo')
         lines = sp.check_output(cmd).decode().splitlines()
         lines = [line for line in lines if 'Not Committed Yet' not in line]
         contrib_file.write_text('\n'.join(lines))

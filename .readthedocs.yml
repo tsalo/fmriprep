@@ -17,3 +17,6 @@ python:
       extra_requirements:
         - doc
     - path: wrapper/
+
+sphinx:
+  configuration: docs/conf.py

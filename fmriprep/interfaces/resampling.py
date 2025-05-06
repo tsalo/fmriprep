@@ -54,8 +54,15 @@ class ResampleSeriesInputSpec(TraitedSpec):
     num_threads = traits.Int(1, usedefault=True, desc='Number of threads to use for resampling')
     output_data_type = traits.Str('float32', usedefault=True, desc='Data type of output image')
     order = traits.Int(3, usedefault=True, desc='Order of interpolation (0=nearest, 3=cubic)')
-    mode = traits.Str(
+    mode = traits.Enum(
+        'nearest',
         'constant',
+        'mirror',
+        'reflect',
+        'wrap',
+        'grid-constant',
+        'grid-mirror',
+        'grid-wrap',
         usedefault=True,
         desc='How data is extended beyond its boundaries. '
         'See scipy.ndimage.map_coordinates for more details.',
@@ -671,6 +678,15 @@ def reconstruct_fieldmap(
             target.__class__(target.dataobj, projected_affine, target.header),
         )
     else:
+        # Hack. Sometimes the reference array is rotated relative to the fieldmap
+        # and coefficient grids. As far as I know, coefficients are always RAS,
+        # but good to check before doing this.
+        if (
+            nb.aff2axcodes(coefficients[-1].affine)
+            == ('R', 'A', 'S')
+            != nb.aff2axcodes(fmap_reference.affine)
+        ):
+            fmap_reference = nb.as_closest_canonical(fmap_reference)
         if not aligned(fmap_reference.affine, coefficients[-1].affine):
             raise ValueError('Reference passed is not aligned with spline grids')
         reference, _ = ensure_positive_cosines(fmap_reference)

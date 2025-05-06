@@ -30,6 +30,7 @@ fMRIPrep base processing workflows
 """
 
 import os
+import re
 import sys
 import warnings
 from copy import deepcopy
@@ -158,13 +159,14 @@ def init_single_subject_wf(subject_id: str, session_ids: list):
     from smriprep.workflows.outputs import (
         init_ds_anat_volumes_wf,
         init_ds_grayord_metrics_wf,
+        init_ds_surfaces_wf,
         init_template_iterator_wf,
     )
     from smriprep.workflows.surfaces import (
         init_gifti_morphometrics_wf,
         init_hcp_morphometrics_wf,
         init_morph_grayords_wf,
-        init_resample_midthickness_wf,
+        init_resample_surfaces_wf,
     )
 
     from fmriprep.workflows.bold.base import init_bold_wf
@@ -235,9 +237,9 @@ It is released under the [CC0]\
 
     if subject_data['roi']:
         warnings.warn(
-            f"Lesion mask {subject_data['roi']} found. "
-            "Future versions of fMRIPrep will use alternative conventions. "
-            "Please refer to the documentation before upgrading.",
+            f'Lesion mask {subject_data["roi"]} found. '
+            'Future versions of fMRIPrep will use alternative conventions. '
+            'Please refer to the documentation before upgrading.',
             FutureWarning,
             stacklevel=1,
         )
@@ -340,6 +342,9 @@ It is released under the [CC0]\
 
     # allow to run with anat-fast-track on fMRI-only dataset
     if 't1w_preproc' in anatomical_cache and not subject_data['t1w']:
+        config.loggers.workflow.debug(
+            'No T1w image found; using precomputed T1w image: %s', anatomical_cache['t1w_preproc']
+        )
         workflow.connect([
             (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
             (anat_fit_wf, summary, [('outputnode.t1w_preproc', 't1w')]),
@@ -453,7 +458,8 @@ It is released under the [CC0]\
                 grayord_density=config.workflow.cifti_output,
                 omp_nthreads=omp_nthreads,
             )
-            resample_midthickness_wf = init_resample_midthickness_wf(
+            resample_surfaces_wf = init_resample_surfaces_wf(
+                surfaces=['white', 'pial', 'midthickness'],
                 grayord_density=config.workflow.cifti_output,
             )
             ds_grayord_metrics_wf = init_ds_grayord_metrics_wf(
@@ -461,6 +467,15 @@ It is released under the [CC0]\
                 output_dir=fmriprep_dir,
                 metrics=['curv', 'thickness', 'sulc'],
                 cifti_output=config.workflow.cifti_output,
+            )
+            ds_fsLR_surfaces_wf = init_ds_surfaces_wf(
+                output_dir=fmriprep_dir,
+                surfaces=['white', 'pial', 'midthickness'],
+                entities={
+                    'space': 'fsLR',
+                    'density': '32k' if config.workflow.cifti_output == '91k' else '59k',
+                },
+                name='ds_fsLR_surfaces_wf',
             )
 
             workflow.connect([
@@ -477,7 +492,9 @@ It is released under the [CC0]\
                 (curv_wf, hcp_morphometrics_wf, [
                     ('outputnode.curv', 'inputnode.curv'),
                 ]),
-                (anat_fit_wf, resample_midthickness_wf, [
+                (anat_fit_wf, resample_surfaces_wf, [
+                    ('outputnode.white', 'inputnode.white'),
+                    ('outputnode.pial', 'inputnode.pial'),
                     ('outputnode.midthickness', 'inputnode.midthickness'),
                     (
                         f"outputnode.sphere_reg_{'msm' if msm_sulc else 'fsLR'}",
@@ -497,10 +514,13 @@ It is released under the [CC0]\
                     ('outputnode.sulc', 'inputnode.sulc'),
                     ('outputnode.roi', 'inputnode.roi'),
                 ]),
-                (resample_midthickness_wf, morph_grayords_wf, [
+                (resample_surfaces_wf, morph_grayords_wf, [
                     ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
                 ]),
                 (anat_fit_wf, ds_grayord_metrics_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                ]),
+                (anat_fit_wf, ds_fsLR_surfaces_wf, [
                     ('outputnode.t1w_valid_list', 'inputnode.source_files'),
                 ]),
                 (morph_grayords_wf, ds_grayord_metrics_wf, [
@@ -511,21 +531,83 @@ It is released under the [CC0]\
                     ('outputnode.sulc_fsLR', 'inputnode.sulc'),
                     ('outputnode.sulc_metadata', 'inputnode.sulc_metadata'),
                 ]),
+                (resample_surfaces_wf, ds_fsLR_surfaces_wf, [
+                    ('outputnode.white_fsLR', 'inputnode.white'),
+                    ('outputnode.pial_fsLR', 'inputnode.pial'),
+                    ('outputnode.midthickness_fsLR', 'inputnode.midthickness'),
+                ]),
             ])  # fmt:skip
 
     if config.workflow.anat_only:
         return clean_datasinks(workflow)
 
-    fmap_estimators, estimator_map = map_fieldmap_estimation(
+    fmap_cache = {}
+    if config.execution.derivatives:
+        from fmriprep.utils.bids import collect_fieldmaps
+
+        for deriv_dir in config.execution.derivatives.values():
+            fmaps = collect_fieldmaps(
+                derivatives_dir=deriv_dir,
+                entities={'subject': subject_id},
+            )
+            config.loggers.workflow.debug(
+                'Detected precomputed fieldmaps in %s for fieldmap IDs: %s', deriv_dir, list(fmaps)
+            )
+            fmap_cache.update(fmaps)
+
+    all_estimators, estimator_map = map_fieldmap_estimation(
         layout=config.execution.layout,
         subject_id=subject_id,
         bold_data=bold_runs,
         ignore_fieldmaps='fieldmaps' in config.workflow.ignore,
         use_syn=config.workflow.use_syn_sdc,
-        force_syn=config.workflow.force_syn,
+        force_syn='syn-sdc' in config.workflow.force,
         filters=config.execution.get().get('bids_filters', {}).get('fmap'),
     )
 
+    fmap_buffers = {
+        field: pe.Node(niu.Merge(2), name=f'{field}_merge', run_without_submitting=True)
+        for field in ['fmap', 'fmap_ref', 'fmap_coeff', 'fmap_mask', 'fmap_id', 'sdc_method']
+    }
+
+    estimator_types = {est.bids_id: est.method for est in all_estimators}
+    fmap_estimators = []
+    if all_estimators:
+        # Find precomputed fieldmaps that apply to this workflow
+        pared_cache = {}
+        for est in all_estimators:
+            if found := fmap_cache.get(re.sub(r'[^a-zA-Z0-9]', '', est.bids_id)):
+                pared_cache[est.bids_id] = found
+            else:
+                fmap_estimators.append(est)
+
+        if pared_cache:
+            config.loggers.workflow.info(
+                'Precomputed B0 field inhomogeneity maps found for the following '
+                f'{len(pared_cache)} estimator(s): {list(pared_cache)}.'
+            )
+
+            fieldmaps = [fmap['fieldmap'] for fmap in pared_cache.values()]
+            refs = [fmap['magnitude'] for fmap in pared_cache.values()]
+            coeffs = [fmap['coeffs'] for fmap in pared_cache.values()]
+            config.loggers.workflow.debug('Reusing fieldmaps: %s', fieldmaps)
+            config.loggers.workflow.debug('Reusing references: %s', refs)
+            config.loggers.workflow.debug('Reusing coefficients: %s', coeffs)
+
+            fmap_buffers['fmap'].inputs.in1 = fieldmaps
+            fmap_buffers['fmap_ref'].inputs.in1 = refs
+            fmap_buffers['fmap_coeff'].inputs.in1 = coeffs
+
+            # Note that masks are not emitted. The BOLD-fmap transforms cannot be
+            # computed with precomputed fieldmaps until we either start emitting masks
+            # or start skull-stripping references on the fly.
+            fmap_buffers['fmap_mask'].inputs.in1 = [
+                pared_cache[fmapid].get('mask', 'MISSING') for fmapid in pared_cache
+            ]
+            fmap_buffers['fmap_id'].inputs.in1 = list(pared_cache)
+            fmap_buffers['sdc_method'].inputs.in1 = ['precomputed'] * len(pared_cache)
+
+    # Estimators without precomputed fieldmaps
     if fmap_estimators:
         config.loggers.workflow.info(
             'B0 field inhomogeneity map will be estimated with the following '
@@ -556,24 +638,31 @@ BIDS structure for this particular subject.
             if node.split('.')[-1].startswith('ds_'):
                 fmap_wf.get_node(node).interface.out_path_base = ''
 
+        workflow.connect([
+            (fmap_wf, fmap_buffers[field], [
+                # We get "sdc_method" as "method" from estimator workflows
+                # All else stays the same, and no other sdc_ prefixes are used
+                (f'outputnode.{field.removeprefix("sdc_")}', 'in2'),
+            ])
+            for field in fmap_buffers
+        ])  # fmt:skip
+
         fmap_select_std = pe.Node(
             KeySelect(fields=['std2anat_xfm'], key='MNI152NLin2009cAsym'),
             name='fmap_select_std',
             run_without_submitting=True,
         )
         if any(estimator.method == fm.EstimatorType.ANAT for estimator in fmap_estimators):
-            # fmt:off
             workflow.connect([
                 (anat_fit_wf, fmap_select_std, [
                     ('outputnode.std2anat_xfm', 'std2anat_xfm'),
                     ('outputnode.template', 'keys')]),
-            ])
-            # fmt:on
+            ])  # fmt:skip
 
         for estimator in fmap_estimators:
             config.loggers.workflow.info(
                 f"""\
-Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
+Setting up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
 <{', '.join(s.path.name for s in estimator.sources)}>"""
             )
 
@@ -616,7 +705,6 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
                 syn_preprocessing_wf.inputs.inputnode.in_epis = sources
                 syn_preprocessing_wf.inputs.inputnode.in_meta = source_meta
 
-                # fmt:off
                 workflow.connect([
                     (anat_fit_wf, syn_preprocessing_wf, [
                         ('outputnode.t1w_preproc', 'inputnode.in_anat'),
@@ -632,8 +720,7 @@ Setting-up fieldmap "{estimator.bids_id}" ({estimator.method}) with \
                         ('outputnode.anat_mask', f'in_{estimator.bids_id}.anat_mask'),
                         ('outputnode.sd_prior', f'in_{estimator.bids_id}.sd_prior'),
                     ]),
-                ])
-                # fmt:on
+                ])  # fmt:skip
 
     # Append the functional section to the existing anatomical excerpt
     # That way we do not need to stream down the number of bold datasets
@@ -656,6 +743,15 @@ tasks and sessions), the following preprocessing was performed.
     for bold_series in bold_runs:
         bold_file = bold_series[0]
         fieldmap_id = estimator_map.get(bold_file)
+        jacobian = False
+
+        if fieldmap_id:
+            if 'fmap-jacobian' in config.workflow.force:
+                jacobian = True
+            elif 'fmap-jacobian' not in config.workflow.ignore:
+                # Default behavior is to only use Jacobians for PEPOLAR fieldmaps
+                est_type = estimator_types[fieldmap_id]
+                jacobian = est_type == est_type.__class__.PEPOLAR
 
         functional_cache = {}
         if config.execution.derivatives:
@@ -676,6 +772,7 @@ tasks and sessions), the following preprocessing was performed.
             bold_series=bold_series,
             precomputed=functional_cache,
             fieldmap_id=fieldmap_id,
+            jacobian=jacobian,
         )
         if bold_wf is None:
             continue
@@ -701,17 +798,11 @@ tasks and sessions), the following preprocessing was performed.
                 ),
             ]),
         ])  # fmt:skip
-        if fieldmap_id:
-            workflow.connect([
-                (fmap_wf, bold_wf, [
-                    ('outputnode.fmap', 'inputnode.fmap'),
-                    ('outputnode.fmap_ref', 'inputnode.fmap_ref'),
-                    ('outputnode.fmap_coeff', 'inputnode.fmap_coeff'),
-                    ('outputnode.fmap_mask', 'inputnode.fmap_mask'),
-                    ('outputnode.fmap_id', 'inputnode.fmap_id'),
-                    ('outputnode.method', 'inputnode.sdc_method'),
-                ]),
-            ])  # fmt:skip
+
+        workflow.connect([
+            (buffer, bold_wf, [('out', f'inputnode.{field}')])
+            for field, buffer in fmap_buffers.items()
+        ])  # fmt:skip
 
         if config.workflow.level == 'full':
             if template_iterator_wf is not None:
@@ -744,7 +835,7 @@ tasks and sessions), the following preprocessing was performed.
                     (hcp_morphometrics_wf, bold_wf, [
                         ('outputnode.roi', 'inputnode.cortex_mask'),
                     ]),
-                    (resample_midthickness_wf, bold_wf, [
+                    (resample_surfaces_wf, bold_wf, [
                         ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
                     ]),
                 ])  # fmt:skip
@@ -770,7 +861,7 @@ def map_fieldmap_estimation(
     # In the case where fieldmaps are ignored and `--use-syn-sdc` is requested,
     # SDCFlows `find_estimators` still receives a full layout (which includes the fmap modality)
     # and will not calculate fmapless schemes.
-    # Similarly, if fieldmaps are ignored and `--force-syn` is requested,
+    # Similarly, if fieldmaps are ignored and `--force syn-sdc` is requested,
     # `fmapless` should be set to True to ensure BOLD targets are found to be corrected.
     fmap_estimators = find_estimators(
         layout=layout,
@@ -794,7 +885,7 @@ def map_fieldmap_estimation(
     if ignore_fieldmaps and any(f.method == fm.EstimatorType.ANAT for f in fmap_estimators):
         config.loggers.workflow.info(
             'Option "--ignore fieldmaps" was set, but either "--use-syn-sdc" '
-            'or "--force-syn" were given, so fieldmap-less estimation will be executed.'
+            'or "--force syn-sdc" were given, so fieldmap-less estimation will be executed.'
         )
         fmap_estimators = [f for f in fmap_estimators if f.method == fm.EstimatorType.ANAT]
 
@@ -811,7 +902,7 @@ def map_fieldmap_estimation(
     for bold_file, estimator_key in all_estimators.items():
         if len(estimator_key) > 1:
             config.loggers.workflow.warning(
-                f"Several fieldmaps <{', '.join(estimator_key)}> are "
+                f'Several fieldmaps <{", ".join(estimator_key)}> are '
                 f"'IntendedFor' <{bold_file}>, using {estimator_key[0]}"
             )
             estimator_key[1:] = []

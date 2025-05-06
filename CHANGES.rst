@@ -1,3 +1,80 @@
+25.0.0 (March 25, 2025)
+=======================
+New feature release in the 25.0.x series.
+
+This release substantially improves support for pre-computed derivatives.
+Previous releases would miss some derivatives and rerun the computations.
+Note that derivatives from previous versions will be accepted,
+so it should not be necessary to recompute derivatives from previous versions.
+The recommended command line is::
+
+    fmriprep BIDS_DIR OUT_DIR participant --derivatives fmriprep=PRECOMP_DIR
+
+Note that multiple derivatives can be specified, for example::
+
+    fmriprep BIDS_DIR OUT_DIR participant \
+      anat=PRECOMPUTED_ANATOMICAL_DIR \
+      func=PRECOMPUTED_FUNCTIONAL_DIR
+
+When the same file is found in multiple derivatives, the last one found takes precedence.
+
+Additionally, `--force-*` flags have been consolidated into a single
+`--force` flag that can take multiple, space-separated arguments.
+
+Structural processing changes
+-----------------------------
+We now output white, pial and midthickness fsLR meshes on the subject surface.
+Look for `sub-<subject>_hemi-<L|R>_space-fsLR_*_<surf>.surf.gii` files.
+
+Brain extraction has been modified slightly to more closely match the
+`antsBrainExtraction.sh` workflow distributed by ANTs.
+The impact should be minimal, but in rare cases this fixes a crash.
+
+Fieldmap processing changes
+---------------------------
+SyN-SDC fieldmap filtering is now single-level, following the improvements
+for gradient-echo fieldmaps in 24.1.
+
+Jacobian-weighting during fieldmap unwarping is now on by default *only*
+for PEPolar fieldmaps.
+To enable for other fieldmap types, use `--force fieldmap-jacobian`.
+
+All merged pull requests
+------------------------
+
+* FIX: Detect and apply precomputed fieldmaps (#3439)
+* FIX: Calculate bold mask and dummy scans in transform-only runs (#3428)
+* FIX: Use consistent skull-stripping pre- and post- SDC (#3415)
+* FIX: Use removeprefix instead of lstrip or ternary operator (#3409)
+* FIX: Listify sessions when generating reports (#3408)
+* FIX: Ensure fieldmap is resampled correctly in report (#3387)
+* FIX: Stop excluding FS minc_modify_header used during fallback registration (#3372)
+* FIX: Repair and test query for precalculated baseline/boldref files (#3370)
+* FIX: Repair search for precomputed transforms (#3369)
+* ENH: Enable Jacobians only for PEPOLAR by default, allow forcing (#3443)
+* ENH: Create `--force` flag that accepts a list, replacing individual `--force-*` flags (#3442)
+* ENH: Output fsLR meshes on subject surfaces (#3411)
+* ENH: Flexibilize "sophisticated" pepolar to allow monomodal execution (#3393)
+* ENH: Update FSL packages for reported bug fixes (#3374)
+* RF: Calculate RMSD from motion transforms (#3427)
+* RF: Reconstruct motion confounds from minimal derivatives (#3424)
+* RF: Replace deprecated pkgutil.find_loader (#3384)
+* RF: Upgrade nitransforms and remove workarounds (#3378)
+* DOC: Fix xfm extension in the outputs docs (#3435)
+* DOC: Mention fMRIPost-AROMA in parser documentation (#3356)
+* MNT: Remove CLI flags with expired deprecation periods (#3445)
+* MNT: Update pinned environment (#3440)
+* MNT: Bump pins, update RTD config (#3425)
+* MNT: Declare linux/amd64 platform during Docker build (#3422)
+* MNT: Bump astral-sh/setup-uv from 4 to 5 (#3417)
+* MNT: Test support for Python 3.13 (#3416)
+* MNT: Install Workbench CLI via conda (#3410)
+* MNT: Update minimum dependencies, test with tox-uv (#3412)
+* MNT: Install c3d through conda (#3382)
+* CI: Fetch tags and 200 commits to support describe (#3381)
+* CI: Build docker images in GHA, store cache inline and push to GHCR (#3380)
+
+
 24.1.1 (October 10, 2024)
 =========================
 Bug fix release in the 24.1.x series.
@@ -5,10 +82,11 @@ Bug fix release in the 24.1.x series.
 Precomputed functional derivatives were not being correctly detected,
 and a couple fixes for rare issues.
 
-  * FIX: Remove checks for unit zooms and symmetric rotations in template warp (#3376)
-  * FIX: Stop excluding FS minc_modify_header used during fallback registration (#3372)
-  * FIX: Repair search for precomputed bold references (#3370)
-  * FIX: Repair search for precomputed transforms (#3369)
+* FIX: Remove checks for unit zooms and symmetric rotations in template warp (#3376)
+* FIX: Stop excluding FS minc_modify_header used during fallback registration (#3372)
+* FIX: Repair search for precomputed bold references (#3370)
+* FIX: Repair search for precomputed transforms (#3369)
+
 
 24.1.0 (September 16, 2024)
 ===========================
@@ -16,12 +94,13 @@ New feature release in the 24.1.x series.
 
 Handling of gradient echo fieldmaps is improved.
 
-  * FIX: Select volumetric dseg.tsv from recent TemplateFlow releases (#3257)
-  * RF: Adapt to less T1w-centric smriprep (#3333)
-  * RF: Use acres over vendored data loader (#3323)
-  * DOC: Add benchmark page (#3312)
-  * MAINT: Move to tox to simplify test/CI setup (#3326)
-  * CI: Fix expected outputs for fieldmaps (#3321)
+* FIX: Select volumetric dseg.tsv from recent TemplateFlow releases (#3257)
+* RF: Adapt to less T1w-centric smriprep (#3333)
+* RF: Use acres over vendored data loader (#3323)
+* DOC: Add benchmark page (#3312)
+* MAINT: Move to tox to simplify test/CI setup (#3326)
+* CI: Fix expected outputs for fieldmaps (#3321)
+
 
 24.0.1 (July 16, 2024)
 ======================

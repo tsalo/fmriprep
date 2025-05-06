@@ -132,7 +132,7 @@ git-line-summary not found, please install git-extras. """
 def _namelast(inlist):
     retval = []
     for i in inlist:
-        i['name'] = (f"{i.pop('name', '')} {i.pop('lastname', '')}").strip()
+        i['name'] = (f'{i.pop("name", "")} {i.pop("lastname", "")}').strip()
         retval.append(i)
     return retval
 
@@ -187,7 +187,7 @@ def zenodo(
     misses = set(miss_creators).intersection(miss_contributors)
     if misses:
         print(
-            f"Some people made commits, but are missing in .maint/ files: {', '.join(misses)}",
+            f'Some people made commits, but are missing in .maint/ files: {", ".join(misses)}',
             file=sys.stderr,
         )
 
@@ -259,7 +259,7 @@ def publication(
     aff_indexes = [
         ', '.join(
             [
-                '%d' % (affiliations.index(a) + 1)
+                str(affiliations.index(a) + 1)
                 for a in _aslist(author.get('affiliation', 'Unaffiliated'))
             ]
         )
@@ -268,11 +268,11 @@ def publication(
 
     if misses:
         print(
-            f"Some people made commits, but are missing in .maint/ files: {', '.join(misses)}",
+            f'Some people made commits, but are missing in .maint/ files: {", ".join(misses)}',
             file=sys.stderr,
         )
 
-    print('Authors (%d):' % len(hits))
+    print(f'Authors ({len(hits)}):')
     print(
         '{}.'.format(
             '; '.join(

@@ -71,7 +71,6 @@ def generate_reports(
     output_level,
     output_dir,
     run_uuid,
-    session_list=None,
     bootstrap_file=None,
     work_dir=None,
 ):
@@ -80,13 +79,13 @@ def generate_reports(
     if work_dir is not None:
         reportlets_dir = Path(work_dir) / 'reportlets'
 
-    if isinstance(subject_list, str):
-        subject_list = [subject_list]
-
     errors = []
     for subject_label, session_list in processing_list:
         subject_id = subject_label[4:] if subject_label.startswith('sub-') else subject_label
-        n_ses = len(session_list)
+        # The number of sessions is intentionally not based on session_list but
+        # on the total number of sessions, because I want the final derivatives
+        # folder to be the same whether sessions were run one at a time or all-together.
+        n_ses = len(config.execution.layout.get_sessions(subject=subject_label))
 
         if bootstrap_file is not None:
             # If a config file is precised, we do not override it
@@ -99,7 +98,7 @@ def generate_reports(
         else:
             # Beyond a threshold, we separate the anatomical report from the functional.
             bootstrap_file = data.load('reports-spec-anat.yml')
-            html_report = f'sub-{subject_label.lstrip("sub-")}_anat.html'
+            html_report = f'sub-{subject_label}_anat.html'
 
         report_error = run_reports(
             output_dir,

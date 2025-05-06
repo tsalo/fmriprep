@@ -149,11 +149,10 @@ if not _disable_et:
     # Just get so analytics track one hit
     from contextlib import suppress
 
-    from requests import ConnectionError, ReadTimeout
-    from requests import get as _get_url
+    import requests
 
-    with suppress((ConnectionError, ReadTimeout)):
-        _get_url('https://rig.mit.edu/et/projects/nipy/nipype', timeout=0.05)
+    with suppress((requests.ConnectionError, requests.ReadTimeout)):
+        requests.get('https://rig.mit.edu/et/projects/nipy/nipype', timeout=0.05)
 
 # Execution environment
 _exec_env = os.name
@@ -443,7 +442,7 @@ class execution(_Config):
     the command line) as spatial references for outputs."""
     reports_only = False
     """Only build the reports, based on the reportlets found in a cached working directory."""
-    run_uuid = f"{strftime('%Y%m%d-%H%M%S')}_{uuid4()}"
+    run_uuid = f'{strftime("%Y%m%d-%H%M%S")}_{uuid4()}'
     """Unique identifier of this particular run."""
     participant_label = None
     """List of participant identifiers that are to be preprocessed."""
@@ -596,6 +595,8 @@ class workflow(_Config):
     """Adjust pipeline to reuse base template of existing longitudinal freesurfer"""
     ignore = None
     """Ignore particular steps for *fMRIPrep*."""
+    force = None
+    """Force particular steps for *fMRIPrep*."""
     level = None
     """Level of preprocessing to complete. One of ['minimal', 'resampling', 'full']."""
     subject_anatomical_reference = None

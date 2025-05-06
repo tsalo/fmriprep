@@ -38,7 +38,7 @@ if __name__ == '__main__':
     aff_indexes = [
         ', '.join(
             [
-                '%d' % (affiliations.index(a) + 1)
+                str(affiliations.index(a) + 1)
                 for a in _aslist(author.get('affiliation', 'Unaffiliated'))
             ]
         )
@@ -52,7 +52,7 @@ if __name__ == '__main__':
         file=sys.stderr,
     )
 
-    print('Authors (%d):' % len(author_matches))
+    print(f'Authors ({len(author_matches)}):')
     print(
         '{}.'.format(
             '; '.join(
