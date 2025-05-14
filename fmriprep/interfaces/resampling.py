@@ -30,7 +30,6 @@ class ResampleSeriesInputSpec(TraitedSpec):
     ref_file = File(exists=True, mandatory=True, desc='File to resample in_file to')
     transforms = InputMultiObject(
         File(exists=True),
-        mandatory=True,
         desc='Transform files, from in_file to ref_file (image mode)',
     )
     inverse = InputMultiObject(
@@ -92,7 +91,8 @@ class ResampleSeries(SimpleInterface):
 
         nvols = source.shape[3] if source.ndim > 3 else 1
 
-        transforms = load_transforms(self.inputs.transforms, self.inputs.inverse)
+        # No transforms appear Undefined, pass as empty list
+        transforms = load_transforms(self.inputs.transforms or [], self.inputs.inverse)
 
         pe_dir = self.inputs.pe_dir
         ro_time = self.inputs.ro_time
