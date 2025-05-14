@@ -615,15 +615,26 @@ It is released under the [CC0]\
         from sdcflows.workflows.base import init_fmap_preproc_wf
 
         fallback_trt = config.workflow.fallback_total_readout_time
-        fmap_wf = init_fmap_preproc_wf(
-            use_metadata_estimates=fallback_trt == 'estimated',
-            fallback_total_readout_time=fallback_trt if isinstance(fallback_trt, float) else None,
-            debug='fieldmaps' in config.execution.debug,
-            estimators=fmap_estimators,
-            omp_nthreads=omp_nthreads,
-            output_dir=fmriprep_dir,
-            subject=subject_id,
-        )
+        try:
+            fmap_wf = init_fmap_preproc_wf(
+                use_metadata_estimates=fallback_trt == 'estimated',
+                fallback_total_readout_time=fallback_trt
+                if isinstance(fallback_trt, float)
+                else None,
+                debug='fieldmaps' in config.execution.debug,
+                estimators=fmap_estimators,
+                omp_nthreads=omp_nthreads,
+                output_dir=fmriprep_dir,
+                subject=subject_id,
+            )
+        except RuntimeError:
+            message = (
+                'Missing readout time information. '
+                'See documentation for `--fallback-total-readout-time`.'
+            )
+            config.loggers.workflow.critical(message, exc_info=True)
+            sys.exit(os.EX_DATAERR)
+
         fmap_wf.__desc__ = f"""
 
 Preprocessing of B<sub>0</sub> inhomogeneity mappings
