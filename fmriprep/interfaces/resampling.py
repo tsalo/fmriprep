@@ -30,7 +30,6 @@ class ResampleSeriesInputSpec(TraitedSpec):
     ref_file = File(exists=True, mandatory=True, desc='File to resample in_file to')
     transforms = InputMultiObject(
         File(exists=True),
-        mandatory=True,
         desc='Transform files, from in_file to ref_file (image mode)',
     )
     inverse = InputMultiObject(
@@ -92,7 +91,8 @@ class ResampleSeries(SimpleInterface):
 
         nvols = source.shape[3] if source.ndim > 3 else 1
 
-        transforms = load_transforms(self.inputs.transforms, self.inputs.inverse)
+        # No transforms appear Undefined, pass as empty list
+        transforms = load_transforms(self.inputs.transforms or [], self.inputs.inverse)
 
         pe_dir = self.inputs.pe_dir
         ro_time = self.inputs.ro_time
@@ -191,6 +191,13 @@ class ReconstructFieldmap(SimpleInterface):
 class DistortionParametersInputSpec(TraitedSpec):
     in_file = File(exists=True, desc='EPI image corresponding to the metadata')
     metadata = traits.Dict(mandatory=True, desc='metadata corresponding to the inputs')
+    fallback = traits.Either(
+        None,
+        'estimated',
+        traits.Float,
+        usedefault=True,
+        desc='Fallback value for missing metadata',
+    )
 
 
 class DistortionParametersOutputSpec(TraitedSpec):
@@ -215,6 +222,8 @@ class DistortionParameters(SimpleInterface):
             self._results['readout_time'] = get_trt(
                 self.inputs.metadata,
                 self.inputs.in_file or None,
+                use_estimate=self.inputs.fallback == 'estimated',
+                fallback=self.inputs.fallback if isinstance(self.inputs.fallback, float) else None,
             )
             self._results['pe_direction'] = self.inputs.metadata['PhaseEncodingDirection']
         except (KeyError, ValueError):

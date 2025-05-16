@@ -31,7 +31,6 @@ from niworkflows.func.util import init_enhance_and_skullstrip_bold_wf, init_skul
 from niworkflows.interfaces.header import ValidateImage
 from niworkflows.interfaces.nitransforms import ConcatenateXFMs
 from niworkflows.interfaces.utility import KeySelect
-from sdcflows.workflows.apply.correction import init_unwarp_wf
 from sdcflows.workflows.apply.registration import init_coeff2epi_wf
 
 from ... import config
@@ -189,7 +188,6 @@ def init_bold_fit_wf(
     * :py:func:`~fmriprep.workflows.bold.hmc.init_bold_hmc_wf`
     * :py:func:`~niworkflows.func.utils.init_enhance_and_skullstrip_bold_wf`
     * :py:func:`~sdcflows.workflows.apply.registration.init_coeff2epi_wf`
-    * :py:func:`~sdcflows.workflows.apply.correction.init_unwarp_wf`
     * :py:func:`~fmriprep.workflows.bold.registration.init_bold_reg_wf`
     * :py:func:`~fmriprep.workflows.bold.outputs.init_ds_boldref_wf`
     * :py:func:`~fmriprep.workflows.bold.outputs.init_ds_hmc_wf`
@@ -547,12 +545,26 @@ def init_bold_fit_wf(
                     (ds_fmapreg_wf, fmapreg_buffer, [('outputnode.xform', 'boldref2fmap_xfm')]),
                 ])  # fmt:skip
 
-            unwarp_wf = init_unwarp_wf(
-                free_mem=config.environment.free_mem,
-                debug='fieldmaps' in config.execution.debug,
-                omp_nthreads=config.nipype.omp_nthreads,
+            boldref_fmap = pe.Node(
+                ReconstructFieldmap(inverse=[True]), name='boldref_fmap', mem_gb=1
             )
-            unwarp_wf.inputs.inputnode.metadata = layout.get_metadata(bold_file)
+
+            distortion_params = pe.Node(
+                DistortionParameters(
+                    metadata=metadata,
+                    in_file=bold_file,
+                    fallback=config.workflow.fallback_total_readout_time,
+                ),
+                name='distortion_params',
+                run_without_submitting=True,
+            )
+
+            unwarp_boldref = pe.Node(
+                ResampleSeries(jacobian=jacobian),
+                name='unwarp_boldref',
+                n_procs=omp_nthreads,
+                mem_gb=mem_gb['resampled'],
+            )
 
             skullstrip_bold_wf = init_skullstrip_bold_wf()
 
@@ -564,24 +576,26 @@ def init_bold_fit_wf(
                     ('sdc_method', 'sdc_method'),
                     ('fmap_id', 'keys'),
                 ]),
-                (fmap_select, unwarp_wf, [
-                    ('fmap_coeff', 'inputnode.fmap_coeff'),
+                (fmapref_buffer, boldref_fmap, [('out', 'target_ref_file')]),
+                (fmapreg_buffer, boldref_fmap, [('boldref2fmap_xfm', 'transforms')]),
+                (fmap_select, boldref_fmap, [
+                    ('fmap_coeff', 'in_coeffs'),
+                    ('fmap_ref', 'fmap_ref_file'),
                 ]),
-                (fmapreg_buffer, unwarp_wf, [
-                    # This looks backwards, but unwarp_wf describes transforms in
-                    # terms of points while we (and init_coeff2epi_wf) describe them
-                    # in terms of images. Mapping fieldmap coordinates into boldref
-                    # coordinates maps the boldref image onto the fieldmap image.
-                    ('boldref2fmap_xfm', 'inputnode.fmap2data_xfm'),
+                (fmapref_buffer, unwarp_boldref, [('out', 'ref_file')]),
+                (enhance_boldref_wf, unwarp_boldref, [
+                    ('outputnode.bias_corrected_file', 'in_file'),
                 ]),
-                (enhance_boldref_wf, unwarp_wf, [
-                    ('outputnode.bias_corrected_file', 'inputnode.distorted'),
+                (boldref_fmap, unwarp_boldref, [('out_file', 'fieldmap')]),
+                (distortion_params, unwarp_boldref, [
+                    ('readout_time', 'ro_time'),
+                    ('pe_direction', 'pe_dir'),
                 ]),
-                (unwarp_wf, ds_coreg_boldref_wf, [
-                    ('outputnode.corrected', 'inputnode.boldref'),
+                (unwarp_boldref, ds_coreg_boldref_wf, [
+                    ('out_file', 'inputnode.boldref'),
                 ]),
-                (unwarp_wf, skullstrip_bold_wf, [
-                    ('outputnode.corrected', 'inputnode.in_file'),
+                (ds_coreg_boldref_wf, skullstrip_bold_wf, [
+                    ('outputnode.boldref', 'inputnode.in_file'),
                 ]),
                 (skullstrip_bold_wf, ds_boldmask_wf, [
                     ('outputnode.mask_file', 'inputnode.boldmask'),
@@ -591,7 +605,7 @@ def init_bold_fit_wf(
                 (fmapreg_buffer, func_fit_reports_wf, [
                     ('boldref2fmap_xfm', 'inputnode.boldref2fmap_xfm'),
                 ]),
-                (unwarp_wf, func_fit_reports_wf, [('outputnode.fieldmap', 'inputnode.fieldmap')]),
+                (boldref_fmap, func_fit_reports_wf, [('out_file', 'inputnode.fieldmap')]),
             ])  # fmt:skip
         else:
             workflow.connect([
@@ -859,7 +873,11 @@ def init_bold_native_wf(
         )
 
         distortion_params = pe.Node(
-            DistortionParameters(metadata=metadata, in_file=bold_file),
+            DistortionParameters(
+                metadata=metadata,
+                in_file=bold_file,
+                fallback=config.workflow.fallback_total_readout_time,
+            ),
             name='distortion_params',
             run_without_submitting=True,
         )
