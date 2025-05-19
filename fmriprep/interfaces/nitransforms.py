@@ -63,7 +63,7 @@ class ConvertAffine(SimpleInterface):
             'fsl': 'mat',
         }[self.inputs.out_fmt]
 
-        in_fmt = self.inputs.in_xfm
+        in_fmt = self.inputs.in_fmt
         if in_fmt == 'auto':
             in_fmt = {
                 '.lta': 'fs',
