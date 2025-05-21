@@ -1,3 +1,53 @@
+25.1.0 (May 21, 2025)
+=====================
+New feature release in the 25.1.x series.
+
+This release includes a small fix related to interpolations on the bounds
+of the image field-of-view. This improves consistency with prior versions
+of fMRIPrep for data with limited fields-of-view or small bounding boxes.
+
+This release also adds support for providing fallback values for
+``TotalReadoutTime`` metadata.
+For Philips datasets, if ``EstimatedTotalReadoutTime`` or
+``EstimatedEffectiveEchoSpacing`` are available, you can use these
+by passing ``--fallback-total-readout-time estimated``.
+For datasets with no readout time information, a numeric value can be passed,
+for example, ``--fallback-total-readout-time 0.05``.
+If the readout time information is known, it is preferable to encode directly
+in the dataset, but there are cases where it is better to explicitly pass the
+value to the software than inject uncertain metadata into the dataset.
+In particular, the true readout time is not necessary for SyN-SDC, but a value
+is nonetheless needed in order to estimate the inhomogeneity field.
+
+This release is a long-term-support *candidate*. We will be performing
+extensive tests and monitoring bug reports over the next couple of months
+to determine whether issues can be addressed without making breaking changes.
+
+Structural processing changes
+-----------------------------
+
+This release pins a version of sMRIPrep (0.18) that correctly handles precomputed
+tissue probability maps.
+The FAST segmentation also now skips an internal bias field correction step
+that is redundant with ANTs N4 correction,
+and may be inappropriate for non-human populations.
+
+Fieldmap processing changes
+---------------------------
+
+This release pins a version of SDCFlows (2.13) that includes several improvements to
+the SyN-SDC method.
+In particular, the fieldmap prior that constrained the scope of displacements
+was reintroduced and refined.
+
+All merged pull requests
+------------------------
+
+* FIX: Use nearest mode for extrapolating data outside image boundaries (#3453)
+* ENH: Replace c3d_affine_tool with a ConvertAffine interface (#3464)
+* ENH: Add flag to fallback to Estimated* metadata or a passed value for TotalReadoutTime (#3423)
+
+
 25.0.0 (March 25, 2025)
 =======================
 New feature release in the 25.0.x series.
