@@ -1,3 +1,16 @@
+25.1.1 (May 23, 2025)
+=====================
+Patch release in the 25.1.x series.
+
+This includes small fixes for working with precomputed fieldmaps,
+including adding fieldmap correction sections to the reports,
+which were previously omitted if the fieldmap was not calculated
+during the fMRIPrep run.
+
+* FIX: Improve retrieval of precomputed pepolar fieldmaps (#3466)
+* RF: Separate fieldmap registration from coreg ref generation (#3467)
+
+
 25.1.0 (May 21, 2025)
 =====================
 New feature release in the 25.1.x series.
