@@ -1,3 +1,12 @@
+25.1.2 (June 17, 2025)
+======================
+Patch release in the 25.1.x series.
+
+This fixes crashes encountered processing a BIDS dataset with one or more
+``B0FieldIdentifier`` keys with non-unicode word characters.
+
+  * FIX: Use sanitized fieldmap naming (#3471)
+
 25.1.1 (May 23, 2025)
 =====================
 Patch release in the 25.1.x series.
