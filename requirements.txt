@@ -524,7 +524,7 @@ tzlocal==5.3.1
     # via apscheduler
 universal-pathlib==0.2.6
     # via pybids
-urllib3==2.4.0
+urllib3==2.5.0
     # via
     #   botocore
     #   requests
