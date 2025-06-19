@@ -1,3 +1,9 @@
+25.1.3 (June 19, 2025)
+======================
+Patch release in the 25.1.x series.
+
+This resolves a bug introduced in a dependency between 25.1.1 and 25.1.2.
+
 25.1.2 (June 17, 2025)
 ======================
 Patch release in the 25.1.x series.
