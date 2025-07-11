@@ -17,5 +17,3 @@ repos:
       - id: ruff
         args: [ --fix ]
       - id: ruff-format
-      - id: ruff
-        args: [ --select, ISC001, --fix ]
