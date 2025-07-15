@@ -37,7 +37,7 @@ def _warn(message, category=None, stacklevel=1, source=None, **kwargs):
 
     if kwargs:
         logging.getLogger('py.warnings').warning(f'Extra warning kwargs: {kwargs}')
-    
+
     logging.getLogger('py.warnings').warning(f'{category or "WARNING"}: {message}')
 
 
