@@ -41,7 +41,7 @@ def _warn(message, category=None, stacklevel=1, source=None, **kwargs):
     logging.getLogger('py.warnings').warning(f'{category or "WARNING"}: {message}')
 
 
-def _showwarning(message, category, filename, lineno, file=None, line=None, , **kwargs):
+def _showwarning(message, category, filename, lineno, file=None, line=None, **kwargs):
     _warn(message, category=category, **kwargs)
 
 
