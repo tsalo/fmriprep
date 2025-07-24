@@ -691,7 +691,6 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         '--work-dir',
         action='store',
         type=Path,
-        default=Path('work').absolute(),
         help='Path where intermediate results should be stored',
     )
     g_other.add_argument(
@@ -784,6 +783,9 @@ def parse_args(args=None, namespace=None):
 
     config.execution.log_level = int(max(25 - 5 * opts.verbose_count, logging.DEBUG))
     config.from_dict(vars(opts), init=['nipype'])
+
+    if config.execution.work_dir is None:
+        config.execution.work_dir = Path('work').absolute()
 
     # Consistency checks
     force_set = set(config.workflow.force)
