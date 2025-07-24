@@ -418,7 +418,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         '--slice-time-ref',
         required=False,
         action='store',
-        default=None,
+        default=0.5,
         type=SliceTimeRef,
         help='The time of the reference slice to correct BOLD values to, as a fraction '
         'acquisition time. 0 indicates the start, 0.5 the midpoint, and 1 the end '
@@ -501,7 +501,6 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     )
     g_conf.add_argument(
         '--project-goodvoxels',
-        required=False,
         action='store_true',
         default=False,
         help='Exclude voxels whose timeseries have locally high coefficient of variation '
@@ -530,8 +529,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         action=BooleanOptionalAction,
         default=True,
         dest='run_msmsulc',
-        help='Enable or disable Multimodal Surface Matching surface registration. '
-        'To disable, use `--no-msm`.',
+        help='Enable or disable Multimodal Surface Matching surface registration.',
     )
 
     g_confounds = parser.add_argument_group('Options relating to confounds')
@@ -645,8 +643,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         action=BooleanOptionalAction,
         default=True,
         dest='hires',
-        help='Enable or disable sub-millimeter (hi-res) reconstruction. '
-        'To disable, use `--no-submm-recon`.',
+        help='Enable or disable sub-millimeter (hi-res) reconstruction.',
     )
     g_fs.add_argument(
         '--fs-no-reconall',
@@ -665,6 +662,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
     g_carbon = parser.add_argument_group('Options for carbon usage tracking')
     g_carbon.add_argument(
         '--track-carbon',
+        default=False,
         action='store_true',
         help='Tracks power draws using CodeCarbon package',
     )
