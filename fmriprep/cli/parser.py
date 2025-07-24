@@ -23,6 +23,7 @@
 """Parser."""
 
 import sys
+from pathlib import Path
 
 from .. import config
 
@@ -32,9 +33,13 @@ def _build_parser(**kwargs):
 
     ``kwargs`` are passed to ``argparse.ArgumentParser`` (mainly useful for debugging).
     """
-    from argparse import Action, ArgumentDefaultsHelpFormatter, ArgumentParser
+    from argparse import (
+        Action,
+        ArgumentDefaultsHelpFormatter,
+        ArgumentParser,
+        BooleanOptionalAction,
+    )
     from functools import partial
-    from pathlib import Path
 
     from niworkflows.utils.spaces import OutputReferencesAction, Reference
     from packaging.version import Version
@@ -521,10 +526,12 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         '(default is 91k, which equates to 2mm resolution)',
     )
     g_outputs.add_argument(
-        '--no-msm',
-        action='store_false',
+        '--msm',
+        action=BooleanOptionalAction,
+        default=True,
         dest='run_msmsulc',
-        help='Disable Multimodal Surface Matching surface registration.',
+        help='Enable or disable Multimodal Surface Matching surface registration. '
+        'To disable, use `--no-msm`.',
     )
 
     g_confounds = parser.add_argument_group('Options relating to confounds')
@@ -634,10 +641,12 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html"""
         '(default: OUTPUT_DIR/freesurfer)',
     )
     g_fs.add_argument(
-        '--no-submm-recon',
-        action='store_false',
+        '--submm-recon',
+        action=BooleanOptionalAction,
+        default=True,
         dest='hires',
-        help='Disable sub-millimeter (hires) reconstruction',
+        help='Enable or disable sub-millimeter (hi-res) reconstruction. '
+        'To disable, use `--no-submm-recon`.',
     )
     g_fs.add_argument(
         '--fs-no-reconall',
