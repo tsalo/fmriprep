@@ -436,6 +436,8 @@ class execution(_Config):
     """Unique identifier of this particular run."""
     participant_label = None
     """List of participant identifiers that are to be preprocessed."""
+    session_label = None
+    """List of session identifiers that are to be preprocessed."""
     task_id = None
     """Select a particular task from all available in the dataset."""
     templateflow_home = _templateflow_home
@@ -589,7 +591,7 @@ class workflow(_Config):
     level = None
     """Level of preprocessing to complete. One of ['minimal', 'resampling', 'full']."""
     longitudinal = False
-    """Run FreeSurfer ``recon-all`` with the ``-logitudinal`` flag."""
+    """*Deprecated* - run FreeSurfer ``recon-all`` with the ``-logitudinal`` flag."""
     run_msmsulc = True
     """Run Multimodal Surface Matching surface registration."""
     medial_surface_nan = None
@@ -619,6 +621,11 @@ class workflow(_Config):
     spaces = None
     """Keeps the :py:class:`~niworkflows.utils.spaces.SpatialReferences`
     instance keeping standard and nonstandard spaces."""
+    subject_anatomical_reference = 'first-lex'
+    """Method to produce the reference anatomical space. Availalble options are:
+    `first-lex` will use the first image in lexicographical order, `unbiased` will
+    construct an unbiased template from all available images (previously --longitudinal),
+    and `sessionwise` will independently process each session."""
     use_aroma = None
     """Run ICA-:abbr:`AROMA (automatic removal of motion artifacts)`."""
     use_bbr = None

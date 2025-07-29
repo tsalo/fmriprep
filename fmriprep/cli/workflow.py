@@ -30,7 +30,10 @@ dictionary (``retval``) to allow isolation using a
 a hard-limited memory-scope.
 
 """
+import typing as ty
 
+if ty.TYPE_CHECKING:
+    from bids.layout import BIDSLayout
 
 def build_workflow(config_file, retval):
     """Create the Nipype Workflow that supports the whole execution graph."""
@@ -81,6 +84,8 @@ def build_workflow(config_file, retval):
     subject_list = collect_participants(
         config.execution.layout, participant_label=config.execution.participant_label
     )
+    session_list = config.execution.session_label or []
+    subject_session_list = get_subject_session_list()
 
     # Called with reports only
     if config.execution.reports_only:
@@ -233,3 +238,35 @@ def build_boilerplate(config_file, workflow):
             check_call(cmd, timeout=10)
         except (FileNotFoundError, CalledProcessError, TimeoutExpired):
             config.loggers.cli.warning('Could not generate CITATION.tex file:\n%s', ' '.join(cmd))
+
+
+def get_subject_session_list(
+    layout: 'BIDSLayout',
+    subject_list: list,
+    session_list: list | str | None,
+    subject_anatomical_reference: str,
+):
+    """Generate a list of subject-session pairs to be processed."""
+    from bids.layout import Query
+    subject_session_list = []
+
+    for subject in subject_list:
+        sessions = (
+            layout.get_sessions(
+                scope='raw',
+                subject=subject,
+                session=session_list or Query.OPTIONAL,
+            )
+            or None
+        )
+
+        if subject_anatomical_reference == 'sessionwise':
+            if not sessions:
+                raise RuntimeError(
+                    '`--subject-anatomical-reference sessionwise` was requested, but no sessions '
+                    f'found for subject {subject}.'
+                )
+            for session in sessions:
+                subject_session_list.append((subject, session))
+        else:
+            subject_session_list.append((subject, sessions))
