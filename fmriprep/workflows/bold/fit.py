@@ -21,6 +21,7 @@
 #     https://www.nipreps.org/community/licensing/
 #
 import os
+import re
 import typing as ty
 
 import bids
@@ -514,7 +515,7 @@ def init_bold_fit_wf(
                 bids_root=layout.root,
                 output_dir=config.execution.fmriprep_dir,
                 source='boldref',
-                dest=fieldmap_id.replace('_', ''),
+                dest=re.sub(r'[^a-zA-Z0-9]', '', fieldmap_id),
                 name='ds_fmapreg_wf',
             )
             ds_fmapreg_wf.inputs.inputnode.source_files = [bold_file]
