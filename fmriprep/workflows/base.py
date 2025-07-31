@@ -473,6 +473,18 @@ It is released under the [CC0]\
                 },
                 name='ds_fsLR_surfaces_wf',
             )
+            ds_cortex_mask = pe.MapNode(
+                DerivativesDataSink(
+                    base_directory=config.execution.fmriprep_dir,
+                    datatype='anat',
+                    desc='cortex',
+                    suffix='mask',
+                    dismiss_entities=dismiss_echo(),
+                ),
+                iterfield=['in_file', 'hemisphere'],
+                name='ds_cortex_mask',
+            )
+            ds_cortex_mask.inputs.hemisphere = ['L', 'R']
 
             workflow.connect([
                 (anat_fit_wf, curv_wf, [
@@ -504,6 +516,7 @@ It is released under the [CC0]\
                         'inputnode.sphere_reg_fsLR',
                     ),
                 ]),
+                (hcp_morphometrics_wf, ds_cortex_mask, [('outputnode.roi', 'in_file')]),
                 (hcp_morphometrics_wf, morph_grayords_wf, [
                     ('outputnode.curv', 'inputnode.curv'),
                     ('outputnode.thickness', 'inputnode.thickness'),
