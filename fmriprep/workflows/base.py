@@ -481,10 +481,10 @@ It is released under the [CC0]\
                     suffix='mask',
                     dismiss_entities=dismiss_echo(),
                 ),
-                iterfield=['in_file', 'hemisphere'],
+                iterfield=['in_file', 'hemi'],
                 name='ds_cortex_mask',
             )
-            ds_cortex_mask.inputs.hemisphere = ['L', 'R']
+            ds_cortex_mask.inputs.hemi = ['L', 'R']
 
             workflow.connect([
                 (anat_fit_wf, curv_wf, [
