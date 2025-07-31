@@ -479,6 +479,7 @@ It is released under the [CC0]\
                     datatype='anat',
                     desc='cortex',
                     suffix='mask',
+                    extension='.label.gii',
                     dismiss_entities=dismiss_echo(),
                 ),
                 iterfield=['in_file', 'hemi'],
