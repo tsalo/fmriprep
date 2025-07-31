@@ -1,3 +1,13 @@
+25.1.4 (July 31, 2025)
+======================
+Patch release in the 25.1.x series.
+
+This includes additional fixes for non-unicode ``B0FieldIdentifier`` keys.
+
+  * FIX: Allow warning kwargs (#3483)
+  * FIX: Remove non-alphanumeric characters from fmapid in fmapreg transform (#3490)
+
+
 25.1.3 (June 19, 2025)
 ======================
 Patch release in the 25.1.x series.
