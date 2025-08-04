@@ -52,7 +52,7 @@ def init_fmriprep_wf():
     Build *fMRIPrep*'s pipeline.
 
     This workflow organizes the execution of FMRIPREP, with a sub-workflow for
-    each subject.
+    each processing group.
 
     If FreeSurfer's ``recon-all`` is to be run, a corresponding folder is created
     and populated with any needed template subjects under the derivatives folder.
@@ -91,12 +91,27 @@ def init_fmriprep_wf():
         if config.execution.fs_subjects_dir is not None:
             fsdir.inputs.subjects_dir = str(config.execution.fs_subjects_dir.absolute())
 
-    for subject_id in config.execution.participant_label:
-        single_subject_wf = init_single_subject_wf(subject_id)
+    for subject_id, session_ids in config.execution.processing_groups:
+        log_dir = config.execution.fmriprep_dir / f'sub-{subject_id}'
+        sessions = listify(session_ids)
+        ses_str = ''
 
-        single_subject_wf.config['execution']['crashdump_dir'] = str(
-            config.execution.fmriprep_dir / f'sub-{subject_id}' / 'log' / config.execution.run_uuid
+        if isinstance(sessions, list):
+            from smriprep.utils.misc import stringify_sessions
+
+            ses_str = stringify_sessions(sessions)
+            log_dir /= f'ses-{ses_str}'
+
+        log_dir /= 'log' / config.execution.run_uuid
+
+        wf_name = '_'.join(
+            ('sub', subject_id,) +
+            (('ses', ses_str) if ses_str else ()) +
+            ('wf',)
         )
+        single_subject_wf = init_single_subject_wf(subject_id, sessions, name=wf_name)
+
+        single_subject_wf.config['execution']['crashdump_dir'] = str(log_dir)
         for node in single_subject_wf._get_all_nodes():
             node.config = deepcopy(single_subject_wf.config)
         if freesurfer:
@@ -105,16 +120,17 @@ def init_fmriprep_wf():
             fmriprep_wf.add_nodes([single_subject_wf])
 
         # Dump a copy of the config file into the log directory
-        log_dir = (
-            config.execution.fmriprep_dir / f'sub-{subject_id}' / 'log' / config.execution.run_uuid
-        )
         log_dir.mkdir(exist_ok=True, parents=True)
         config.to_filename(log_dir / 'fmriprep.toml')
 
     return fmriprep_wf
 
 
-def init_single_subject_wf(subject_id: str):
+def init_single_subject_wf(
+    subject_id: str,
+    session_id: str | list[str] | None = None,
+    name: str | None = None,
+):
     """
     Organize the preprocessing pipeline for a single subject.
 
@@ -139,6 +155,12 @@ def init_single_subject_wf(subject_id: str):
     ----------
     subject_id : :obj:`str`
         Subject label for this single-subject workflow.
+    session_id
+        Session label(s) for this workflow.
+    name
+        Name of the workflow.
+        If not provided, will be set to ``sub_{subject_id}_ses_{session_id}_wf``.
+
 
     Inputs
     ------
@@ -169,7 +191,10 @@ def init_single_subject_wf(subject_id: str):
 
     from fmriprep.workflows.bold.base import init_bold_wf
 
-    workflow = Workflow(name=f'sub_{subject_id}_wf')
+    if name is None:
+        name = f'sub_{subject_id}_wf'
+
+    workflow = Workflow(name=name)
     workflow.__desc__ = f"""
 Results included in this manuscript come from preprocessing
 performed using *fMRIPrep* {config.environment.version}
@@ -204,6 +229,7 @@ It is released under the [CC0]\
     subject_data = collect_data(
         config.execution.layout,
         subject_id,
+        session_id=session_id,
         task=config.execution.task_id,
         echo=config.execution.echo_idx,
         bids_filters=config.execution.bids_filters,
@@ -255,6 +281,7 @@ It is released under the [CC0]\
                     derivatives_dir=deriv_dir,
                     subject_id=subject_id,
                     std_spaces=std_spaces,
+                    session_id=session_id,
                 )
             )
 
@@ -265,7 +292,7 @@ It is released under the [CC0]\
             subject_data=subject_data,
             anat_only=config.workflow.anat_only,
             subject_id=subject_id,
-            anat_derivatives=anatomical_cache if anatomical_cache else None,
+            anat_derivatives=anatomical_cache or None,
         ),
         name='bidssrc',
     )
@@ -363,7 +390,7 @@ It is released under the [CC0]\
             ('roi', 'inputnode.roi'),
             ('flair', 'inputnode.flair'),
         ]),
-        (bids_info, anat_fit_wf, [(('subject', _prefix), 'inputnode.subject_id')]),
+        (bids_info, anat_fit_wf, [(('subject', _prefix, 'session'), 'inputnode.subject_id')]),
         # Reporting connections
         (inputnode, summary, [('subjects_dir', 'subjects_dir')]),
         (bidssrc, summary, [('t2w', 't2w'), ('bold', 'bold')]),
@@ -927,8 +954,21 @@ def map_fieldmap_estimation(
     return fmap_estimators, estimator_map
 
 
-def _prefix(subid):
-    return subid if subid.startswith('sub-') else f'sub-{subid}'
+def _prefix(subject_id, session_id=None):
+    """Create FreeSurfer subject ID."""
+    if not subject_id.startswith('sub-'):
+        subject_id = f'sub-{subject_id}'
+
+    if session_id:
+        ses_str = session_id
+        if isinstance(session_id, list):
+            from smriprep.utils.misc import stringify_sessions
+
+            ses_str = stringify_sessions(session_id)
+        if not ses_str.startswith('ses-'):
+            ses_str = f'ses-{ses_str}'
+        subject_id += f'_{ses_str}'
+    return subject_id
 
 
 def clean_datasinks(workflow: pe.Workflow) -> pe.Workflow:
