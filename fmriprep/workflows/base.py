@@ -473,19 +473,6 @@ It is released under the [CC0]\
                 },
                 name='ds_fsLR_surfaces_wf',
             )
-            ds_cortex_mask = pe.MapNode(
-                DerivativesDataSink(
-                    base_directory=config.execution.fmriprep_dir,
-                    datatype='anat',
-                    desc='cortex',
-                    suffix='mask',
-                    extension='.label.gii',
-                    dismiss_entities=dismiss_echo(),
-                ),
-                iterfield=['in_file', 'hemi'],
-                name='ds_cortex_mask',
-            )
-            ds_cortex_mask.inputs.hemi = ['L', 'R']
 
             workflow.connect([
                 (anat_fit_wf, curv_wf, [
@@ -516,13 +503,12 @@ It is released under the [CC0]\
                         f'outputnode.sphere_reg_{"msm" if msm_sulc else "fsLR"}',
                         'inputnode.sphere_reg_fsLR',
                     ),
+                    ('outputnode.cortex_mask', 'inputnode.roi'),
                 ]),
-                (hcp_morphometrics_wf, ds_cortex_mask, [('outputnode.roi', 'in_file')]),
                 (hcp_morphometrics_wf, morph_grayords_wf, [
                     ('outputnode.curv', 'inputnode.curv'),
                     ('outputnode.thickness', 'inputnode.thickness'),
                     ('outputnode.sulc', 'inputnode.sulc'),
-                    ('outputnode.roi', 'inputnode.roi'),
                 ]),
                 (resample_surfaces_wf, morph_grayords_wf, [
                     ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
@@ -856,9 +842,7 @@ tasks and sessions), the following preprocessing was performed.
                 workflow.connect([
                     (select_MNI6_xfm, bold_wf, [('anat2std_xfm', 'inputnode.anat2mni6_xfm')]),
                     (select_MNI6_tpl, bold_wf, [('brain_mask', 'inputnode.mni6_mask')]),
-                    (hcp_morphometrics_wf, bold_wf, [
-                        ('outputnode.roi', 'inputnode.cortex_mask'),
-                    ]),
+                    (anat_fit_wf, bold_wf, [('outputnode.cortex_mask', 'inputnode.cortex_mask')]),
                     (resample_surfaces_wf, bold_wf, [
                         ('outputnode.midthickness_fsLR', 'inputnode.midthickness_fsLR'),
                     ]),
