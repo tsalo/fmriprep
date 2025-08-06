@@ -102,7 +102,7 @@ def init_fmriprep_wf():
             ses_str = stringify_sessions(sessions)
             log_dir /= f'ses-{ses_str}'
 
-        log_dir /= 'log' / config.execution.run_uuid
+        log_dir = log_dir / 'log' / config.execution.run_uuid
 
         wf_name = '_'.join(
             ('sub', subject_id,) +
