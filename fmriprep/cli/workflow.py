@@ -88,7 +88,7 @@ def build_workflow(config_file, retval):
         config.execution.layout,
         subject_list,
         session_list,
-        config.execution.subject_anatomical_reference,
+        config.workflow.subject_anatomical_reference,
     )
     config.execution.processing_groups = subject_session_list
 
@@ -255,7 +255,7 @@ def create_processing_groups(
     subject_list: list,
     session_list: list | str | None,
     subject_anatomical_reference: str,
-):
+) -> list[tuple[str]]:
     """Generate a list of subject-session pairs to be processed."""
     from bids.layout import Query
     subject_session_list = []
@@ -277,6 +277,10 @@ def create_processing_groups(
                     f'found for subject {subject}.'
                 )
             for session in sessions:
+                if len(session) == 1:
+                    session = session[0]
                 subject_session_list.append((subject, session))
         else:
             subject_session_list.append((subject, sessions))
+
+    return subject_session_list
