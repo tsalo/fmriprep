@@ -68,7 +68,7 @@ def estimate_bold_mem_usage(bold_fname: str) -> tuple[int, dict]:
     return bold_tlen, mem_gb
 
 
-def fmt_subjects_sessions(subses: list[str], concat_limit: int = 1):
+def fmt_subjects_sessions(subses: list[tuple[str]], concat_limit: int = 1):
     """
     Format a list of subjects and sessions to be printed.
 
