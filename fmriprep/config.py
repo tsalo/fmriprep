@@ -232,6 +232,12 @@ class _Config:
                 else:
                     setattr(cls, k, Path(v).absolute())
             elif hasattr(cls, k):
+                match k:
+                    # Handle special deserializations
+                    case 'processing_groups':
+                        v = _deserialize_pg(v)
+                    case _:
+                        pass
                 setattr(cls, k, v)
 
         if init:
@@ -785,6 +791,10 @@ def get(flat=False):
         'nipype': nipype.get(),
         'seeds': seeds.get(),
     }
+
+    if (pg := settings['execution'].get('processing_groups')):
+        settings['execution']['processing_groups'] = _serialize_pg(pg)
+
     if not flat:
         return settings
 
@@ -836,3 +846,50 @@ def init_spaces(checkpoint=True):
 
     # Make the SpatialReferences object available
     workflow.spaces = spaces
+
+def _serialize_pg(value: list[tuple[str, list[str] | None]]) -> list[str]:
+    """
+    Serialize a list of participant-session tuples to be TOML-compatible.
+
+    Examples
+    --------
+    >>> _serialize_pg([('01', ['pre']), ('01', ['post'])])
+    ['01:pre', '01:post']
+    >>> _serialize_pg([('01', ['pre', 'post']), ('02', ['post'])])
+    ['01:pre,post', '02:post']
+    >>> _serialize_pg([('01', None), ('02', ['pre'])])
+    ['01', '02:pre']
+    """
+    serial = []
+    for val in value:
+        if val[1] is None:
+            serial.append(val[0])
+        else:
+            if not isinstance(val[1], list):
+                val[1] = [val[1]]
+            serial.append(f'{val[0]}:{",".join(val[1])}')
+    return serial
+
+
+def _deserialize_pg(value: list[str]) -> list[tuple[str, list[str] | None]]:
+    """
+    Deserialize a list of participant-session tuples to be TOML-compatible.
+
+    Examples
+    --------
+    >>> _deserialize_pg(['01:pre', '01:post'])
+    [('01', ['pre']), ('01', ['post'])]
+    >>> _deserialize_pg(['01:pre,post', '02:post'])
+    [('01', ['pre', 'post']), ('02', ['post'])]
+    >>> _deserialize_pg(['01', '02:pre'])
+    [('01', None), ('02', ['pre'])]
+    """
+    deserial = []
+    for val in value:
+        vals = val.split(':', 1)
+        if len(vals) == 1:
+            vals.append(None)
+        else:
+            vals[1] = vals[1].split(',')
+        deserial.append(tuple(vals))
+    return deserial
