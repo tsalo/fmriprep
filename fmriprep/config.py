@@ -792,9 +792,6 @@ def get(flat=False):
         'seeds': seeds.get(),
     }
 
-    if pg := settings['execution'].get('processing_groups'):
-        settings['execution']['processing_groups'] = _serialize_pg(pg)
-
     if not flat:
         return settings
 
@@ -809,7 +806,12 @@ def dumps():
     """Format config into toml."""
     from toml import dumps
 
-    return dumps(get())
+    settings = get()
+    # Serialize to play nice with TOML
+    if pg := settings['execution'].get('processing_groups'):
+        settings['execution']['processing_groups'] = _serialize_pg(pg)
+
+    return dumps(settings)
 
 
 def to_filename(filename):
