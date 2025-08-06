@@ -792,7 +792,7 @@ def get(flat=False):
         'seeds': seeds.get(),
     }
 
-    if (pg := settings['execution'].get('processing_groups')):
+    if pg := settings['execution'].get('processing_groups'):
         settings['execution']['processing_groups'] = _serialize_pg(pg)
 
     if not flat:
@@ -846,6 +846,7 @@ def init_spaces(checkpoint=True):
 
     # Make the SpatialReferences object available
     workflow.spaces = spaces
+
 
 def _serialize_pg(value: list[tuple[str, list[str] | None]]) -> list[str]:
     """

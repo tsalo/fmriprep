@@ -30,10 +30,12 @@ dictionary (``retval``) to allow isolation using a
 a hard-limited memory-scope.
 
 """
+
 import typing as ty
 
 if ty.TYPE_CHECKING:
     from bids.layout import BIDSLayout
+
 
 def build_workflow(config_file, retval):
     """Create the Nipype Workflow that supports the whole execution graph."""
@@ -95,9 +97,7 @@ def build_workflow(config_file, retval):
     # Called with reports only
     if config.execution.reports_only:
         build_log.log(
-            25,
-            'Running --reports-only on %s',
-            fmt_subjects_sessions(subject_session_list)
+            25, 'Running --reports-only on %s', fmt_subjects_sessions(subject_session_list)
         )
         if not session_list:
             session_list = (
@@ -258,6 +258,7 @@ def create_processing_groups(
 ) -> list[tuple[str]]:
     """Generate a list of subject-session pairs to be processed."""
     from bids.layout import Query
+
     subject_session_list = []
 
     for subject in subject_list:
