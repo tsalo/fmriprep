@@ -599,7 +599,7 @@ class workflow(_Config):
     level = None
     """Level of preprocessing to complete. One of ['minimal', 'resampling', 'full']."""
     longitudinal = False
-    """*Deprecated* - run FreeSurfer ``recon-all`` with the ``-logitudinal`` flag."""
+    """*Deprecated* - see ``subject_anatomical_reference`` 'unbiased'"""
     run_msmsulc = True
     """Run Multimodal Surface Matching surface registration."""
     medial_surface_nan = None
