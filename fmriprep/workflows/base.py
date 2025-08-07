@@ -191,8 +191,8 @@ def init_single_subject_wf(
         init_resample_surfaces_wf,
     )
 
-    from fmriprep.workflows.bold.base import init_bold_wf
     from fmriprep.interfaces.bids import BIDSSourceFile, CreateFreeSurferID
+    from fmriprep.workflows.bold.base import init_bold_wf
 
     if name is None:
         name = f'sub_{subject_id}_wf'

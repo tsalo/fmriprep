@@ -630,7 +630,7 @@ class workflow(_Config):
     """Keeps the :py:class:`~niworkflows.utils.spaces.SpatialReferences`
     instance keeping standard and nonstandard spaces."""
     subject_anatomical_reference = 'first-lex'
-    """Method to produce the reference anatomical space. Availalble options are:
+    """Method to produce the reference anatomical space. Available options are:
     `first-lex` will use the first image in lexicographical order, `unbiased` will
     construct an unbiased template from all available images (previously --longitudinal),
     and `sessionwise` will independently process each session."""
