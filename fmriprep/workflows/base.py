@@ -176,7 +176,6 @@ def init_single_subject_wf(
     from niworkflows.interfaces.nilearn import NILEARN_VERSION
     from niworkflows.interfaces.utility import KeySelect
     from niworkflows.utils.bids import collect_data
-    from niworkflows.utils.misc import fix_multi_T1w_source_name
     from niworkflows.utils.spaces import Reference
     from smriprep.workflows.anatomical import init_anat_fit_wf
     from smriprep.workflows.outputs import (
@@ -193,6 +192,7 @@ def init_single_subject_wf(
     )
 
     from fmriprep.workflows.bold.base import init_bold_wf
+    from fmriprep.interfaces.bids import BIDSSourceFile, CreateFreeSurferID
 
     if name is None:
         name = f'sub_{subject_id}_wf'
@@ -300,9 +300,19 @@ It is released under the [CC0]\
         name='bidssrc',
     )
 
+    src_file = pe.Node(
+        BIDSSourceFile(
+            precomputed=anatomical_cache,
+            sessionwise=config.workflow.subject_anatomical_reference == 'sessionwise',
+        ),
+        name='source_anatomical',
+    )
+
     bids_info = pe.Node(
         BIDSInfo(bids_dir=config.execution.bids_dir, bids_validate=False), name='bids_info'
     )
+
+    create_fs_id = pe.Node(CreateFreeSurferID(), name='create_fs_id')
 
     summary = pe.Node(
         SubjectSummary(
@@ -372,17 +382,15 @@ It is released under the [CC0]\
             'No T1w image found; using precomputed T1w image: %s', anatomical_cache['t1w_preproc']
         )
         workflow.connect([
-            (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
             (anat_fit_wf, summary, [('outputnode.t1w_preproc', 't1w')]),
             (anat_fit_wf, ds_report_summary, [('outputnode.t1w_preproc', 'source_file')]),
             (anat_fit_wf, ds_report_about, [('outputnode.t1w_preproc', 'source_file')]),
         ])  # fmt:skip
     else:
         workflow.connect([
-            (bidssrc, bids_info, [(('t1w', fix_multi_T1w_source_name), 'in_file')]),
-            (bidssrc, summary, [('t1w', 't1w')]),
-            (bidssrc, ds_report_summary, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
-            (bidssrc, ds_report_about, [(('t1w', fix_multi_T1w_source_name), 'source_file')]),
+            (src_file, summary, [('source_file', 't1w')]),
+            (src_file, ds_report_summary, [('source_file', 'source_file')]),
+            (src_file, ds_report_about, [('source_file', 'source_file')]),
         ])  # fmt:skip
 
     workflow.connect([
@@ -393,7 +401,13 @@ It is released under the [CC0]\
             ('roi', 'inputnode.roi'),
             ('flair', 'inputnode.flair'),
         ]),
-        (bids_info, anat_fit_wf, [(('subject', _prefix, 'session'), 'inputnode.subject_id')]),
+        (bidssrc, src_file, [('out_dict', 'bids_info')]),
+        (src_file, bids_info, [('source_file', 'in_file')]),
+        (bids_info, create_fs_id, [
+            ('subject', 'subject_id'),
+            ('session', 'session_id'),
+        ]),
+        (create_fs_id, anat_fit_wf, [('subject_id', 'inputnode.subject_id')]),
         # Reporting connections
         (inputnode, summary, [('subjects_dir', 'subjects_dir')]),
         (bidssrc, summary, [('t2w', 't2w'), ('bold', 'bold')]),
@@ -955,23 +969,6 @@ def map_fieldmap_estimation(
     fmap_estimators = [f for f in fmap_estimators if f.bids_id in estimator_map.values()]
 
     return fmap_estimators, estimator_map
-
-
-def _prefix(subject_id, session_id=None):
-    """Create FreeSurfer subject ID."""
-    if not subject_id.startswith('sub-'):
-        subject_id = f'sub-{subject_id}'
-
-    if session_id:
-        ses_str = session_id
-        if isinstance(session_id, list):
-            from smriprep.utils.misc import stringify_sessions
-
-            ses_str = stringify_sessions(session_id)
-        if not ses_str.startswith('ses-'):
-            ses_str = f'ses-{ses_str}'
-        subject_id += f'_{ses_str}'
-    return subject_id
 
 
 def clean_datasinks(workflow: pe.Workflow) -> pe.Workflow:
