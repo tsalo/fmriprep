@@ -178,18 +178,18 @@ In the case of multiple T1w images (across sessions and/or runs), *fMRIPrep* pro
 a few choices on how to generate the reference anatomical space.
 
 If ``--subject-anatomical-reference first-lex`` is used, all T1w images are
-merged into a single template image using FreeSurfer's `mri_robust_template`_, aligned
+merged into a single template image using FreeSurfer's `mri_robust_template`_,
 aligned to the first image (determined lexicographically by session label). This is
 the default behavior.
 
 If ``--subject-anatomical-reference unbiased`` is used, all T1w images are merged into
-a an *unbiased* template, or equidistant from all source images.
+an *unbiased* template, equidistant from all source images.
 For two images, the additional cost of estimating an unbiased template is trivial,
 but aligning three or more images is too expensive to justify being the default behavior.
 
 If ``--subject-anatomical-reference sessionwise`` is used, a reference template will be
 generated for each session independently. If multiple T1w images are found within a session,
-other images will align to the first lexicographical image.
+the images will be aligned to the first lexicographical image from that session.
 
 .. note::
 
