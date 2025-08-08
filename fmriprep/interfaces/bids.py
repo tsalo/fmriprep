@@ -172,7 +172,7 @@ def _create_fs_id(subject_id, session_id=None):
     >>> _create_fs_id('sub-01')
     'sub-01'
     >>> _create_fs_id('01', 'pre')
-    'sub-01_ses-pre
+    'sub-01_ses-pre'
     """
 
     if not subject_id.startswith('sub-'):
