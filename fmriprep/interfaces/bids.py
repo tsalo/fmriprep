@@ -125,11 +125,11 @@ def _create_multi_source_file(in_files, sessionwise=False):
 
     Examples
     --------
-    >>> _create_multi_source_name([
+    >>> _create_multi_source_file([
     ...     '/path/to/sub-045_ses-test_T1w.nii.gz',
     ...     '/path/to/sub-045_ses-retest_T1w.nii.gz'])
     '/path/to/sub-045_T1w.nii.gz'
-    >>> _create_multi_source_name([
+    >>> _create_multi_source_file([
     ...     '/path/to/sub-045_ses-1_run-1_T1w.nii.gz',
     ...     '/path/to/sub-045_ses-1_run-2_T1w.nii.gz'],
     ...     sessionwise=True)
