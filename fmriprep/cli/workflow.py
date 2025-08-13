@@ -31,16 +31,9 @@ a hard-limited memory-scope.
 
 """
 
-import typing as ty
-
-if ty.TYPE_CHECKING:
-    from bids.layout import BIDSLayout
-
-
 def build_workflow(config_file, retval):
     """Create the Nipype Workflow that supports the whole execution graph."""
 
-    from niworkflows.utils.bids import collect_participants
     from niworkflows.utils.misc import check_valid_fs_license
 
     from fmriprep import config, data
@@ -73,32 +66,14 @@ def build_workflow(config_file, retval):
     if msg is not None:
         build_log.warning(msg)
 
-    # Please note this is the input folder's dataset_description.json
-    dset_desc_path = config.execution.bids_dir / 'dataset_description.json'
-    if dset_desc_path.exists():
-        from hashlib import sha256
-
-        desc_content = dset_desc_path.read_bytes()
-        config.execution.bids_description_hash = sha256(desc_content).hexdigest()
-
-    # First check that bids_dir looks like a BIDS folder
-    subject_list = collect_participants(
-        config.execution.layout, participant_label=config.execution.participant_label
-    )
-    session_list = config.execution.session_label or []
-    subject_session_list = create_processing_groups(
-        config.execution.layout,
-        subject_list,
-        session_list,
-        config.workflow.subject_anatomical_reference,
-    )
-    config.execution.processing_groups = subject_session_list
-
     # Called with reports only
     if config.execution.reports_only:
         build_log.log(
-            25, 'Running --reports-only on %s', fmt_subjects_sessions(subject_session_list)
+            25,
+            'Running --reports-only on %s',
+            fmt_subjects_sessions(config.execution.processing_groups),
         )
+        session_list = config.execution.session_label
         if not session_list:
             session_list = (
                 config.execution.bids_filters.get('bold', {}).get('session')
@@ -125,7 +100,7 @@ def build_workflow(config_file, retval):
     init_msg = [
         "Building fMRIPrep's workflow:",
         f'BIDS dataset path: {config.execution.bids_dir}.',
-        f'Participants and sessions: {fmt_subjects_sessions(subject_session_list)}.',
+        f'Participants and sessions: {fmt_subjects_sessions(config.execution.processing_groups)}.',
         f'Run identifier: {config.execution.run_uuid}.',
         f'Output spaces: {config.execution.output_spaces}.',
     ]
@@ -248,40 +223,3 @@ def build_boilerplate(config_file, workflow):
             check_call(cmd, timeout=10)
         except (FileNotFoundError, CalledProcessError, TimeoutExpired):
             config.loggers.cli.warning('Could not generate CITATION.tex file:\n%s', ' '.join(cmd))
-
-
-def create_processing_groups(
-    layout: 'BIDSLayout',
-    subject_list: list,
-    session_list: list | str | None,
-    subject_anatomical_reference: str,
-) -> list[tuple[str]]:
-    """Generate a list of subject-session pairs to be processed."""
-    from bids.layout import Query
-
-    subject_session_list = []
-
-    for subject in subject_list:
-        sessions = (
-            layout.get_sessions(
-                scope='raw',
-                subject=subject,
-                session=session_list or Query.OPTIONAL,
-            )
-            or None
-        )
-
-        if subject_anatomical_reference == 'sessionwise':
-            if not sessions:
-                raise RuntimeError(
-                    '`--subject-anatomical-reference sessionwise` was requested, but no sessions '
-                    f'found for subject {subject}.'
-                )
-            for session in sessions:
-                if len(session) == 1:
-                    session = session[0]
-                subject_session_list.append((subject, session))
-        else:
-            subject_session_list.append((subject, sessions))
-
-    return subject_session_list

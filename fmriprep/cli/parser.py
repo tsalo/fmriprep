@@ -786,6 +786,7 @@ def parse_args(args=None, namespace=None):
     """Parse args and run further checks on the command line."""
     import logging
 
+    from niworkflows.utils.bids import collect_participants
     from niworkflows.utils.spaces import Reference, SpatialReferences
 
     parser = _build_parser()
@@ -952,19 +953,68 @@ applied."""
     work_dir.mkdir(exist_ok=True, parents=True)
 
     # Force initialization of the BIDSLayout
+    config.loggers.cli.debug('Initializing BIDS Layout')
     config.execution.init()
-    all_subjects = config.execution.layout.get_subjects()
-    if config.execution.participant_label is None:
-        config.execution.participant_label = all_subjects
 
-    participant_label = set(config.execution.participant_label)
-    missing_subjects = participant_label - set(all_subjects)
-    if missing_subjects:
-        parser.error(
-            'One or more participant labels were not found in the BIDS directory: {}.'.format(
-                ', '.join(missing_subjects)
+    # Please note this is the input folder's dataset_description.json
+    dset_desc_path = config.execution.bids_dir / 'dataset_description.json'
+    if dset_desc_path.exists():
+        from hashlib import sha256
+
+        desc_content = dset_desc_path.read_bytes()
+        config.execution.bids_description_hash = sha256(desc_content).hexdigest()
+
+    # First check that bids_dir looks like a BIDS folder
+    subject_list = collect_participants(
+        config.execution.layout, participant_label=config.execution.participant_label
+    )
+    if config.execution.participant_label is None:
+        config.execution.participant_label = subject_list
+
+    session_list = config.execution.session_label or []
+    subject_session_list = create_processing_groups(
+        config.execution.layout,
+        subject_list,
+        session_list,
+        config.workflow.subject_anatomical_reference,
+    )
+    config.execution.processing_groups = subject_session_list
+    config.execution.participant_label = sorted(subject_list)
+    config.workflow.skull_strip_template = config.workflow.skull_strip_template[0]
+
+
+def create_processing_groups(
+    layout: 'BIDSLayout',
+    subject_list: list,
+    session_list: list | str | None,
+    subject_anatomical_reference: str,
+) -> list[tuple[str]]:
+    """Generate a list of subject-session pairs to be processed."""
+    from bids.layout import Query
+
+    subject_session_list = []
+
+    for subject in subject_list:
+        sessions = (
+            layout.get_sessions(
+                scope='raw',
+                subject=subject,
+                session=session_list or Query.OPTIONAL,
             )
+            or None
         )
 
-    config.execution.participant_label = sorted(participant_label)
-    config.workflow.skull_strip_template = config.workflow.skull_strip_template[0]
+        if subject_anatomical_reference == 'sessionwise':
+            if not sessions:
+                raise RuntimeError(
+                    '`--subject-anatomical-reference sessionwise` was requested, but no sessions '
+                    f'found for subject {subject}.'
+                )
+            for session in sessions:
+                if len(session) == 1:
+                    session = session[0]
+                subject_session_list.append((subject, session))
+        else:
+            subject_session_list.append((subject, sessions))
+
+    return subject_session_list
