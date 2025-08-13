@@ -598,8 +598,6 @@ class workflow(_Config):
     """Force particular steps for *fMRIPrep*."""
     level = None
     """Level of preprocessing to complete. One of ['minimal', 'resampling', 'full']."""
-    longitudinal = False
-    """*Deprecated* - see ``subject_anatomical_reference`` 'unbiased'"""
     run_msmsulc = True
     """Run Multimodal Surface Matching surface registration."""
     medial_surface_nan = None
@@ -857,20 +855,20 @@ def _serialize_pg(value: list[tuple[str, list[str] | None]]) -> list[str]:
     Examples
     --------
     >>> _serialize_pg([('01', ['pre']), ('01', ['post'])])
-    ['01:pre', '01:post']
+    ['sub-01_ses-pre', 'sub-01_ses-post']
     >>> _serialize_pg([('01', ['pre', 'post']), ('02', ['post'])])
-    ['01:pre,post', '02:post']
+    ['sub-01_ses-pre,post', 'sub-02_ses-post']
     >>> _serialize_pg([('01', None), ('02', ['pre'])])
-    ['01', '02:pre']
+    ['sub-01', 'sub-02_ses-pre']
     """
     serial = []
     for val in value:
         if val[1] is None:
-            serial.append(val[0])
+            serial.append(f'sub-{val[0]}')
         else:
             if not isinstance(val[1], list):
                 val[1] = [val[1]]
-            serial.append(f'{val[0]}:{",".join(val[1])}')
+            serial.append(f'sub-{val[0]}_ses-{",".join(val[1])}')
     return serial
 
 
@@ -880,19 +878,21 @@ def _deserialize_pg(value: list[str]) -> list[tuple[str, list[str] | None]]:
 
     Examples
     --------
-    >>> _deserialize_pg(['01:pre', '01:post'])
+    >>> _deserialize_pg(['sub-01_ses-pre', 'sub-01_ses-post'])
     [('01', ['pre']), ('01', ['post'])]
-    >>> _deserialize_pg(['01:pre,post', '02:post'])
+    >>> _deserialize_pg(['sub-01_ses-pre,post', 'sub-02_ses-post'])
     [('01', ['pre', 'post']), ('02', ['post'])]
-    >>> _deserialize_pg(['01', '02:pre'])
+    >>> _deserialize_pg(['sub-01', 'sub-02_ses-pre'])
     [('01', None), ('02', ['pre'])]
     """
     deserial = []
     for val in value:
-        vals = val.split(':', 1)
+        vals = val.split('_', 1)
+        vals[0] = vals[0].removeprefix('sub-')
         if len(vals) == 1:
             vals.append(None)
         else:
+            vals[1] = vals[1].removeprefix('ses-')
             vals[1] = vals[1].split(',')
         deserial.append(tuple(vals))
     return deserial
