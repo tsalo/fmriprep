@@ -23,9 +23,13 @@
 """Parser."""
 
 import sys
+import typing as ty
 from pathlib import Path
 
 from .. import config
+
+if ty.TYPE_CHECKING:
+    from bids import BIDSLayout
 
 
 def _build_parser(**kwargs):

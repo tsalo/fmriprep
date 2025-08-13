@@ -31,6 +31,7 @@ a hard-limited memory-scope.
 
 """
 
+
 def build_workflow(config_file, retval):
     """Create the Nipype Workflow that supports the whole execution graph."""
 
