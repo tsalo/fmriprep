@@ -362,7 +362,7 @@ It is released under the [CC0]\
         freesurfer=config.workflow.run_reconall,
         hires=config.workflow.hires,
         fs_no_resume=config.workflow.fs_no_resume,
-        longitudinal=config.workflow.longitudinal,
+        longitudinal=config.workflow.subject_anatomical_reference == 'unbiased',
         msm_sulc=msm_sulc,
         t1w=subject_data['t1w'],
         t2w=subject_data['t2w'],
