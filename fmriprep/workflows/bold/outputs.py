@@ -267,7 +267,6 @@ def init_func_fit_reports_wf(
         mem_gb=1,
     )
 
-    # fmt:off
     workflow.connect([
         (inputnode, ds_summary, [
             ('source_file', 'source_file'),
@@ -288,8 +287,7 @@ def init_func_fit_reports_wf(
             ('boldref2anat_xfm', 'transforms'),
         ]),
         (t1w_wm, boldref_wm, [('out', 'input_image')]),
-    ])
-    # fmt:on
+    ])  # fmt:skip
 
     # Reportlets follow the structure of init_bold_fit_wf stages
     # - SDC1:
@@ -424,15 +422,13 @@ def init_func_fit_reports_wf(
         name='ds_epi_t1_report',
     )
 
-    # fmt:off
     workflow.connect([
         (inputnode, epi_t1_report, [('coreg_boldref', 'after')]),
         (t1w_boldref, epi_t1_report, [('output_image', 'before')]),
         (boldref_wm, epi_t1_report, [('output_image', 'wm_seg')]),
         (inputnode, ds_epi_t1_report, [('source_file', 'source_file')]),
         (epi_t1_report, ds_epi_t1_report, [('out_report', 'in_file')]),
-    ])
-    # fmt:on
+    ])  # fmt:skip
 
     return workflow
 
@@ -473,15 +469,13 @@ def init_ds_boldref_wf(
         run_without_submitting=True,
     )
 
-    # fmt:off
     workflow.connect([
         (inputnode, sources, [('source_files', 'in1')]),
         (inputnode, ds_boldref, [('boldref', 'in_file'),
                                  ('source_files', 'source_file')]),
         (sources, ds_boldref, [('out', 'Sources')]),
         (ds_boldref, outputnode, [('out_file', 'boldref')]),
-    ])
-    # fmt:on
+    ])  # fmt:skip
 
     return workflow
 
@@ -625,15 +619,13 @@ def init_ds_hmc_wf(
         run_without_submitting=True,
     )
 
-    # fmt:off
     workflow.connect([
         (inputnode, sources, [('source_files', 'in1')]),
         (inputnode, ds_xforms, [('xforms', 'in_file'),
                                 ('source_files', 'source_file')]),
         (sources, ds_xforms, [('out', 'Sources')]),
         (ds_xforms, outputnode, [('out_file', 'xforms')]),
-    ])
-    # fmt:on
+    ])  # fmt:skip
 
     return workflow
 
@@ -1011,7 +1003,6 @@ def init_bold_preproc_report_wf(
         mem_gb=DEFAULT_MEMORY_MIN_GB,
         run_without_submitting=True,
     )
-    # fmt:off
     workflow.connect([
         (inputnode, ds_report_bold, [('name_source', 'source_file')]),
         (inputnode, pre_tsnr, [('in_pre', 'in_file')]),
@@ -1019,7 +1010,6 @@ def init_bold_preproc_report_wf(
         (pre_tsnr, bold_rpt, [('stddev_file', 'before')]),
         (pos_tsnr, bold_rpt, [('stddev_file', 'after')]),
         (bold_rpt, ds_report_bold, [('out_report', 'in_file')]),
-    ])
-    # fmt:on
+    ])  # fmt:skip
 
     return workflow
