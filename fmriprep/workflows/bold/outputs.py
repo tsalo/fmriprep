@@ -546,7 +546,7 @@ def init_ds_registration_wf(
     workflow = pe.Workflow(name=name)
 
     inputnode = pe.Node(
-        niu.IdentityInterface(fields=['source_files', 'xform']),
+        niu.IdentityInterface(fields=['source_files', 'xform', 'metadata']),
         name='inputnode',
     )
     outputnode = pe.Node(niu.IdentityInterface(fields=['xform']), name='outputnode')
@@ -574,15 +574,16 @@ def init_ds_registration_wf(
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
-    # fmt:off
     workflow.connect([
         (inputnode, sources, [('source_files', 'in1')]),
-        (inputnode, ds_xform, [('xform', 'in_file'),
-                               ('source_files', 'source_file')]),
+        (inputnode, ds_xform, [
+            ('xform', 'in_file'),
+            ('source_files', 'source_file'),
+            ('metadata', 'meta_dict'),
+        ]),
         (sources, ds_xform, [('out', 'Sources')]),
         (ds_xform, outputnode, [('out_file', 'xform')]),
-    ])
-    # fmt:on
+    ])  # fmt:skip
 
     return workflow
 

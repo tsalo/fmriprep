@@ -128,6 +128,8 @@ def init_bold_reg_wf(
         Affine transform from T1 space to BOLD space (ITK format)
     fallback
         Boolean indicating whether BBR was rejected (mri_coreg registration returned)
+    metadata
+        Output metadata from the registration workflow
 
     See Also
     --------
@@ -154,7 +156,7 @@ def init_bold_reg_wf(
     )
 
     outputnode = pe.Node(
-        niu.IdentityInterface(fields=['itk_bold_to_t1', 'itk_t1_to_bold', 'fallback']),
+        niu.IdentityInterface(fields=['itk_bold_to_t1', 'itk_t1_to_bold', 'fallback', 'metadata']),
         name='outputnode',
     )
 
@@ -188,6 +190,7 @@ def init_bold_reg_wf(
             ('outputnode.itk_bold_to_t1', 'itk_bold_to_t1'),
             ('outputnode.itk_t1_to_bold', 'itk_t1_to_bold'),
             ('outputnode.fallback', 'fallback'),
+            ('outputnode.metadata', 'metadata'),
         ]),
     ])  # fmt:skip
 
@@ -268,6 +271,8 @@ def init_bbreg_wf(
         Affine transform from T1 space to BOLD space (ITK format)
     fallback
         Boolean indicating whether BBR was rejected (mri_coreg registration returned)
+    metadata
+        Output metadata from the registration workflow
 
     """
     from nipype.interfaces.freesurfer import BBRegister
@@ -309,7 +314,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         name='inputnode',
     )
     outputnode = pe.Node(
-        niu.IdentityInterface(['itk_bold_to_t1', 'itk_t1_to_bold', 'fallback']),
+        niu.IdentityInterface(['itk_bold_to_t1', 'itk_t1_to_bold', 'fallback', 'metadata']),
         name='outputnode',
     )
 
@@ -357,6 +362,9 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
     merge_ltas = pe.Node(niu.Merge(2), name='merge_ltas', run_without_submitting=True)
     concat_xfm = pe.Node(ConcatenateXFMs(inverse=True), name='concat_xfm')
 
+    metadata = pe.Node(niu.Merge(2), run_without_submitting=True, name='metadata')
+    select_meta = pe.Node(niu.Select(index=0), run_without_submitting=True, name='select_meta')
+
     workflow.connect([
         (inputnode, merge_ltas, [('fsnative2t1w_xfm', 'in2')]),
         # Wire up the co-registration alternatives
@@ -365,10 +373,18 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         (merge_ltas, concat_xfm, [('out', 'in_xfms')]),
         (concat_xfm, outputnode, [('out_xfm', 'itk_bold_to_t1')]),
         (concat_xfm, outputnode, [('out_inv', 'itk_t1_to_bold')]),
+        # Wire up the metadata alternatives
+        (metadata, select_meta, [('out', 'inlist')]),
+        (select_meta, outputnode, [('out', 'metadata')]),
     ])  # fmt:skip
 
     # Do not initialize with header, use mri_coreg
     if bold2anat_init != 'header':
+        metadata.inputs.in2 = {
+            'GeneratedBy': [
+                {'Name': 'mri_coreg', 'Version': mri_coreg.interface.version or '<unknown>'}
+            ]
+        }
         workflow.connect([
             (inputnode, mri_coreg, [('subjects_dir', 'subjects_dir'),
                                     ('subject_id', 'subject_id'),
@@ -400,6 +416,12 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         (bbregister, transforms, [('out_lta_file', 'in1')]),
     ])  # fmt:skip
 
+    metadata.inputs.in1 = {
+        'GeneratedBy': [
+            {'Name': 'bbregister', 'Version': bbregister.interface.version or '<unknown>'}
+        ]
+    }
+
     # Short-circuit workflow building, use boundary-based registration
     if use_bbr is True:
         outputnode.inputs.fallback = False
@@ -413,6 +435,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         (transforms, compare_transforms, [('out', 'lta_list')]),
         (compare_transforms, outputnode, [('out', 'fallback')]),
         (compare_transforms, select_transform, [('out', 'index')]),
+        (compare_transforms, select_meta, [('out', 'index')]),
     ])  # fmt:skip
 
     return workflow
@@ -493,6 +516,8 @@ def init_fsl_bbr_wf(
         Affine transform from T1 space to BOLD space (ITK format)
     fallback
         Boolean indicating whether BBR was rejected (rigid FLIRT registration returned)
+    metadata
+        Output metadata from the registration workflow
 
     """
     from nipype.interfaces.freesurfer import MRICoreg
@@ -532,7 +557,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         name='inputnode',
     )
     outputnode = pe.Node(
-        niu.IdentityInterface(['itk_bold_to_t1', 'itk_t1_to_bold', 'fallback']),
+        niu.IdentityInterface(['itk_bold_to_t1', 'itk_t1_to_bold', 'fallback', 'metadata']),
         name='outputnode',
     )
 
@@ -548,6 +573,9 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         LOGGER.warning(
             'T2w intermediate for FSL is not implemented, registering with T1w instead.'
         )
+
+    metadata = pe.Node(niu.Merge(2), run_without_submitting=True, name='metadata')
+    select_meta = pe.Node(niu.Select(index=0), run_without_submitting=True, name='select_meta')
 
     # Mask T1w_preproc with T1w_mask to make T1w_brain
     mask_t1w_brain = pe.Node(ApplyMask(), name='mask_t1w_brain')
@@ -565,6 +593,12 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         mem_gb=DEFAULT_MEMORY_MIN_GB,
     )
 
+    metadata.inputs.in2 = {
+        'GeneratedBy': [
+            {'Name': 'mri_coreg', 'Version': mri_coreg.interface.version or '<unknown>'}
+        ]
+    }
+
     workflow.connect([
         (inputnode, mask_t1w_brain, [
             ('t1w_preproc', 'in_file'),
@@ -578,6 +612,9 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
             ('out_xfm', 'itk_bold_to_t1'),
             ('out_inv', 'itk_t1_to_bold'),
         ]),
+        # Wire up the metadata alternatives
+        (metadata, select_meta, [('out', 'inlist')]),
+        (select_meta, outputnode, [('out', 'metadata')]),
     ])  # fmt:skip
 
     # Short-circuit workflow building, use rigid registration
@@ -603,6 +640,10 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         # Should mostly be hit while building docs
         LOGGER.warning('FSLDIR unset - using packaged BBR schedule')
         flt_bbr.inputs.schedule = data.load('flirtsch/bbr.sch')
+
+    metadata.inputs.in1 = {
+        'GeneratedBy': [{'Name': 'flirt', 'Version': flt_bbr.interface.version or '<unknown>'}]
+    }
 
     workflow.connect([
         (inputnode, wm_mask, [('t1w_dseg', 'in_seg')]),
@@ -658,6 +699,8 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         (transforms, select_transform, [('out', 'inlist')]),
         (compare_transforms, select_transform, [('out', 'index')]),
         (select_transform, xfm2itk, [('out', 'in_xfm')]),
+        # Select metadata
+        (compare_transforms, select_meta, [('out', 'index')]),
     ])  # fmt:skip
 
     return workflow
