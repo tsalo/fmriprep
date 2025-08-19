@@ -430,7 +430,7 @@ Co-registration was configured with {dof} degrees of freedom{reason}.
         ]
     }
 
-    costs = pe.Node(niu.Merge(2), run_without_submitting=True, name='cost')
+    costs = pe.Node(niu.Merge(2), run_without_submitting=True, name='costs')
     select_cost = pe.Node(niu.Select(index=0), run_without_submitting=True, name='select_cost')
     read_cost = pe.Node(niu.Function(function=_read_cost), name='read_cost')
 
