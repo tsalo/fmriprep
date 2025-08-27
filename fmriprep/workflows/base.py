@@ -421,17 +421,10 @@ It is released under the [CC0]\
             ])  # fmt:skip
 
         if freesurfer:
-            from smriprep.workflows.outputs import (
-                init_ds_fs_segs_wf,
-                init_ds_surface_metrics_wf,
-                init_ds_surfaces_wf,
-            )
+            from smriprep.workflows.outputs import init_ds_fs_segs_wf, init_ds_surface_metrics_wf
             from smriprep.workflows.surfaces import init_surface_derivatives_wf
 
-            ds_fs_segs_wf = init_ds_fs_segs_wf(
-                bids_root=bids_root,
-                output_dir=fmriprep_dir,
-            )
+            ds_fs_segs_wf = init_ds_fs_segs_wf(bids_root=bids_root, output_dir=fmriprep_dir)
             surface_derivatives_wf = init_surface_derivatives_wf()
             ds_surfaces_wf = init_ds_surfaces_wf(output_dir=fmriprep_dir, surfaces=['inflated'])
             ds_curv_wf = init_ds_surface_metrics_wf(
