@@ -128,6 +128,7 @@ sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_boldref.json
 sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_boldref.nii.gz
 sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-brain_mask.json
 sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-brain_mask.nii.gz
+sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-goodvoxels_mask.nii.gz
 sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-preproc_bold.json
 sub-01/func/sub-01_task-mixedgamblestask_run-02_space-T1w_desc-preproc_bold.nii.gz
 sub-01.html
