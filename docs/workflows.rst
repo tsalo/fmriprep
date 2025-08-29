@@ -189,7 +189,7 @@ but aligning three or more images is too expensive to justify being the default 
 
 If ``--subject-anatomical-reference sessionwise`` is used, a reference template will be
 generated for each session independently. If multiple T1w images are found within a session,
-the images will be aligned to the first lexicographical image from that session.
+the images will be aligned to the first image, sorted lexicographically, from that session.
 
 .. note::
 

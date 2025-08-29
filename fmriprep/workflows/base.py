@@ -104,14 +104,7 @@ def init_fmriprep_wf():
 
         log_dir = log_dir / 'log' / config.execution.run_uuid
 
-        wf_name = '_'.join(
-            (
-                'sub',
-                subject_id,
-            )
-            + (('ses', ses_str) if ses_str else ())
-            + ('wf',)
-        )
+        wf_name = '_'.join(['sub', subject_id, *(('ses', ses_str) if ses_str else ()), 'wf'])
         single_subject_wf = init_single_subject_wf(subject_id, sessions, name=wf_name)
 
         single_subject_wf.config['execution']['crashdump_dir'] = str(log_dir)
