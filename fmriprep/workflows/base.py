@@ -214,6 +214,7 @@ It is released under the [CC0]\
     if 't2w' in config.workflow.ignore:
         subject_data['t2w'] = []
 
+    freesurfer = config.workflow.run_reconall
     anat_only = config.workflow.anat_only
     # Make sure we always go through these two checks
     if not anat_only and not subject_data['bold']:
@@ -319,7 +320,7 @@ It is released under the [CC0]\
     anat_fit_wf = init_anat_fit_wf(
         bids_root=bids_root,
         output_dir=fmriprep_dir,
-        freesurfer=config.workflow.run_reconall,
+        freesurfer=freesurfer,
         hires=config.workflow.hires,
         fs_no_resume=config.workflow.fs_no_resume,
         longitudinal=config.workflow.longitudinal,
@@ -416,6 +417,46 @@ It is released under the [CC0]\
                 (anat_fit_wf, select_MNI2009c_xfm, [
                     ('outputnode.std2anat_xfm', 'std2anat_xfm'),
                     ('outputnode.template', 'keys'),
+                ]),
+            ])  # fmt:skip
+
+        if freesurfer:
+            from smriprep.workflows.outputs import init_ds_fs_segs_wf, init_ds_surface_metrics_wf
+            from smriprep.workflows.surfaces import init_surface_derivatives_wf
+
+            ds_fs_segs_wf = init_ds_fs_segs_wf(bids_root=bids_root, output_dir=fmriprep_dir)
+            surface_derivatives_wf = init_surface_derivatives_wf()
+            ds_surfaces_wf = init_ds_surfaces_wf(output_dir=fmriprep_dir, surfaces=['inflated'])
+            ds_curv_wf = init_ds_surface_metrics_wf(
+                bids_root=bids_root,
+                output_dir=fmriprep_dir,
+                metrics=['curv'],
+                name='ds_curv_wf',
+            )
+
+            workflow.connect([
+                (anat_fit_wf, surface_derivatives_wf, [
+                    ('outputnode.t1w_preproc', 'inputnode.reference'),
+                    ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
+                    ('outputnode.subject_id', 'inputnode.subject_id'),
+                    ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2anat_xfm'),
+                ]),
+                (anat_fit_wf, ds_surfaces_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                ]),
+                (surface_derivatives_wf, ds_surfaces_wf, [
+                    ('outputnode.inflated', 'inputnode.inflated'),
+                ]),
+                (anat_fit_wf, ds_curv_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                ]),
+                (surface_derivatives_wf, ds_curv_wf, [('outputnode.curv', 'inputnode.curv')]),
+                (anat_fit_wf, ds_fs_segs_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                ]),
+                (surface_derivatives_wf, ds_fs_segs_wf, [
+                    ('outputnode.out_aseg', 'inputnode.anat_fs_aseg'),
+                    ('outputnode.out_aparc', 'inputnode.anat_fs_aparc'),
                 ]),
             ])  # fmt:skip
 

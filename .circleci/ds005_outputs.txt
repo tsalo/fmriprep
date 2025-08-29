@@ -10,6 +10,8 @@ logs/CITATION.md
 logs/CITATION.tex
 sub-01
 sub-01/anat
+sub-01/anat/sub-01_desc-aparcaseg_dseg.nii.gz
+sub-01/anat/sub-01_desc-aseg_dseg.nii.gz
 sub-01/anat/sub-01_desc-brain_mask.json
 sub-01/anat/sub-01_desc-brain_mask.nii.gz
 sub-01/anat/sub-01_desc-preproc_T1w.json
@@ -21,8 +23,10 @@ sub-01/anat/sub-01_from-fsnative_to-T1w_mode-image_xfm.txt
 sub-01/anat/sub-01_from-MNI152NLin2009cAsym_to-T1w_mode-image_xfm.h5
 sub-01/anat/sub-01_from-T1w_to-fsnative_mode-image_xfm.txt
 sub-01/anat/sub-01_from-T1w_to-MNI152NLin2009cAsym_mode-image_xfm.h5
+sub-01/anat/sub-01_hemi-L_curv.shape.gii
 sub-01/anat/sub-01_hemi-L_desc-cortex_mask.json
 sub-01/anat/sub-01_hemi-L_desc-cortex_mask.label.gii
+sub-01/anat/sub-01_hemi-L_inflated.surf.gii
 sub-01/anat/sub-01_hemi-L_midthickness.surf.gii
 sub-01/anat/sub-01_hemi-L_pial.surf.gii
 sub-01/anat/sub-01_hemi-L_space-fsLR_desc-msmsulc_sphere.surf.gii
@@ -32,8 +36,10 @@ sub-01/anat/sub-01_hemi-L_sphere.surf.gii
 sub-01/anat/sub-01_hemi-L_sulc.shape.gii
 sub-01/anat/sub-01_hemi-L_thickness.shape.gii
 sub-01/anat/sub-01_hemi-L_white.surf.gii
+sub-01/anat/sub-01_hemi-R_curv.shape.gii
 sub-01/anat/sub-01_hemi-R_desc-cortex_mask.json
 sub-01/anat/sub-01_hemi-R_desc-cortex_mask.label.gii
+sub-01/anat/sub-01_hemi-R_inflated.surf.gii
 sub-01/anat/sub-01_hemi-R_midthickness.surf.gii
 sub-01/anat/sub-01_hemi-R_pial.surf.gii
 sub-01/anat/sub-01_hemi-R_space-fsLR_desc-msmsulc_sphere.surf.gii
