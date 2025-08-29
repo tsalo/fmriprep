@@ -578,6 +578,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 DerivativesDataSink(
                     base_directory=fmriprep_dir,
                     dismiss_entities=dismiss_echo(),
+                    compress=True,
                     space='T1w',
                     desc='goodvoxels',
                     suffix='mask',
