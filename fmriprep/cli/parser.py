@@ -1009,15 +1009,14 @@ def create_processing_groups(
         )
 
         if subject_anatomical_reference == 'sessionwise':
-            if not sessions:
-                raise RuntimeError(
+            if sessions is None:
+                config.loggers.cli.warning(
                     '`--subject-anatomical-reference sessionwise` was requested, but no sessions '
-                    f'found for subject {subject}.'
+                    f'found for subject {subject}... treating as single-session.'
                 )
-            for session in sessions:
-                if len(session) == 1:
-                    session = session[0]
-                subject_session_list.append((subject, session))
+                subject_session_list.append((subject, None))
+            else:
+                subject_session_list.extend((subject, session) for session in sessions)
         else:
             subject_session_list.append((subject, sessions))
 
