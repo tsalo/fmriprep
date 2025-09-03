@@ -46,26 +46,15 @@ if __name__ == '__main__':
     ]
 
     print(
-        'Some people made commits, but are missing in .maint/ files: {}.'.format(
-            ', '.join(unmatched)
-        ),
+        f'Some people made commits, but are missing in .maint/ files: {", ".join(unmatched)}.',
         file=sys.stderr,
     )
 
     print(f'Authors ({len(author_matches)}):')
-    print(
-        '{}.'.format(
-            '; '.join(
-                [
-                    rf'{i["name"]} \ :sup:`{idx}`\ '
-                    for i, idx in zip(author_matches, aff_indexes, strict=False)
-                ]
-            )
-        )
+    authors = '; '.join(
+        f'{i["name"]} \\ :sup:`{idx}`\\ ' for i, idx in zip(hits, aff_indexes, strict=False)
     )
+    print(f'{authors}.')
 
-    print(
-        '\n\nAffiliations:\n{}'.format(
-            '\n'.join([f'{i + 1: >2}. {a}' for i, a in enumerate(affiliations)])
-        )
-    )
+    lines = '\n'.join(f'{i + 1: >2}. {a}' for i, a in enumerate(affiliations))
+    print(f'\n\nAffiliations:\n{lines}')

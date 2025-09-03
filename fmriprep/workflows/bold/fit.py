@@ -221,9 +221,7 @@ def init_bold_fit_wf(
         sbref_msg = f'Single-band reference file(s) found for {basename} and ignored.'
         sbref_files = []
     elif sbref_files:
-        sbref_msg = 'Using single-band reference file(s) {}.'.format(
-            ','.join([os.path.basename(sbf) for sbf in sbref_files])
-        )
+        sbref_msg = f'Using single-band reference file(s) {",".join([os.path.basename(sbf) for sbf in sbref_files])}.'
     config.loggers.workflow.info(sbref_msg)
 
     # Get metadata from BOLD file(s)
@@ -306,16 +304,16 @@ def init_bold_fit_wf(
 
     if hmc_boldref:
         hmcref_buffer.inputs.boldref = hmc_boldref
-        config.loggers.workflow.debug('Reusing motion correction reference: %s', hmc_boldref)
+        config.loggers.workflow.debug(f'Reusing motion correction reference: {hmc_boldref}')
     if hmc_xforms:
         hmc_buffer.inputs.hmc_xforms = hmc_xforms
-        config.loggers.workflow.debug('Reusing motion correction transforms: %s', hmc_xforms)
+        config.loggers.workflow.debug(f'Reusing motion correction transforms: {hmc_xforms}')
     if boldref2fmap_xform:
         fmapreg_buffer.inputs.boldref2fmap_xfm = boldref2fmap_xform
-        config.loggers.workflow.debug('Reusing BOLD-to-fieldmap transform: %s', boldref2fmap_xform)
+        config.loggers.workflow.debug(f'Reusing BOLD-to-fieldmap transform: {boldref2fmap_xform}')
     if coreg_boldref:
         regref_buffer.inputs.boldref = coreg_boldref
-        config.loggers.workflow.debug('Reusing coregistration reference: %s', coreg_boldref)
+        config.loggers.workflow.debug(f'Reusing coregistration reference: {coreg_boldref}')
     fmapref_buffer.inputs.sbref_files = sbref_files
 
     summary = pe.Node(

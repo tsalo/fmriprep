@@ -264,14 +264,20 @@ class FunctionalSummary(SummaryInterface):
         dummy_scan_tmp = '{n_dum}'
         if self.inputs.dummy_scans == self.inputs.algo_dummy_scans:
             dummy_scan_msg = ' '.join(
-                [dummy_scan_tmp, '(Confirmed: {n_alg} automatically detected)']
-            ).format(n_dum=self.inputs.dummy_scans, n_alg=self.inputs.algo_dummy_scans)
+                [
+                    dummy_scan_tmp,
+                    f'(Confirmed: {self.inputs.algo_dummy_scans} automatically detected)',
+                ]
+            ).format(n_dum=self.inputs.dummy_scans)
         # the number of dummy scans was specified by the user and
         # it is not equal to the number detected by the algorithm
         elif self.inputs.dummy_scans is not None:
             dummy_scan_msg = ' '.join(
-                [dummy_scan_tmp, '(Warning: {n_alg} automatically detected)']
-            ).format(n_dum=self.inputs.dummy_scans, n_alg=self.inputs.algo_dummy_scans)
+                [
+                    dummy_scan_tmp,
+                    f'(Warning: {self.inputs.algo_dummy_scans} automatically detected)',
+                ]
+            ).format(n_dum=self.inputs.dummy_scans)
         # the number of dummy scans was not specified by the user
         else:
             dummy_scan_msg = dummy_scan_tmp.format(n_dum=self.inputs.algo_dummy_scans)

@@ -85,7 +85,7 @@ def init_fmriprep_wf():
                 spaces=config.workflow.spaces.get_fs_spaces(),
                 minimum_fs_version='7.0.0',
             ),
-            name='fsdir_run_{}'.format(config.execution.run_uuid.replace('-', '_')),
+            name=f'fsdir_run_{config.execution.run_uuid.replace("-", "_")}',
             run_without_submitting=True,
         )
         if config.execution.fs_subjects_dir is not None:
@@ -340,7 +340,7 @@ It is released under the [CC0]\
     # allow to run with anat-fast-track on fMRI-only dataset
     if 't1w_preproc' in anatomical_cache and not subject_data['t1w']:
         config.loggers.workflow.debug(
-            'No T1w image found; using precomputed T1w image: %s', anatomical_cache['t1w_preproc']
+            f'No T1w image found; using precomputed T1w image: {anatomical_cache["t1w_preproc"]}',
         )
         workflow.connect([
             (bidssrc, bids_info, [(('bold', fix_multi_T1w_source_name), 'in_file')]),
@@ -588,7 +588,7 @@ It is released under the [CC0]\
                 entities={'subject': subject_id},
             )
             config.loggers.workflow.debug(
-                'Detected precomputed fieldmaps in %s for fieldmap IDs: %s', deriv_dir, list(fmaps)
+                f'Detected precomputed fieldmaps in {deriv_dir} for fieldmap IDs: {list(fmaps)}',
             )
             fmap_cache.update(fmaps)
 
@@ -627,9 +627,9 @@ It is released under the [CC0]\
             fieldmaps = [fmap['fieldmap'] for fmap in pared_cache.values()]
             refs = [fmap['magnitude'] for fmap in pared_cache.values()]
             coeffs = [fmap['coeffs'] for fmap in pared_cache.values()]
-            config.loggers.workflow.debug('Reusing fieldmaps: %s', fieldmaps)
-            config.loggers.workflow.debug('Reusing references: %s', refs)
-            config.loggers.workflow.debug('Reusing coefficients: %s', coeffs)
+            config.loggers.workflow.debug(f'Reusing fieldmaps: {fieldmaps}')
+            config.loggers.workflow.debug(f'Reusing references: {refs}')
+            config.loggers.workflow.debug(f'Reusing coefficients: {coeffs}')
 
             fmap_buffers['fmap'].inputs.in1 = fieldmaps
             fmap_buffers['fmap_ref'].inputs.in1 = refs

@@ -274,7 +274,7 @@ def validate_input_dir(exec_env, bids_dir, participant_label, need_T1w=True):
                     'all paths are mapped properly (see https://www.sylabs.io/'
                     'guides/3.0/user-guide/bind_paths_and_mounts.html)'
                 )
-            raise RuntimeError(error_msg % ','.join(bad_labels))
+            raise RuntimeError(error_msg.format(','.join(bad_labels)))
 
         ignored_subs = all_subs.difference(selected_subs)
         if ignored_subs:
