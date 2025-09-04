@@ -137,13 +137,13 @@ COPY --link --from=msm /usr/local/bin/msm /usr/local/bin/msm
 COPY --link --from=afni/afni_make_build:AFNI_25.2.09 \
     /opt/afni/install/libf2c.so  \
     /opt/afni/install/libmri.so  \
-    /usr/local/lib
+    /usr/local/lib/
 COPY --link --from=afni/afni_make_build:AFNI_25.2.09 \
     /opt/afni/install/3dAutomask \
     /opt/afni/install/3dTshift \
     /opt/afni/install/3dUnifize \
     /opt/afni/install/3dvolreg \
-    /usr/local/bin
+    /usr/local/bin/
 
 # Changing library paths requires a re-ldconfig
 RUN ldconfig
