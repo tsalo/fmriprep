@@ -267,14 +267,9 @@ class FunctionalSummary(SummaryInterface):
         # it is not equal to the number detected by the algorithm
         elif self.inputs.dummy_scans is not None:
             dummy_scan_msg = f'{self.inputs.dummy_scans} (Warning: {self.inputs.algo_dummy_scans} automatically detected)'
-                [
-                    dummy_scan_tmp,
-                    f'(Warning: {self.inputs.algo_dummy_scans} automatically detected)',
-                ]
-            ).format(n_dum=self.inputs.dummy_scans)
         # the number of dummy scans was not specified by the user
         else:
-            dummy_scan_msg = dummy_scan_tmp.format(n_dum=self.inputs.algo_dummy_scans)
+            dummy_scan_msg = f'{self.inputs.algo_dummy_scans}'
 
         multiecho = 'Single-echo EPI sequence.'
         n_echos = len(self.inputs.echo_idx)
