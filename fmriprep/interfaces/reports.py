@@ -261,9 +261,8 @@ class FunctionalSummary(SummaryInterface):
 
         pedir = get_world_pedir(self.inputs.orientation, self.inputs.pe_direction)
 
-        dummy_scan_tmp = '{n_dum}'
         if self.inputs.dummy_scans == self.inputs.algo_dummy_scans:
-            dummy_scan_msg = ' '.join(
+            dummy_scan_msg = f'{self.inputs.dummy_scans} (Confirmed: {self.inputs.algo_dummy_scans} automatically detected)'
                 [
                     dummy_scan_tmp,
                     f'(Confirmed: {self.inputs.algo_dummy_scans} automatically detected)',
