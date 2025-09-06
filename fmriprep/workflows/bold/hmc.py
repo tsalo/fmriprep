@@ -77,12 +77,12 @@ def init_bold_hmc_wf(mem_gb: float, omp_nthreads: int, name: str = 'bold_hmc_wf'
     from niworkflows.interfaces.itk import MCFLIRT2ITK
 
     workflow = Workflow(name=name)
-    workflow.__desc__ = """\
+    workflow.__desc__ = f"""\
 Head-motion parameters with respect to the BOLD reference
 (transformation matrices, and six corresponding rotation and translation
 parameters) are estimated before any spatiotemporal filtering using
-`mcflirt` [FSL {fsl_ver}, @mcflirt].
-""".format(fsl_ver=fsl.Info().version() or '<ver>')
+`mcflirt` [FSL {fsl.Info().version() or '<ver>'}, @mcflirt].
+"""
 
     inputnode = pe.Node(
         niu.IdentityInterface(fields=['bold_file', 'raw_ref_image']), name='inputnode'
