@@ -87,12 +87,10 @@ def get_git_lines(fname='line-contributors.txt'):
 
     if not lines:
         raise RuntimeError(
-            """\
-Could not find line-contributors from git repository.{}""".format(
-                """ \
-git-(line-)summary not found, please install git-extras. """
-                * (cmd[0] is None)
-            )
+            f"""\
+Could not find line-contributors from git repository.{
+                ' git(-line-)summary not found, please install git-extras.' * (cmd[0] is None)
+            }"""
         )
     return [' '.join(line.strip().split()[1:-1]) for line in lines if '%' in line]
 
@@ -121,7 +119,7 @@ def loads_contributors(s):
     return [
         {
             'affiliation': contributor['Affiliation'],
-            'name': '{}, {}'.format(contributor['Lastname'], contributor['Name']),
+            'name': f'{contributor["Lastname"]}, {contributor["Name"]}',
             'orcid': contributor['ORCID'],
         }
         for contributor in loads_table_from_markdown(s)
@@ -151,12 +149,12 @@ if __name__ == '__main__':
     zenodo['creators'] = zen_creators
     zenodo['contributors'] = zen_contributors
 
-    print(
-        'Some people made commits, but are missing in .maint/ files: {}.'.format(
-            ', '.join(set(miss_creators).intersection(miss_contributors))
-        ),
-        file=sys.stderr,
-    )
+    missing = {*miss_creators} & {*miss_contributors}
+    if missing:
+        print(
+            f'Some people made commits, but are missing in .maint/ files: {", ".join(sorted(missing))}.',
+            file=sys.stderr,
+        )
 
     # Remove position
     for creator in zenodo['creators']:

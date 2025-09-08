@@ -184,13 +184,8 @@ def init_bold_wf(
         return
 
     config.loggers.workflow.debug(
-        'Creating bold processing workflow for <%s> (%.2f GB / %d TRs). '
-        'Memory resampled/largemem=%.2f/%.2f GB.',
-        bold_file,
-        mem_gb['filesize'],
-        nvols,
-        mem_gb['resampled'],
-        mem_gb['largemem'],
+        f'Creating bold processing workflow for <{bold_file}> ({mem_gb["filesize"]:.2f} GB / {nvols} TRs). '
+        f'Memory resampled/largemem={mem_gb["resampled"]:.2f}/{mem_gb["largemem"]:.2f} GB.'
     )
 
     workflow = Workflow(name=_get_wf_name(bold_file, 'bold'))
@@ -571,6 +566,25 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 (inputnode, goodvoxels_bold_mask_wf, [('anat_ribbon', 'inputnode.anat_ribbon')]),
                 (bold_anat_wf, goodvoxels_bold_mask_wf, [
                     ('outputnode.bold_file', 'inputnode.bold_file'),
+                ]),
+            ])  # fmt:skip
+
+            ds_goodvoxels_mask = pe.Node(
+                DerivativesDataSink(
+                    base_directory=fmriprep_dir,
+                    dismiss_entities=dismiss_echo(),
+                    compress=True,
+                    space='T1w',
+                    desc='goodvoxels',
+                    suffix='mask',
+                ),
+                name='ds_goodvoxels_mask',
+                run_without_submitting=True,
+            )
+            ds_goodvoxels_mask.inputs.source_file = bold_file
+            workflow.connect([
+                (goodvoxels_bold_mask_wf, ds_goodvoxels_mask, [
+                    ('outputnode.goodvoxels_mask', 'in_file'),
                 ]),
                 (goodvoxels_bold_mask_wf, bold_fsLR_resampling_wf, [
                     ('outputnode.goodvoxels_mask', 'inputnode.volume_roi'),

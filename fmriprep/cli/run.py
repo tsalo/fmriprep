@@ -154,7 +154,7 @@ def main():
 
             if sentry_sdk is not None and 'Workflow did not execute cleanly' not in str(e):
                 sentry_sdk.capture_exception(e)
-        config.loggers.workflow.critical('fMRIPrep failed: %s', e)
+        config.loggers.workflow.critical(f'fMRIPrep failed: {e}')
         raise
     else:
         config.loggers.workflow.log(25, 'fMRIPrep finished successfully!')

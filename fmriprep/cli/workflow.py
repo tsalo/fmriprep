@@ -90,8 +90,7 @@ def build_workflow(config_file, retval):
         )
         if failed_reports:
             config.loggers.cli.error(
-                'Report generation was not successful for the following participants : %s.',
-                ', '.join(failed_reports),
+                f'Report generation was not successful for the following participants : {", ".join(failed_reports)}.'
             )
 
         retval['return_code'] = len(failed_reports)
@@ -141,17 +140,14 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
     # Check workflow for missing commands
     missing = check_deps(retval['workflow'])
     if missing:
-        build_log.critical(
-            'Cannot run fMRIPrep. Missing dependencies:%s',
-            '\n\t* '.join([''] + [f'{cmd} (Interface: {iface})' for iface, cmd in missing]),
-        )
+        deps_list = '\n'.join([f'\t* {cmd} (Interface: {iface})' for iface, cmd in missing])
+        build_log.critical(f'Cannot run fMRIPrep. Missing dependencies:\n{deps_list}')
         retval['return_code'] = 127  # 127 == command not found.
         return retval
 
     config.to_filename(config_file)
     build_log.info(
-        'fMRIPrep workflow graph with %d nodes built successfully.',
-        len(retval['workflow']._get_all_nodes()),
+        f'fMRIPrep workflow graph with {len(retval["workflow"]._get_all_nodes())} nodes built successfully.'
     )
     retval['return_code'] = 0
     return retval
@@ -206,7 +202,7 @@ def build_boilerplate(config_file, workflow):
         try:
             check_call(cmd, timeout=10)
         except (FileNotFoundError, CalledProcessError, TimeoutExpired):
-            config.loggers.cli.warning('Could not generate CITATION.html file:\n%s', ' '.join(cmd))
+            config.loggers.cli.warning(f'Could not generate CITATION.html file:\n{" ".join(cmd)}')
 
         # Generate LaTex file resolving citations
         cmd = [
@@ -223,4 +219,4 @@ def build_boilerplate(config_file, workflow):
         try:
             check_call(cmd, timeout=10)
         except (FileNotFoundError, CalledProcessError, TimeoutExpired):
-            config.loggers.cli.warning('Could not generate CITATION.tex file:\n%s', ' '.join(cmd))
+            config.loggers.cli.warning(f'Could not generate CITATION.tex file:\n{" ".join(cmd)}')

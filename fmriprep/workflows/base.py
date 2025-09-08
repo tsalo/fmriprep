@@ -85,7 +85,7 @@ def init_fmriprep_wf():
                 spaces=config.workflow.spaces.get_fs_spaces(),
                 minimum_fs_version='7.0.0',
             ),
-            name='fsdir_run_{}'.format(config.execution.run_uuid.replace('-', '_')),
+            name=f'fsdir_run_{config.execution.run_uuid.replace("-", "_")}',
             run_without_submitting=True,
         )
         if config.execution.fs_subjects_dir is not None:
@@ -236,6 +236,7 @@ It is released under the [CC0]\
     if 't2w' in config.workflow.ignore:
         subject_data['t2w'] = []
 
+    freesurfer = config.workflow.run_reconall
     anat_only = config.workflow.anat_only
     # Make sure we always go through these two checks
     if not anat_only and not subject_data['bold']:
@@ -352,7 +353,7 @@ It is released under the [CC0]\
     anat_fit_wf = init_anat_fit_wf(
         bids_root=bids_root,
         output_dir=fmriprep_dir,
-        freesurfer=config.workflow.run_reconall,
+        freesurfer=freesurfer,
         hires=config.workflow.hires,
         fs_no_resume=config.workflow.fs_no_resume,
         longitudinal=config.workflow.subject_anatomical_reference == 'unbiased',
@@ -372,7 +373,7 @@ It is released under the [CC0]\
     # allow to run with anat-fast-track on fMRI-only dataset
     if 't1w_preproc' in anatomical_cache and not subject_data['t1w']:
         config.loggers.workflow.debug(
-            'No T1w image found; using precomputed T1w image: %s', anatomical_cache['t1w_preproc']
+            f'No T1w image found; using precomputed T1w image: {anatomical_cache["t1w_preproc"]}',
         )
         workflow.connect([
             (anat_fit_wf, summary, [('outputnode.t1w_preproc', 't1w')]),
@@ -453,6 +454,46 @@ It is released under the [CC0]\
                 (anat_fit_wf, select_MNI2009c_xfm, [
                     ('outputnode.std2anat_xfm', 'std2anat_xfm'),
                     ('outputnode.template', 'keys'),
+                ]),
+            ])  # fmt:skip
+
+        if freesurfer:
+            from smriprep.workflows.outputs import init_ds_fs_segs_wf, init_ds_surface_metrics_wf
+            from smriprep.workflows.surfaces import init_surface_derivatives_wf
+
+            ds_fs_segs_wf = init_ds_fs_segs_wf(bids_root=bids_root, output_dir=fmriprep_dir)
+            surface_derivatives_wf = init_surface_derivatives_wf()
+            ds_surfaces_wf = init_ds_surfaces_wf(output_dir=fmriprep_dir, surfaces=['inflated'])
+            ds_curv_wf = init_ds_surface_metrics_wf(
+                bids_root=bids_root,
+                output_dir=fmriprep_dir,
+                metrics=['curv'],
+                name='ds_curv_wf',
+            )
+
+            workflow.connect([
+                (anat_fit_wf, surface_derivatives_wf, [
+                    ('outputnode.t1w_preproc', 'inputnode.reference'),
+                    ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
+                    ('outputnode.subject_id', 'inputnode.subject_id'),
+                    ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2anat_xfm'),
+                ]),
+                (anat_fit_wf, ds_surfaces_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                ]),
+                (surface_derivatives_wf, ds_surfaces_wf, [
+                    ('outputnode.inflated', 'inputnode.inflated'),
+                ]),
+                (anat_fit_wf, ds_curv_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                ]),
+                (surface_derivatives_wf, ds_curv_wf, [('outputnode.curv', 'inputnode.curv')]),
+                (anat_fit_wf, ds_fs_segs_wf, [
+                    ('outputnode.t1w_valid_list', 'inputnode.source_files'),
+                ]),
+                (surface_derivatives_wf, ds_fs_segs_wf, [
+                    ('outputnode.out_aseg', 'inputnode.anat_fs_aseg'),
+                    ('outputnode.out_aparc', 'inputnode.anat_fs_aparc'),
                 ]),
             ])  # fmt:skip
 
@@ -584,7 +625,7 @@ It is released under the [CC0]\
                 entities={'subject': subject_id},
             )
             config.loggers.workflow.debug(
-                'Detected precomputed fieldmaps in %s for fieldmap IDs: %s', deriv_dir, list(fmaps)
+                f'Detected precomputed fieldmaps in {deriv_dir} for fieldmap IDs: {list(fmaps)}',
             )
             fmap_cache.update(fmaps)
 
@@ -623,9 +664,9 @@ It is released under the [CC0]\
             fieldmaps = [fmap['fieldmap'] for fmap in pared_cache.values()]
             refs = [fmap['magnitude'] for fmap in pared_cache.values()]
             coeffs = [fmap['coeffs'] for fmap in pared_cache.values()]
-            config.loggers.workflow.debug('Reusing fieldmaps: %s', fieldmaps)
-            config.loggers.workflow.debug('Reusing references: %s', refs)
-            config.loggers.workflow.debug('Reusing coefficients: %s', coeffs)
+            config.loggers.workflow.debug(f'Reusing fieldmaps: {fieldmaps}')
+            config.loggers.workflow.debug(f'Reusing references: {refs}')
+            config.loggers.workflow.debug(f'Reusing coefficients: {coeffs}')
 
             fmap_buffers['fmap'].inputs.in1 = fieldmaps
             fmap_buffers['fmap_ref'].inputs.in1 = refs
