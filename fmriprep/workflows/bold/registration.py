@@ -283,18 +283,15 @@ def init_bbreg_wf(
     from fmriprep.interfaces.patches import FreeSurferSource, MRICoreg
 
     workflow = Workflow(name=name)
-    workflow.__desc__ = """\
+    dof_text = {6: 'six', 9: 'nine', 12: 'twelve'}[bold2anat_dof]
+    reason_text = (
+        '' if bold2anat_dof == 6 else ' to account for distortions remaining in the BOLD reference'
+    )
+    workflow.__desc__ = f"""\
 The BOLD reference was then co-registered to the T1w reference using
 `bbregister` (FreeSurfer) which implements boundary-based registration [@bbr].
-Co-registration was configured with {dof} degrees of freedom{reason}.
-""".format(
-        dof={6: 'six', 9: 'nine', 12: 'twelve'}[bold2anat_dof],
-        reason=(
-            ''
-            if bold2anat_dof == 6
-            else 'to account for distortions remaining in the BOLD reference'
-        ),
-    )
+Co-registration was configured with {dof_text} degrees of freedom{reason_text}.
+"""
 
     use_t2w = bold2anat_init == 't2w'
     if use_t2w:
@@ -550,20 +547,17 @@ def init_fsl_bbr_wf(
     from niworkflows.utils.images import dseg_label as _dseg_label
 
     workflow = Workflow(name=name)
-    workflow.__desc__ = """\
+    fsl_ver = fsl.FLIRT().version or '<ver>'
+    dof_text = {6: 'six', 9: 'nine', 12: 'twelve'}[bold2anat_dof]
+    reason_text = (
+        '' if bold2anat_dof == 6 else ' to account for distortions remaining in the BOLD reference'
+    )
+    workflow.__desc__ = f"""\
 The BOLD reference was then co-registered to the T1w reference using
 `mri_coreg` (FreeSurfer) followed by `flirt` [FSL {fsl_ver}, @flirt]
 with the boundary-based registration [@bbr] cost-function.
-Co-registration was configured with {dof} degrees of freedom{reason}.
-""".format(
-        fsl_ver=fsl.FLIRT().version or '<ver>',
-        dof={6: 'six', 9: 'nine', 12: 'twelve'}[bold2anat_dof],
-        reason=(
-            ''
-            if bold2anat_dof == 6
-            else 'to account for distortions remaining in the BOLD reference'
-        ),
-    )
+Co-registration was configured with {dof_text} degrees of freedom{reason_text}.
+"""
 
     inputnode = pe.Node(
         niu.IdentityInterface(

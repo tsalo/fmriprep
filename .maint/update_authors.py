@@ -119,12 +119,11 @@ def get_git_lines(fname='line-contributors.txt'):
 
     if not lines:
         raise RuntimeError(
-            """\
-Could not find line-contributors from git repository.{}""".format(
-                """ \
-git-line-summary not found, please install git-extras. """
+            f"""\
+Could not find line-contributors from git repository.{
+                ' git-line-summary not found, please install git-extras.'
                 * (git_line_summary_path is None)
-            )
+            }"""
         )
     return [' '.join(line.strip().split()[1:-1]) for line in lines if '%' in line]
 
@@ -273,22 +272,11 @@ def publication(
         )
 
     print(f'Authors ({len(hits)}):')
-    print(
-        '{}.'.format(
-            '; '.join(
-                [
-                    rf'{i["name"]} \ :sup:`{idx}`\ '
-                    for i, idx in zip(hits, aff_indexes, strict=False)
-                ]
-            )
-        )
-    )
+    authors = f'{"; ".join(rf"{i['name']} \ :sup:`{idx}`\ " for i, idx in zip(hits, aff_indexes, strict=False))}.'
+    print(f'{authors}.')
 
-    print(
-        '\n\nAffiliations:\n{}'.format(
-            '\n'.join([f'{i + 1: >2}. {a}' for i, a in enumerate(affiliations)])
-        )
-    )
+    lines = '\n'.join(f'{i + 1: >2}. {a}' for i, a in enumerate(affiliations))
+    print(f'\n\nAffiliations:\n{lines}')
 
 
 if __name__ == '__main__':
