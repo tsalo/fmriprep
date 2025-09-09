@@ -3,7 +3,7 @@ name: Docker build
 on:
   workflow_dispatch:
   push:
-    branches: [ "master", "main", "maint/*", "gha-docker-build" ]
+    branches: [ "master", "main", "maint/*", "gha-docker*" ]
     tags: "*"
   pull_request:
     branches: [ "master", "main", "maint/*" ]
@@ -56,7 +56,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
           cache-from: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:master
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:gha-docker
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TARGET_BRANCH }}
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags[0] }}
           cache-to: type=inline
