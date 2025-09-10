@@ -391,6 +391,7 @@ jobs:
       - docker/install-docker-credential-helper
       - run: *docker_auth
       - run: *setup_docker_registry
+      - run: *pull_from_registry
       - run: *pull_test_image_from_registry
       - run:
           name: Run fMRIPrep tests
