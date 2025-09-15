@@ -22,8 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Ubuntu 22.04 LTS - Jammy
-ARG BASE_IMAGE=ubuntu:jammy-20250730
+ARG BASE_IMAGE=ghcr.io/nipreps/fmriprep-base:20250915
 
 #
 # Build pixi environment
@@ -71,102 +70,11 @@ RUN uv pip install --system templateflow
 COPY scripts/fetch_templates.py fetch_templates.py
 RUN python fetch_templates.py
 
-#
-# Download stages
-#
-
-# Utilities for downloading packages
-FROM ${BASE_IMAGE} AS downloader
-ENV DEBIAN_FRONTEND="noninteractive" \
-    LANG="en_US.UTF-8" \
-    LC_ALL="en_US.UTF-8"
-
-# Bump the date to current to refresh curl/certificates/etc
-RUN echo "2025.08.20"
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-                    binutils \
-                    bzip2 \
-                    ca-certificates \
-                    curl \
-                    unzip && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# FreeSurfer 7.3.2
-FROM downloader AS freesurfer
-COPY docker/files/freesurfer7.3.2-exclude.txt /usr/local/etc/freesurfer7.3.2-exclude.txt
-RUN curl -sSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer-linux-ubuntu22_amd64-7.3.2.tar.gz \
-     | tar zxv --no-same-owner -C /opt --exclude-from=/usr/local/etc/freesurfer7.3.2-exclude.txt
-
-# MSM HOCR (Nov 19, 2019 release)
-FROM downloader AS msm
-RUN curl -L -H "Accept: application/octet-stream" https://api.github.com/repos/ecr05/MSM_HOCR/releases/assets/16253707 -o /usr/local/bin/msm \
-    && chmod +x /usr/local/bin/msm
 
 #
 # Main stage
 #
 FROM ${BASE_IMAGE} AS base
-
-# Configure apt
-ENV DEBIAN_FRONTEND="noninteractive" \
-    LANG="en_US.UTF-8" \
-    LC_ALL="en_US.UTF-8"
-
-# Some baseline tools; bc is needed for FreeSurfer, so don't drop it
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-                    bc \
-                    ca-certificates \
-                    curl \
-                    libgomp1 \
-                    libopenblas0-openmp \
-                    lsb-release \
-                    netbase \
-                    tcsh \
-                    xvfb && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-
-# Install downloaded files from stages
-COPY --link --from=freesurfer /opt/freesurfer /opt/freesurfer
-COPY --link --from=msm /usr/local/bin/msm /usr/local/bin/msm
-
-# Install AFNI from Docker container
-# Find libraries with `ldd $BINARIES | grep afni`
-COPY --link --from=afni/afni_make_build:AFNI_25.2.09 \
-    /opt/afni/install/libf2c.so  \
-    /opt/afni/install/libmri.so  \
-    /usr/local/lib/
-COPY --link --from=afni/afni_make_build:AFNI_25.2.09 \
-    /opt/afni/install/3dAutomask \
-    /opt/afni/install/3dTshift \
-    /opt/afni/install/3dUnifize \
-    /opt/afni/install/3dvolreg \
-    /usr/local/bin/
-
-# Changing library paths requires a re-ldconfig
-RUN ldconfig
-
-# Simulate SetUpFreeSurfer.sh
-ENV OS="Linux" \
-    FS_OVERRIDE=0 \
-    FIX_VERTEX_AREA="" \
-    FSF_OUTPUT_FORMAT="nii.gz" \
-    FREESURFER_HOME="/opt/freesurfer"
-ENV SUBJECTS_DIR="$FREESURFER_HOME/subjects" \
-    FUNCTIONALS_DIR="$FREESURFER_HOME/sessions" \
-    MNI_DIR="$FREESURFER_HOME/mni" \
-    LOCAL_DIR="$FREESURFER_HOME/local" \
-    MINC_BIN_DIR="$FREESURFER_HOME/mni/bin" \
-    MINC_LIB_DIR="$FREESURFER_HOME/mni/lib" \
-    MNI_DATAPATH="$FREESURFER_HOME/mni/data"
-ENV PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5" \
-    MNI_PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5" \
-    PATH="$FREESURFER_HOME/bin:$FREESURFER_HOME/tktools:$MINC_BIN_DIR:$PATH"
-
-# AFNI config
-ENV AFNI_IMSAVE_WARNINGS="NO"
 
 # Create a shared $HOME directory
 RUN useradd -m -s /bin/bash -G users fmriprep
@@ -174,17 +82,6 @@ WORKDIR /home/fmriprep
 ENV HOME="/home/fmriprep"
 
 COPY --link --from=templates /templateflow /home/fmriprep/.cache/templateflow
-
-# FSL environment
-ENV LANG="C.UTF-8" \
-    LC_ALL="C.UTF-8" \
-    PYTHONNOUSERSITE=1 \
-    FSLOUTPUTTYPE="NIFTI_GZ" \
-    FSLMULTIFILEQUIT="TRUE" \
-    FSLLOCKDIR="" \
-    FSLMACHINELIST="" \
-    FSLREMOTECALL="" \
-    FSLGECUDAQ="cuda.q"
 
 # Unless otherwise specified each process should only use one thread - nipype
 # will handle parallelization
