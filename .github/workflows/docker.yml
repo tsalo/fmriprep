@@ -65,7 +65,7 @@ jobs:
         with:
           file: Dockerfile.base
           load: true
-          push: ${{ github.ref_name == 'main' }}
+          push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ steps.base.outputs.image }}
             ${{ steps.base.outputs.name }}:latest
