@@ -439,8 +439,15 @@ the scanner.
     fieldmap estimation.
 
 Please note that all routines for susceptibility-derived distortion correction
-have been excised off of *fMRIPrep* for utilization on other projects
-(e.g., `dMRIPrep <https://www.nipreps.org/dmriprep>`__).
+have been moved into their own code base called SDCFlows.
+No action is required by users, as this module is included in *fMRIPrep*.
+
+Details about the BIDS specification for field maps can be found at
+<https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html#types-of-fieldmaps>
+
+**NOTE** SDCFlows prefers `B0FieldIdentifier`/`B0FieldSource` and will use that
+to the exclusion of `IntendedFor`, if it is present anywhere in the dataset.
+
 For more detailed documentation on
 :abbr:`SDC (susceptibility-derived distortion correction)`
 routines, check on the `SDCFlows component <https://www.nipreps.org/sdcflows>`__.
