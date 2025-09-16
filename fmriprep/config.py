@@ -540,8 +540,7 @@ class execution(_Config):
             'raw': cls.bids_dir,
             'templateflow': Path(TF_LAYOUT.root),
         }
-        for deriv_name, deriv_path in cls.derivatives.items():
-            dataset_links[deriv_name] = deriv_path
+        dataset_links.update(cls.derivatives)
         cls.dataset_links = dataset_links
 
         if 'all' in cls.debug:
@@ -794,9 +793,7 @@ def get(flat=False):
         return settings
 
     return {
-        '.'.join((section, k)): v
-        for section, configs in settings.items()
-        for k, v in configs.items()
+        f'{section}.{k}': v for section, configs in settings.items() for k, v in configs.items()
     }
 
 
