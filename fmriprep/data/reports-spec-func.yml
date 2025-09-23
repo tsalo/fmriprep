@@ -55,7 +55,7 @@ sections:
       with a rigid-registration process of the fieldmap reference image,
       using <code>antsRegistration</code>.
       Overlaid on top of the co-registration results, the final BOLD mask is represented
-      with a red contour for reference.
+      with a green contour for reference.
     static: false
     subtitle: Alignment between the anatomical reference of the fieldmap and the target EPI
   - bids: {datatype: figures, desc: fieldmap, suffix: bold}
