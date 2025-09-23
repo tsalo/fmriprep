@@ -51,17 +51,17 @@ sections:
   - bids: {datatype: figures, desc: summary, suffix: bold}
   - bids: {datatype: figures, desc: validation, suffix: bold}
   - bids: {datatype: figures, desc: fmapCoreg, suffix: bold}
-    caption: The estimated fieldmap was aligned to the corresponding EPI reference
+    caption: The estimated fieldmap was aligned to the corresponding BOLD reference
       with a rigid-registration process of the fieldmap reference image,
       using <code>antsRegistration</code>.
       Overlaid on top of the co-registration results, the final BOLD mask is represented
-      with a red contour for reference.
+      with a green contour for reference.
     static: false
-    subtitle: Alignment between the anatomical reference of the fieldmap and the target EPI
+    subtitle: Alignment between the anatomical reference of the fieldmap and the BOLD reference
   - bids: {datatype: figures, desc: fieldmap, suffix: bold}
     caption: Estimated fieldmap, as reconstructed on the target BOLD run space to allow
       the assessment of its alignment with the distorted data.
-      The anatomical reference is the fieldmap's reference moved into the target EPI's grid through
+      The anatomical reference is the fieldmap's reference moved into the BOLD reference's grid through
       the estimated transformation.
       In other words, this plot should be equivalent to that of the 
       <em>Preprocessed estimation with varying Phase-Encoding (PE) blips</em> shown above in the
@@ -80,7 +80,7 @@ sections:
   - bids: {datatype: figures, desc: forcedsyn, suffix: bold}
     caption: The dataset contained some fieldmap information, but the argument <code>--force syn-sdc</code>
       was used. The higher-priority SDC method was used. Here, we show the results
-      of performing SyN-based SDC on the EPI for comparison.
+      of performing SyN-based SDC on the BOLD reference for comparison.
     static: false
     subtitle: Experimental fieldmap-less susceptibility distortion correction
   - bids: {datatype: figures, desc: t2scomp, suffix: bold}
@@ -96,11 +96,11 @@ sections:
     static: false
     subtitle: T2* gray-matter values
   - bids: {datatype: figures, desc: coreg, suffix: bold}
-    caption: This panel shows the alignment of the reference EPI (BOLD) image to the
+    caption: This panel shows the alignment of the BOLD reference image to the
       anatomical (T1-weighted) image.
-      The reference EPI has been contrast enhanced and susceptibility-distortion
+      The BOLD reference image has been contrast enhanced and susceptibility-distortion
       corrected (if applicable) for improved anatomical fidelity.
-      The anatomical image has been resampled into EPI space, as well as the
+      The anatomical image has been resampled into BOLD reference space, as well as the
       anatomical white matter mask, which appears as a red contour.
     static: false
     subtitle: Alignment of functional and anatomical MRI data (coregistration)
