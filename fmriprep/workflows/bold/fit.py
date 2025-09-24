@@ -316,6 +316,19 @@ def init_bold_fit_wf(
         config.loggers.workflow.debug(f'Reusing coregistration reference: {coreg_boldref}')
     fmapref_buffer.inputs.sbref_files = sbref_files
 
+    # If sbref files are available, add them to the list of sources
+    boldref_source_files = [bold_file]
+    if sbref_files:
+        boldref_source_files += sbref_files[0]
+
+        if nb.load(sbref_files[0]).ndim > 3:
+            raw_sbref_wf = init_raw_boldref_wf(
+                name='raw_sbref_wf',
+                bold_file=sbref_files[0],
+                multiecho=len(sbref_files) > 1,
+            )
+            workflow.connect(raw_sbref_wf, 'outputnode.boldref', fmapref_buffer, 'sbref_files')
+
     summary = pe.Node(
         FunctionalSummary(
             distortion_correction='None',  # Can override with connection
@@ -516,7 +529,7 @@ def init_bold_fit_wf(
                 dest=re.sub(r'[^a-zA-Z0-9]', '', fieldmap_id),
                 name='ds_fmapreg_wf',
             )
-            ds_fmapreg_wf.inputs.inputnode.source_files = [bold_file]
+            ds_fmapreg_wf.inputs.inputnode.source_files = boldref_source_files
 
             workflow.connect([
                 (fmap_select, fmapreg_wf, [
@@ -538,15 +551,6 @@ def init_bold_fit_wf(
     if not coreg_boldref:
         config.loggers.workflow.info('Stage 4: Adding coregistration boldref workflow')
 
-        # Select initial boldref, enhance contrast, and generate mask
-        if sbref_files and nb.load(sbref_files[0]).ndim > 3:
-            raw_sbref_wf = init_raw_boldref_wf(
-                name='raw_sbref_wf',
-                bold_file=sbref_files[0],
-                multiecho=len(sbref_files) > 1,
-            )
-            workflow.connect(raw_sbref_wf, 'outputnode.boldref', fmapref_buffer, 'sbref_files')
-
         enhance_boldref_wf = init_enhance_and_skullstrip_bold_wf(omp_nthreads=omp_nthreads)
 
         ds_coreg_boldref_wf = init_ds_boldref_wf(
@@ -560,7 +564,7 @@ def init_bold_fit_wf(
             desc='brain',
             name='ds_boldmask_wf',
         )
-        ds_boldmask_wf.inputs.inputnode.source_files = [bold_file]
+        ds_boldmask_wf.inputs.inputnode.source_files = boldref_source_files
 
         workflow.connect([
             (fmapref_buffer, enhance_boldref_wf, [('out', 'inputnode.in_file')]),
