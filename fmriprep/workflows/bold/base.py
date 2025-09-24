@@ -377,9 +377,7 @@ configured with cubic B-spline interpolation.
 
     # Pass along BOLD reference as a source file for provenance
     merge_bold_sources = pe.Node(
-        niu.Merge(2),
-        name='merge_bold_sources',
-        run_without_submitting=True
+        niu.Merge(2), name='merge_bold_sources', run_without_submitting=True
     )
     merge_bold_sources.inputs.in2 = bold_series
 
