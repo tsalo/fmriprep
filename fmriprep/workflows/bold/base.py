@@ -375,6 +375,14 @@ configured with cubic B-spline interpolation.
                 workflow.get_node(node).inputs.source_file = bold_file
         return workflow
 
+    # Pass along BOLD reference as a source file for provenance
+    merge_bold_sources = pe.Node(
+        niu.Merge(2),
+        name='merge_bold_sources',
+        run_without_submitting=True
+    )
+    merge_bold_sources.inputs.in2 = bold_series
+
     # Resample to anatomical space
     bold_anat_wf = init_bold_volumetric_resample_wf(
         metadata=all_metadata[0],
@@ -404,6 +412,7 @@ configured with cubic B-spline interpolation.
             ('outputnode.bold_minimal', 'inputnode.bold_file'),
             ('outputnode.motion_xfm', 'inputnode.motion_xfm'),
         ]),
+        (bold_fit_wf, merge_bold_sources, [('outputnode.coreg_boldref', 'in1')]),
     ])  # fmt:skip
 
     # Full derivatives, including resampled BOLD series
@@ -415,7 +424,6 @@ configured with cubic B-spline interpolation.
             metadata=all_metadata[0],
             name='ds_bold_t1_wf',
         )
-        ds_bold_t1_wf.inputs.inputnode.source_files = bold_series
         ds_bold_t1_wf.inputs.inputnode.space = 'T1w'
 
         workflow.connect([
@@ -431,6 +439,7 @@ configured with cubic B-spline interpolation.
                 ('outputnode.bold_file', 'inputnode.bold'),
                 ('outputnode.resampling_reference', 'inputnode.ref_file'),
             ]),
+            (merge_bold_sources, ds_bold_t1_wf, [('out', 'inputnode.source_files')]),
         ])  # fmt:skip
 
     if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
@@ -452,7 +461,6 @@ configured with cubic B-spline interpolation.
             metadata=all_metadata[0],
             name='ds_bold_std_wf',
         )
-        ds_bold_std_wf.inputs.inputnode.source_files = bold_series
 
         workflow.connect([
             (inputnode, bold_std_wf, [
@@ -492,6 +500,7 @@ configured with cubic B-spline interpolation.
                 ('outputnode.bold_file', 'inputnode.bold'),
                 ('outputnode.resampling_reference', 'inputnode.ref_file'),
             ]),
+            (merge_bold_sources, ds_bold_std_wf, [('out', 'inputnode.source_files')]),
         ])  # fmt:skip
 
     if config.workflow.run_reconall and freesurfer_spaces:
