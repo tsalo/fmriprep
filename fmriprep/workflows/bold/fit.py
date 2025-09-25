@@ -319,7 +319,7 @@ def init_bold_fit_wf(
     # If sbref files are available, add them to the list of sources
     boldref_source_files = [bold_file]
     if sbref_files:
-        boldref_source_files += sbref_files[0]
+        boldref_source_files.append(sbref_files[0])
 
         if nb.load(sbref_files[0]).ndim > 3:
             raw_sbref_wf = init_raw_boldref_wf(
