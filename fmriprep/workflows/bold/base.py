@@ -379,7 +379,7 @@ configured with cubic B-spline interpolation.
     merge_bold_sources = pe.Node(
         niu.Merge(2), name='merge_bold_sources', run_without_submitting=True
     )
-    merge_bold_sources.inputs.in2 = bold_series
+    merge_bold_sources.inputs.in1 = bold_series
 
     # Resample to anatomical space
     bold_anat_wf = init_bold_volumetric_resample_wf(
@@ -410,7 +410,7 @@ configured with cubic B-spline interpolation.
             ('outputnode.bold_minimal', 'inputnode.bold_file'),
             ('outputnode.motion_xfm', 'inputnode.motion_xfm'),
         ]),
-        (bold_fit_wf, merge_bold_sources, [('outputnode.coreg_boldref', 'in1')]),
+        (bold_fit_wf, merge_bold_sources, [('outputnode.coreg_boldref', 'in2')]),
     ])  # fmt:skip
 
     # Full derivatives, including resampled BOLD series
