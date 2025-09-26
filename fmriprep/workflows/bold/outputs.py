@@ -536,6 +536,7 @@ def init_ds_registration_wf(
     source: str,
     dest: str,
     name: str,
+    desc: str | None = None,
 ) -> pe.Workflow:
     workflow = pe.Workflow(name=name)
 
@@ -558,6 +559,7 @@ def init_ds_registration_wf(
         DerivativesDataSink(
             base_directory=output_dir,
             mode='image',
+            desc=desc,
             suffix='xfm',
             extension='.txt',
             dismiss_entities=dismiss_echo(['part']),
