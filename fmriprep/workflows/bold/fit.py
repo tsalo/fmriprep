@@ -407,12 +407,12 @@ def init_bold_fit_wf(
         ds_hmc_boldref_wf.inputs.inputnode.source_files = [bold_file]
 
         workflow.connect([
+            (hmc_boldref_wf, ds_hmc_boldref_wf, [('outputnode.boldref', 'inputnode.boldref')]),
+            (ds_hmc_boldref_wf, hmcref_buffer, [('outputnode.boldref', 'boldref')]),
             (hmc_boldref_wf, hmcref_buffer, [
                 ('outputnode.bold_file', 'bold_file'),
-                ('outputnode.boldref', 'boldref'),
                 ('outputnode.skip_vols', 'dummy_scans'),
             ]),
-            (hmcref_buffer, ds_hmc_boldref_wf, [('boldref', 'inputnode.boldref')]),
             (hmc_boldref_wf, summary, [('outputnode.algo_dummy_scans', 'algo_dummy_scans')]),
             (hmc_boldref_wf, func_fit_reports_wf, [
                 ('outputnode.validation_report', 'inputnode.validation_report'),
