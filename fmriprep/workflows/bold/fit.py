@@ -348,6 +348,7 @@ def init_bold_fit_wf(
         )
 
     func_fit_reports_wf = init_func_fit_reports_wf(
+        source_file=bold_file,
         sdc_correction=fieldmap_id is not None,
         freesurfer=config.workflow.run_reconall,
         output_dir=config.execution.fmriprep_dir,
@@ -368,7 +369,6 @@ def init_bold_fit_wf(
             ('hmc_xforms', 'motion_xfm'),
         ]),
         (inputnode, func_fit_reports_wf, [
-            ('bold_file', 'inputnode.source_file'),
             ('t1w_preproc', 'inputnode.t1w_preproc'),
             # May not need all of these
             ('t1w_mask', 'inputnode.t1w_mask'),
@@ -399,6 +399,7 @@ def init_bold_fit_wf(
         hmc_boldref_wf.inputs.inputnode.dummy_scans = config.workflow.dummy_scans
 
         ds_hmc_boldref_wf = init_ds_boldref_wf(
+            source_file=bold_file,
             bids_root=layout.root,
             output_dir=config.execution.fmriprep_dir,
             desc='hmc',
@@ -407,12 +408,12 @@ def init_bold_fit_wf(
         ds_hmc_boldref_wf.inputs.inputnode.source_files = [bold_file]
 
         workflow.connect([
+            (hmc_boldref_wf, ds_hmc_boldref_wf, [('outputnode.boldref', 'inputnode.boldref')]),
+            (ds_hmc_boldref_wf, hmcref_buffer, [('outputnode.boldref', 'boldref')]),
             (hmc_boldref_wf, hmcref_buffer, [
                 ('outputnode.bold_file', 'bold_file'),
-                ('outputnode.boldref', 'boldref'),
                 ('outputnode.skip_vols', 'dummy_scans'),
             ]),
-            (hmcref_buffer, ds_hmc_boldref_wf, [('boldref', 'inputnode.boldref')]),
             (hmc_boldref_wf, summary, [('outputnode.algo_dummy_scans', 'algo_dummy_scans')]),
             (hmc_boldref_wf, func_fit_reports_wf, [
                 ('outputnode.validation_report', 'inputnode.validation_report'),
@@ -445,6 +446,7 @@ def init_bold_fit_wf(
         )
 
         ds_hmc_wf = init_ds_hmc_wf(
+            source_file=bold_file,
             bids_root=layout.root,
             output_dir=config.execution.fmriprep_dir,
         )
@@ -508,23 +510,32 @@ def init_bold_fit_wf(
             )
 
             itk_mat2txt = pe.Node(ConcatenateXFMs(out_fmt='itk'), name='itk_mat2txt')
+            fmapreg_source_files = pe.Node(
+                niu.Merge(2), name='fmapreg_source_files', run_without_submitting=True
+            )
 
             ds_fmapreg_wf = init_ds_registration_wf(
+                source_file=bold_file,
                 bids_root=layout.root,
                 output_dir=config.execution.fmriprep_dir,
                 source='boldref',
                 dest=re.sub(r'[^a-zA-Z0-9]', '', fieldmap_id),
+                desc='fmap',
                 name='ds_fmapreg_wf',
             )
-            ds_fmapreg_wf.inputs.inputnode.source_files = [bold_file]
 
             workflow.connect([
                 (fmap_select, fmapreg_wf, [
                     ('fmap_ref', 'inputnode.fmap_ref'),
                     ('fmap_mask', 'inputnode.fmap_mask'),
                 ]),
+                (fmapref_buffer, fmapreg_source_files, [('out', 'in1')]),
+                (fmap_select, fmapreg_source_files, [
+                    ('fmap_ref', 'in2'),
+                ]),
                 (fmapreg_wf, itk_mat2txt, [('outputnode.target2fmap_xfm', 'in_xfms')]),
                 (itk_mat2txt, ds_fmapreg_wf, [('out_xfm', 'inputnode.xform')]),
+                (fmapreg_source_files, ds_fmapreg_wf, [('out', 'inputnode.source_files')]),
                 (ds_fmapreg_wf, fmapreg_buffer, [('outputnode.xform', 'boldref2fmap_xfm')]),
             ])  # fmt:skip
         else:
@@ -538,7 +549,7 @@ def init_bold_fit_wf(
     if not coreg_boldref:
         config.loggers.workflow.info('Stage 4: Adding coregistration boldref workflow')
 
-        # Select initial boldref, enhance contrast, and generate mask
+        # If sbref files are available, add them to the list of sources
         if sbref_files and nb.load(sbref_files[0]).ndim > 3:
             raw_sbref_wf = init_raw_boldref_wf(
                 name='raw_sbref_wf',
@@ -548,26 +559,30 @@ def init_bold_fit_wf(
             workflow.connect(raw_sbref_wf, 'outputnode.boldref', fmapref_buffer, 'sbref_files')
 
         enhance_boldref_wf = init_enhance_and_skullstrip_bold_wf(omp_nthreads=omp_nthreads)
+        coreg_ref_source_files = pe.Node(
+            niu.Merge(3), name='coreg_ref_source_files', run_without_submitting=True
+        )
 
         ds_coreg_boldref_wf = init_ds_boldref_wf(
+            source_file=bold_file,
             bids_root=layout.root,
             output_dir=config.execution.fmriprep_dir,
             desc='coreg',
             name='ds_coreg_boldref_wf',
         )
         ds_boldmask_wf = init_ds_boldmask_wf(
+            source_file=bold_file,
             output_dir=config.execution.fmriprep_dir,
             desc='brain',
             name='ds_boldmask_wf',
         )
-        ds_boldmask_wf.inputs.inputnode.source_files = [bold_file]
 
         workflow.connect([
             (fmapref_buffer, enhance_boldref_wf, [('out', 'inputnode.in_file')]),
-            (hmc_boldref_source_buffer, ds_coreg_boldref_wf, [
-                ('in_file', 'inputnode.source_files'),
-            ]),
+            (fmapref_buffer, coreg_ref_source_files, [('out', 'in1')]),
+            (coreg_ref_source_files, ds_coreg_boldref_wf, [('out', 'inputnode.source_files')]),
             (ds_coreg_boldref_wf, regref_buffer, [('outputnode.boldref', 'boldref')]),
+            (ds_coreg_boldref_wf, ds_boldmask_wf, [('outputnode.boldref', 'inputnode.source_files')]),
             (ds_boldmask_wf, regref_buffer, [('outputnode.boldmask', 'boldmask')]),
         ])  # fmt:skip
 
@@ -610,6 +625,8 @@ def init_bold_fit_wf(
                 (skullstrip_bold_wf, ds_boldmask_wf, [
                     ('outputnode.mask_file', 'inputnode.boldmask'),
                 ]),
+                (fmapreg_buffer, coreg_ref_source_files, [('boldref2fmap_xfm', 'in2')]),
+                (fmap_select, coreg_ref_source_files, [('fmap_coeff', 'in3')]),
             ])  # fmt:skip
 
             if not boldref2fmap_xform:
@@ -660,10 +677,12 @@ def init_bold_fit_wf(
         )
 
         ds_boldreg_wf = init_ds_registration_wf(
+            source_file=bold_file,
             bids_root=layout.root,
             output_dir=config.execution.fmriprep_dir,
             source='boldref',
             dest='T1w',
+            desc='coreg',
             name='ds_boldreg_wf',
         )
 

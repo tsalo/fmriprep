@@ -141,6 +141,7 @@ def prepare_timing_parameters(metadata: dict):
 
 def init_func_fit_reports_wf(
     *,
+    source_file: str,
     sdc_correction: bool,
     freesurfer: bool,
     output_dir: str,
@@ -151,6 +152,8 @@ def init_func_fit_reports_wf(
 
     Parameters
     ----------
+    source_file : :class:`str`
+        Input BOLD image, for entity extraction only
     freesurfer : :obj:`bool`
         FreeSurfer was enabled
     output_dir : :obj:`str`
@@ -160,9 +163,6 @@ def init_func_fit_reports_wf(
 
     Inputs
     ------
-    source_file
-        Input BOLD images
-
     std_t1w
         T1w image resampled to standard space
     std_mask
@@ -192,7 +192,6 @@ def init_func_fit_reports_wf(
     workflow = pe.Workflow(name=name)
 
     inputfields = [
-        'source_file',
         'sdc_boldref',
         'coreg_boldref',
         'bold_mask',
@@ -214,6 +213,7 @@ def init_func_fit_reports_wf(
 
     ds_summary = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             desc='summary',
             datatype='figures',
@@ -226,6 +226,7 @@ def init_func_fit_reports_wf(
 
     ds_validation = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             desc='validation',
             datatype='figures',
@@ -269,11 +270,9 @@ def init_func_fit_reports_wf(
 
     workflow.connect([
         (inputnode, ds_summary, [
-            ('source_file', 'source_file'),
             ('summary_report', 'in_file'),
         ]),
         (inputnode, ds_validation, [
-            ('source_file', 'source_file'),
             ('validation_report', 'in_file'),
         ]),
         (inputnode, t1w_boldref, [
@@ -339,6 +338,7 @@ def init_func_fit_reports_wf(
 
         ds_sdcreg_report = pe.Node(
             DerivativesDataSink(
+                source_file=source_file,
                 base_directory=output_dir,
                 desc='fmapCoreg',
                 suffix='bold',
@@ -361,6 +361,7 @@ def init_func_fit_reports_wf(
 
         ds_sdc_report = pe.Node(
             DerivativesDataSink(
+                source_file=source_file,
                 base_directory=output_dir,
                 desc='sdc',
                 suffix='bold',
@@ -387,14 +388,12 @@ def init_func_fit_reports_wf(
             ]),
             (fmapref_boldref, sdcreg_report, [('output_image', 'moving')]),
             (fmap_boldref, sdcreg_report, [('output_image', 'fieldmap')]),
-            (inputnode, ds_sdcreg_report, [('source_file', 'source_file')]),
             (sdcreg_report, ds_sdcreg_report, [('out_report', 'in_file')]),
             (inputnode, sdc_report, [
                 ('sdc_boldref', 'before'),
                 ('coreg_boldref', 'after'),
             ]),
             (boldref_wm, sdc_report, [('output_image', 'wm_seg')]),
-            (inputnode, ds_sdc_report, [('source_file', 'source_file')]),
             (sdc_report, ds_sdc_report, [('out_report', 'in_file')]),
         ])  # fmt:skip
 
@@ -413,6 +412,7 @@ def init_func_fit_reports_wf(
 
     ds_epi_t1_report = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             desc='coreg',
             suffix='bold',
@@ -426,7 +426,6 @@ def init_func_fit_reports_wf(
         (inputnode, epi_t1_report, [('coreg_boldref', 'after')]),
         (t1w_boldref, epi_t1_report, [('output_image', 'before')]),
         (boldref_wm, epi_t1_report, [('output_image', 'wm_seg')]),
-        (inputnode, ds_epi_t1_report, [('source_file', 'source_file')]),
         (epi_t1_report, ds_epi_t1_report, [('out_report', 'in_file')]),
     ])  # fmt:skip
 
@@ -435,6 +434,7 @@ def init_func_fit_reports_wf(
 
 def init_ds_boldref_wf(
     *,
+    source_file: str,
     bids_root,
     output_dir,
     desc: str,
@@ -459,6 +459,7 @@ def init_ds_boldref_wf(
 
     ds_boldref = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             desc=desc,
             suffix='boldref',
@@ -471,8 +472,7 @@ def init_ds_boldref_wf(
 
     workflow.connect([
         (inputnode, sources, [('source_files', 'in1')]),
-        (inputnode, ds_boldref, [('boldref', 'in_file'),
-                                 ('source_files', 'source_file')]),
+        (inputnode, ds_boldref, [('boldref', 'in_file')]),
         (sources, ds_boldref, [('out', 'Sources')]),
         (ds_boldref, outputnode, [('out_file', 'boldref')]),
     ])  # fmt:skip
@@ -482,6 +482,7 @@ def init_ds_boldref_wf(
 
 def init_ds_boldmask_wf(
     *,
+    source_file: str,
     output_dir,
     desc: str,
     name='ds_boldmask_wf',
@@ -506,6 +507,7 @@ def init_ds_boldmask_wf(
 
     ds_boldmask = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             desc=desc,
             suffix='mask',
@@ -520,7 +522,6 @@ def init_ds_boldmask_wf(
         (inputnode, sources, [('source_files', 'in1')]),
         (inputnode, ds_boldmask, [
             ('boldmask', 'in_file'),
-            ('source_files', 'source_file'),
         ]),
         (sources, ds_boldmask, [('out', 'Sources')]),
         (ds_boldmask, outputnode, [('out_file', 'boldmask')]),
@@ -531,11 +532,13 @@ def init_ds_boldmask_wf(
 
 def init_ds_registration_wf(
     *,
+    source_file: str,
     bids_root: str,
     output_dir: str,
     source: str,
     dest: str,
     name: str,
+    desc: str | None = None,
 ) -> pe.Workflow:
     workflow = pe.Workflow(name=name)
 
@@ -556,8 +559,10 @@ def init_ds_registration_wf(
 
     ds_xform = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             mode='image',
+            desc=desc,
             suffix='xfm',
             extension='.txt',
             dismiss_entities=dismiss_echo(['part']),
@@ -572,7 +577,6 @@ def init_ds_registration_wf(
         (inputnode, sources, [('source_files', 'in1')]),
         (inputnode, ds_xform, [
             ('xform', 'in_file'),
-            ('source_files', 'source_file'),
             ('metadata', 'meta_dict'),
         ]),
         (sources, ds_xform, [('out', 'Sources')]),
@@ -584,6 +588,7 @@ def init_ds_registration_wf(
 
 def init_ds_hmc_wf(
     *,
+    source_file: str,
     bids_root,
     output_dir,
     name='ds_hmc_wf',
@@ -607,6 +612,7 @@ def init_ds_hmc_wf(
 
     ds_xforms = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             desc='hmc',
             suffix='xfm',
@@ -621,8 +627,7 @@ def init_ds_hmc_wf(
 
     workflow.connect([
         (inputnode, sources, [('source_files', 'in1')]),
-        (inputnode, ds_xforms, [('xforms', 'in_file'),
-                                ('source_files', 'source_file')]),
+        (inputnode, ds_xforms, [('xforms', 'in_file')]),
         (sources, ds_xforms, [('out', 'Sources')]),
         (ds_xforms, outputnode, [('out_file', 'xforms')]),
     ])  # fmt:skip
@@ -632,6 +637,7 @@ def init_ds_hmc_wf(
 
 def init_ds_bold_native_wf(
     *,
+    source_file: str,
     bids_root: str,
     output_dir: str,
     multiecho: bool,
@@ -678,6 +684,7 @@ def init_ds_bold_native_wf(
     if bold_output:
         ds_bold = pe.Node(
             DerivativesDataSink(
+                source_file=source_file,
                 base_directory=output_dir,
                 desc='preproc',
                 compress=True,
@@ -691,7 +698,6 @@ def init_ds_bold_native_wf(
         )
         workflow.connect([
             (inputnode, ds_bold, [
-                ('source_files', 'source_file'),
                 ('bold', 'in_file'),
             ]),
             (sources, ds_bold, [('out', 'Sources')]),
@@ -705,6 +711,7 @@ def init_ds_bold_native_wf(
         }
         ds_t2star = pe.Node(
             DerivativesDataSink(
+                source_file=source_file,
                 base_directory=output_dir,
                 space='boldref',
                 suffix='T2starmap',
@@ -718,7 +725,6 @@ def init_ds_bold_native_wf(
         )
         workflow.connect([
             (inputnode, ds_t2star, [
-                ('source_files', 'source_file'),
                 ('t2star', 'in_file'),
             ]),
             (sources, ds_t2star, [('out', 'Sources')]),
@@ -727,6 +733,7 @@ def init_ds_bold_native_wf(
     if echo_output:
         ds_bold_echos = pe.MapNode(
             DerivativesDataSink(
+                source_file=source_file,
                 base_directory=output_dir,
                 desc='preproc',
                 compress=True,
@@ -742,7 +749,6 @@ def init_ds_bold_native_wf(
         ds_bold_echos.inputs.meta_dict = [{'EchoTime': md['EchoTime']} for md in all_metadata]
         workflow.connect([
             (inputnode, ds_bold_echos, [
-                ('source_files', 'source_file'),
                 ('bold_echos', 'in_file'),
             ]),
         ])  # fmt:skip
@@ -752,6 +758,7 @@ def init_ds_bold_native_wf(
 
 def init_ds_volumes_wf(
     *,
+    source_file: str,
     bids_root: str,
     output_dir: str,
     multiecho: bool,
@@ -800,6 +807,7 @@ def init_ds_volumes_wf(
     # BOLD is pre-resampled
     ds_bold = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             desc='preproc',
             compress=True,
@@ -827,7 +835,6 @@ def init_ds_volumes_wf(
             ('boldref2anat_xfm', 'in2'),
         ]),
         (inputnode, ds_bold, [
-            ('source_files', 'source_file'),
             ('bold', 'in_file'),
             ('space', 'space'),
             ('cohort', 'cohort'),
@@ -855,6 +862,7 @@ def init_ds_volumes_wf(
 
     ds_ref = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             suffix='boldref',
             compress=True,
@@ -866,6 +874,7 @@ def init_ds_volumes_wf(
     )
     ds_mask = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=output_dir,
             desc='brain',
             suffix='mask',
@@ -895,6 +904,7 @@ def init_ds_volumes_wf(
         )
         ds_t2star = pe.Node(
             DerivativesDataSink(
+                source_file=source_file,
                 base_directory=output_dir,
                 suffix='T2starmap',
                 compress=True,
@@ -919,7 +929,6 @@ def init_ds_volumes_wf(
             for resampler in resamplers
         ] + [
             (inputnode, datasink, [
-                ('source_files', 'source_file'),
                 ('space', 'space'),
                 ('cohort', 'cohort'),
                 ('resolution', 'resolution'),
@@ -940,6 +949,7 @@ def init_ds_volumes_wf(
 def init_bold_preproc_report_wf(
     mem_gb: float,
     reportlets_dir: str,
+    source_file: str,
     name: str = 'bold_preproc_report_wf',
 ):
     """
@@ -954,10 +964,15 @@ def init_bold_preproc_report_wf(
             :simple_form: yes
 
             from fmriprep.workflows.bold.resampling import init_bold_preproc_report_wf
-            wf = init_bold_preproc_report_wf(mem_gb=1, reportlets_dir='.')
+            wf = init_bold_preproc_report_wf(
+                source_file='sub-01_task-nback_bold.nii.gz',
+                mem_gb=1,
+                reportlets_dir='.')
 
     Parameters
     ----------
+    source_file : :class:`str`
+        Input BOLD image, for entity extraction only
     mem_gb : :obj:`float`
         Size of BOLD file in GB
     reportlets_dir : :obj:`str`
@@ -994,6 +1009,7 @@ def init_bold_preproc_report_wf(
     bold_rpt = pe.Node(SimpleBeforeAfterRPT(), name='bold_rpt', mem_gb=0.1)
     ds_report_bold = pe.Node(
         DerivativesDataSink(
+            source_file=source_file,
             base_directory=reportlets_dir,
             desc='preproc',
             datatype='figures',

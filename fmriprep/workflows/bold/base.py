@@ -314,6 +314,7 @@ configured with cubic B-spline interpolation.
 
     if boldref_out or echos_out:
         ds_bold_native_wf = init_ds_bold_native_wf(
+            source_file=bold_series,
             bids_root=str(config.execution.bids_dir),
             output_dir=fmriprep_dir,
             bold_output=boldref_out,
@@ -372,8 +373,13 @@ configured with cubic B-spline interpolation.
         for node in workflow.list_node_names():
             if node.split('.')[-1].startswith('ds_report'):
                 workflow.get_node(node).inputs.base_directory = fmriprep_dir
-                workflow.get_node(node).inputs.source_file = bold_file
         return workflow
+
+    # Pass along BOLD reference as a source file for provenance
+    merge_bold_sources = pe.Node(
+        niu.Merge(2), name='merge_bold_sources', run_without_submitting=True
+    )
+    merge_bold_sources.inputs.in1 = bold_series
 
     # Resample to anatomical space
     bold_anat_wf = init_bold_volumetric_resample_wf(
@@ -404,18 +410,19 @@ configured with cubic B-spline interpolation.
             ('outputnode.bold_minimal', 'inputnode.bold_file'),
             ('outputnode.motion_xfm', 'inputnode.motion_xfm'),
         ]),
+        (bold_fit_wf, merge_bold_sources, [('outputnode.coreg_boldref', 'in2')]),
     ])  # fmt:skip
 
     # Full derivatives, including resampled BOLD series
     if nonstd_spaces.intersection(('anat', 'T1w')):
         ds_bold_t1_wf = init_ds_volumes_wf(
+            source_file=bold_file,
             bids_root=str(config.execution.bids_dir),
             output_dir=fmriprep_dir,
             multiecho=multiecho,
             metadata=all_metadata[0],
             name='ds_bold_t1_wf',
         )
-        ds_bold_t1_wf.inputs.inputnode.source_files = bold_series
         ds_bold_t1_wf.inputs.inputnode.space = 'T1w'
 
         workflow.connect([
@@ -431,6 +438,7 @@ configured with cubic B-spline interpolation.
                 ('outputnode.bold_file', 'inputnode.bold'),
                 ('outputnode.resampling_reference', 'inputnode.ref_file'),
             ]),
+            (merge_bold_sources, ds_bold_t1_wf, [('out', 'inputnode.source_files')]),
         ])  # fmt:skip
 
     if spaces.cached.get_spaces(nonstandard=False, dim=(3,)):
@@ -446,13 +454,13 @@ configured with cubic B-spline interpolation.
             name='bold_std_wf',
         )
         ds_bold_std_wf = init_ds_volumes_wf(
+            source_file=bold_file,
             bids_root=str(config.execution.bids_dir),
             output_dir=fmriprep_dir,
             multiecho=multiecho,
             metadata=all_metadata[0],
             name='ds_bold_std_wf',
         )
-        ds_bold_std_wf.inputs.inputnode.source_files = bold_series
 
         workflow.connect([
             (inputnode, bold_std_wf, [
@@ -492,6 +500,7 @@ configured with cubic B-spline interpolation.
                 ('outputnode.bold_file', 'inputnode.bold'),
                 ('outputnode.resampling_reference', 'inputnode.ref_file'),
             ]),
+            (merge_bold_sources, ds_bold_std_wf, [('out', 'inputnode.source_files')]),
         ])  # fmt:skip
 
     if config.workflow.run_reconall and freesurfer_spaces:
