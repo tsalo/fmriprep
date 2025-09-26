@@ -348,6 +348,7 @@ def init_bold_fit_wf(
         )
 
     func_fit_reports_wf = init_func_fit_reports_wf(
+        source_file=bold_file,
         sdc_correction=fieldmap_id is not None,
         freesurfer=config.workflow.run_reconall,
         output_dir=config.execution.fmriprep_dir,
@@ -368,7 +369,6 @@ def init_bold_fit_wf(
             ('hmc_xforms', 'motion_xfm'),
         ]),
         (inputnode, func_fit_reports_wf, [
-            ('bold_file', 'inputnode.source_file'),
             ('t1w_preproc', 'inputnode.t1w_preproc'),
             # May not need all of these
             ('t1w_mask', 'inputnode.t1w_mask'),
@@ -399,6 +399,7 @@ def init_bold_fit_wf(
         hmc_boldref_wf.inputs.inputnode.dummy_scans = config.workflow.dummy_scans
 
         ds_hmc_boldref_wf = init_ds_boldref_wf(
+            source_file=bold_file,
             bids_root=layout.root,
             output_dir=config.execution.fmriprep_dir,
             desc='hmc',
@@ -445,6 +446,7 @@ def init_bold_fit_wf(
         )
 
         ds_hmc_wf = init_ds_hmc_wf(
+            source_file=bold_file,
             bids_root=layout.root,
             output_dir=config.execution.fmriprep_dir,
         )
@@ -513,6 +515,7 @@ def init_bold_fit_wf(
             )
 
             ds_fmapreg_wf = init_ds_registration_wf(
+                source_file=bold_file,
                 bids_root=layout.root,
                 output_dir=config.execution.fmriprep_dir,
                 source='boldref',
@@ -561,12 +564,14 @@ def init_bold_fit_wf(
         )
 
         ds_coreg_boldref_wf = init_ds_boldref_wf(
+            source_file=bold_file,
             bids_root=layout.root,
             output_dir=config.execution.fmriprep_dir,
             desc='coreg',
             name='ds_coreg_boldref_wf',
         )
         ds_boldmask_wf = init_ds_boldmask_wf(
+            source_file=bold_file,
             output_dir=config.execution.fmriprep_dir,
             desc='brain',
             name='ds_boldmask_wf',
@@ -672,6 +677,7 @@ def init_bold_fit_wf(
         )
 
         ds_boldreg_wf = init_ds_registration_wf(
+            source_file=bold_file,
             bids_root=layout.root,
             output_dir=config.execution.fmriprep_dir,
             source='boldref',

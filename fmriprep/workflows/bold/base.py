@@ -314,6 +314,7 @@ configured with cubic B-spline interpolation.
 
     if boldref_out or echos_out:
         ds_bold_native_wf = init_ds_bold_native_wf(
+            source_file=bold_series,
             bids_root=str(config.execution.bids_dir),
             output_dir=fmriprep_dir,
             bold_output=boldref_out,
@@ -372,7 +373,6 @@ configured with cubic B-spline interpolation.
         for node in workflow.list_node_names():
             if node.split('.')[-1].startswith('ds_report'):
                 workflow.get_node(node).inputs.base_directory = fmriprep_dir
-                workflow.get_node(node).inputs.source_file = bold_file
         return workflow
 
     # Pass along BOLD reference as a source file for provenance
@@ -416,6 +416,7 @@ configured with cubic B-spline interpolation.
     # Full derivatives, including resampled BOLD series
     if nonstd_spaces.intersection(('anat', 'T1w')):
         ds_bold_t1_wf = init_ds_volumes_wf(
+            source_file=bold_file,
             bids_root=str(config.execution.bids_dir),
             output_dir=fmriprep_dir,
             multiecho=multiecho,
@@ -453,6 +454,7 @@ configured with cubic B-spline interpolation.
             name='bold_std_wf',
         )
         ds_bold_std_wf = init_ds_volumes_wf(
+            source_file=bold_file,
             bids_root=str(config.execution.bids_dir),
             output_dir=fmriprep_dir,
             multiecho=multiecho,
