@@ -184,9 +184,8 @@ def init_bold_wf(
         return
 
     config.loggers.workflow.debug(
-        f'Creating bold processing workflow for <{bold_file}> ({mem_gb["filesize"]:.2f} GB / '
-        f'{nvols} TRs). Memory resampled/largemem={mem_gb["resampled"]:.2f}/'
-        f'{mem_gb["largemem"]:.2f} GB.'
+        f'Creating bold processing workflow for <{bold_file}> ({mem_gb["filesize"]:.2f} GB / {nvols} TRs). '
+        f'Memory resampled/largemem={mem_gb["resampled"]:.2f}/{mem_gb["largemem"]:.2f} GB.'
     )
 
     workflow = Workflow(name=_get_wf_name(bold_file, 'bold'))

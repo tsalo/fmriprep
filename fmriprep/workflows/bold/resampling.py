@@ -599,26 +599,14 @@ using the "ribbon-constrained" method
         iterables=[('hemi', ['L', 'R'])],
     )
 
-    joinnode = pe.JoinNode(
+    outputnode = pe.JoinNode(
         niu.IdentityInterface(fields=['bold_fsnative']),
-        name='joinnode_vol_surf',
+        name='outputnode',
         joinsource='hemisource_vol_surf',
     )
 
-    outputnode = pe.Node(
-        niu.IdentityInterface(fields=['bold_fsnative']),
-        name='outputnode',
-    )
-
     select_surfaces = pe.Node(
-        KeySelect(
-            fields=[
-                'white',
-                'pial',
-                'midthickness',
-            ],
-            keys=['L', 'R'],
-        ),
+        KeySelect(fields=['white', 'pial', 'midthickness'], keys=['L', 'R']),
         name='select_surfaces',
         run_without_submitting=True,
     )
@@ -627,13 +615,6 @@ using the "ribbon-constrained" method
         VolumeToSurfaceMapping(method='ribbon-constrained'),
         name='volume_to_surface',
         mem_gb=mem_gb * 3,
-        n_procs=omp_nthreads,
-    )
-
-    metric_dilate = pe.Node(
-        MetricDilate(distance=10, nearest=True),
-        name='metric_dilate',
-        mem_gb=1,
         n_procs=omp_nthreads,
     )
 
@@ -653,17 +634,23 @@ using the "ribbon-constrained" method
             ('white', 'inner_surface'),
             ('pial', 'outer_surface'),
         ]),
-        (joinnode, outputnode, [('bold_fsnative', 'bold_fsnative')]),
     ])  # fmt:skip
 
     if dilate:
+        metric_dilate = pe.Node(
+            MetricDilate(distance=10, nearest=True),
+            name='metric_dilate',
+            mem_gb=1,
+            n_procs=omp_nthreads,
+        )
+
         workflow.connect([
             (select_surfaces, metric_dilate, [('midthickness', 'surf_file')]),
             (volume_to_surface, metric_dilate, [('out_file', 'in_file')]),
-            (metric_dilate, joinnode, [('out_file', 'bold_fsnative')]),
+            (metric_dilate, outputnode, [('out_file', 'bold_fsnative')]),
         ])  # fmt:skip
     else:
-        workflow.connect(volume_to_surface, 'out_file', joinnode, 'bold_fsnative')
+        workflow.connect(volume_to_surface, 'out_file', outputnode, 'bold_fsnative')
 
     return workflow
 
@@ -761,15 +748,10 @@ def init_wb_surf_surf_wf(
         iterables=[('hemi', ['L', 'R'])],
     )
 
-    joinnode = pe.JoinNode(
-        niu.IdentityInterface(fields=['bold_resampled']),
-        name=f'joinnode_surf_surf_{template}_{density}',
-        joinsource=f'hemisource_surf_surf_{template}_{density}',
-    )
-
-    outputnode = pe.Node(
+    outputnode = pe.JoinNode(
         niu.IdentityInterface(fields=['bold_resampled']),
         name='outputnode',
+        joinsource=f'hemisource_surf_surf_{template}_{density}',
     )
 
     select_surfaces = pe.Node(
@@ -819,11 +801,8 @@ def init_wb_surf_surf_wf(
             ('midthickness', 'current_area'),
             ('midthickness_resampled', 'new_area'),
         ]),
-        (resample_to_template, joinnode, [
+        (resample_to_template, outputnode, [
             ('out_file', 'bold_resampled'),
-        ]),
-        (joinnode, outputnode, [
-            ('bold_resampled', 'bold_resampled'),
         ]),
     ])  # fmt:skip
 
