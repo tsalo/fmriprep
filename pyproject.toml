@@ -129,8 +129,6 @@ FSLDIR = "$CONDA_PREFIX"
 [tool.pixi.environments]
 # Local installs will use editable
 default = { features = ["editable"], solve-group = "default" }
-dev = { features = ["dev"], solve-group = "default" }
-doc = { features = ["doc"], solve-group = "default" }
 test = { features = ["editable", "test"], solve-group = "default" }
 # Use "fmriprep" feature for production environment, so it is identifiable
 fmriprep = { features = ["production", "container", "telemetry"], solve-group = "production" }

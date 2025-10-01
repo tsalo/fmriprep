@@ -80,9 +80,10 @@ FROM ${BASE_IMAGE} AS base
 RUN useradd -m -s /bin/bash -G users fmriprep
 WORKDIR /home/fmriprep
 ENV HOME="/home/fmriprep"
-RUN chmod -R go=u $HOME
 
 COPY --link --from=templates /templateflow /home/fmriprep/.cache/templateflow
+
+RUN chmod -R go=u $HOME
 
 # Unless otherwise specified each process should only use one thread - nipype
 # will handle parallelization
