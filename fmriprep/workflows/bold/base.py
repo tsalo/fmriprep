@@ -505,7 +505,7 @@ configured with cubic B-spline interpolation.
         ])  # fmt:skip
 
     # Goodvoxels mask might be needed in any surface resampling
-    if config.workflow.project_goodvoxels:
+    if config.workflow.project_goodvoxels and (config.workflow.cifti_output or surf_std):
         from .resampling import init_goodvoxels_bold_mask_wf
 
         goodvoxels_bold_mask_wf = init_goodvoxels_bold_mask_wf(mem_gb['resampled'])
