@@ -1,3 +1,15 @@
+25.2.1 (October 03, 2025)
+=========================
+Bug-fix release in the 25.2.x series.
+
+This fix addresses an issue seen when in datasets with multiple anatomical sessions
+that do not perform per-session processing. It also updates the citation boilerplate
+when resampling to non-FreeSurfer, non-fsLR surface templates.
+
+  * FIX: Pass actual T1w files to summary interface (#3545)
+  * DOC: Include template metadata information when resampling BOLD to surface (#3544)
+
+
 25.2.0 (October 01, 2025)
 =========================
 New feature release in the 25.2.x series.
