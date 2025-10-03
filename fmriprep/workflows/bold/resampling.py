@@ -576,9 +576,8 @@ def init_wb_vol_surf_wf(
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
 The BOLD time-series were resampled onto the native surface of the subject
-using the "ribbon-constrained" method
+using the "ribbon-constrained" method{' and then dilated by 10 mm' * dilate}.
 """
-    workflow.__desc__ += ' and then dilated by 10 mm.' if dilate else '.'
 
     inputnode = pe.Node(
         niu.IdentityInterface(
