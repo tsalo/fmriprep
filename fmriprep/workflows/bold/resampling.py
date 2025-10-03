@@ -576,9 +576,8 @@ def init_wb_vol_surf_wf(
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
 The BOLD time-series were resampled onto the native surface of the subject
-using the "ribbon-constrained" method
+using the "ribbon-constrained" method{' and then dilated by 10 mm' * dilate}.
 """
-    workflow.__desc__ += ' and then dilated by 10 mm.' if dilate else '.'
 
     inputnode = pe.Node(
         niu.IdentityInterface(
@@ -677,7 +676,7 @@ def init_wb_surf_surf_wf(
 
             from fmriprep.workflows.bold.resampling import init_wb_surf_surf_wf
             wf = init_wb_surf_surf_wf(
-                space='fsLR',
+                template='fsLR',
                 density='32k',
                 omp_nthreads=1,
                 mem_gb=1,
@@ -782,7 +781,7 @@ def init_wb_surf_surf_wf(
     resample_to_template = pe.Node(
         MetricResample(method='ADAP_BARY_AREA', area_surfs=True),
         name='resample_to_template',
-        mem_gb=1,
+        mem_gb=mem_gb,
         n_procs=omp_nthreads,
     )
 
@@ -805,6 +804,18 @@ def init_wb_surf_surf_wf(
             ('out_file', 'bold_resampled'),
         ]),
     ])  # fmt:skip
+
+    # Fetch template metadata
+    template_meta = tf.get_metadata(template.split(':')[0])
+    template_refs = ['@{}'.format(template.split(':')[0].lower())]
+    if template_meta.get('RRID', None):
+        template_refs += [f'RRID:{template_meta["RRID"]}']
+
+    workflow.__desc__ = f"""\
+The BOLD series was resampled to *{template_meta['Name']}*
+[{', '.join(template_refs)}; TemplateFlow ID: {template}] using
+the Connectome Workbench.
+"""
 
     return workflow
 
