@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ARG BASE_IMAGE=ghcr.io/nipreps/fmriprep-base:20250915
+ARG BASE_IMAGE=ghcr.io/nipreps/fmriprep-base:20251006
 
 #
 # Build pixi environment
