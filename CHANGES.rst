@@ -1,3 +1,13 @@
+25.2.2 (October 06, 2025)
+=========================
+Bug-fix release in the 25.2.x series.
+
+This fix addresses an issue in the Docker containers.
+FreeSurfer's ``recon-all`` depends on a full Perl installation being available in the environment.
+
+  * FIX: Ensure perl is installed in container (#3547)
+
+
 25.2.1 (October 03, 2025)
 =========================
 Bug-fix release in the 25.2.x series.
