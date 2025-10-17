@@ -68,6 +68,11 @@ class T2SMapInputSpec(CommandLineInputSpec):
             'monoexponential model is fit to the raw data.'
         ),
     )
+    n_exclude = traits.Int(
+        argstr='--exclude %s',
+        position=5,
+        desc='Number of volumes from the beginning of the run to exclude from T2*/S0 estimation.',
+    )
 
 
 class T2SMapOutputSpec(TraitedSpec):
@@ -103,6 +108,9 @@ sub-01_run-01_echo-3_bold.nii.gz -e 13.0 27.0 43.0 --fittype curvefit'
     def _format_arg(self, name, trait_spec, value):
         if name == 'echo_times':
             value = [te * 1000 for te in value]
+        if name == 'n_exclude':
+            # Convert to a range
+            value = f'0:{value}'
         return super()._format_arg(name, trait_spec, value)
 
     def _list_outputs(self):
