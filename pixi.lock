@@ -306,7 +306,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/75/ef/021d66cd659183dcfd818cc571ec63275ad93eb9a5e319e3b86e44305aa4/niworkflows-1.14.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d6/5b/545e9267a1cc080c8a1be2746113a063e34bcdd0f5173fd665a5c13cb234/num2words-0.5.14-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/7f/96/d6d25a4c307d6645f4a9b91d620c0151c544ad38b5e371313a87d2761004/nvidia_ml_py-13.580.82-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/db/c6/ed8bbe16ed10a0461bafdedb54936faee4cc510b1709a6296f66421c5362/pathlib_abc-0.5.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b8/db/14bafcb4af2139e046d03fd00dea7873e48eafe18b7d2797e73d6681f210/prometheus_client-0.23.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/84/03/0d3ce49e2505ae70cf43bc5bb3033955d2fc9f932163e84dc0779cc47f48/prompt_toolkit-3.0.52-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/76/17/5703ad2380e57ecceb2700e30646ba0d856d9b90c9f33b01c68a3e298e3a/prov-2.1.1-py3-none-any.whl
@@ -347,7 +346,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/ab/d9/a29dfa84363e88b053bf85a8b7f212a04f0d7343a4d24933baa45c06e08b/types_python_dateutil-2.9.0.20250822-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c2/14/e2a54fabd4f08cd7af1c07030603c3356b74da07f7cc056e600436edfa17/tzlocal-5.3.1-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/98/0d/0f991e576e886022e100fe6a0d6966c041fac5c8322bb34fea8dfd66399d/universal_pathlib-0.3.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/e5/4d/2e577f6db7aa0f932d19f799c18f604b2b302c65f733419b900ec07dbade/universal_pathlib-0.2.6-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a7/c2/fe1e52489ae3122415c51f387e221dd0773709bad6c6cdaa599e8a2c5185/urllib3-2.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/af/b5/123f13c975e9f27ab9c0770f514345bd406d0e8d3b7a0723af9d43f710af/wcwidth-0.2.14-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/9f/81/5d931d78d0eb732b95dc3ddaeeb71c8bb572fb01356e9133916cd729ecdd/wrapt-1.17.3-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
@@ -684,7 +683,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/d6/5b/545e9267a1cc080c8a1be2746113a063e34bcdd0f5173fd665a5c13cb234/num2words-0.5.14-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/7f/96/d6d25a4c307d6645f4a9b91d620c0151c544ad38b5e371313a87d2761004/nvidia_ml_py-13.580.82-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a8/7a/8d6fe30d424329ced46a738faaea4150efb8eee656599b88a791cf7ad07e/osfclient-0.0.5-py2.py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/db/c6/ed8bbe16ed10a0461bafdedb54936faee4cc510b1709a6296f66421c5362/pathlib_abc-0.5.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d2/07/a7aefd5b3ee565b4d959bcf7061666c7fbf66ed83e58d07cdcdca35c9b33/patool-4.0.1-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/40/4b/2028861e724d3bd36227adfa20d3fd24c3fc6d52032f4a93c133be5d17ce/platformdirs-4.4.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b8/db/14bafcb4af2139e046d03fd00dea7873e48eafe18b7d2797e73d6681f210/prometheus_client-0.23.1-py3-none-any.whl
@@ -732,7 +730,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/ab/d9/a29dfa84363e88b053bf85a8b7f212a04f0d7343a4d24933baa45c06e08b/types_python_dateutil-2.9.0.20250822-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c2/14/e2a54fabd4f08cd7af1c07030603c3356b74da07f7cc056e600436edfa17/tzlocal-5.3.1-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/98/0d/0f991e576e886022e100fe6a0d6966c041fac5c8322bb34fea8dfd66399d/universal_pathlib-0.3.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/e5/4d/2e577f6db7aa0f932d19f799c18f604b2b302c65f733419b900ec07dbade/universal_pathlib-0.2.6-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a7/c2/fe1e52489ae3122415c51f387e221dd0773709bad6c6cdaa599e8a2c5185/urllib3-2.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/af/b5/123f13c975e9f27ab9c0770f514345bd406d0e8d3b7a0723af9d43f710af/wcwidth-0.2.14-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/9f/81/5d931d78d0eb732b95dc3ddaeeb71c8bb572fb01356e9133916cd729ecdd/wrapt-1.17.3-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
@@ -1048,7 +1046,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/75/ef/021d66cd659183dcfd818cc571ec63275ad93eb9a5e319e3b86e44305aa4/niworkflows-1.14.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d6/5b/545e9267a1cc080c8a1be2746113a063e34bcdd0f5173fd665a5c13cb234/num2words-0.5.14-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/7f/96/d6d25a4c307d6645f4a9b91d620c0151c544ad38b5e371313a87d2761004/nvidia_ml_py-13.580.82-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/db/c6/ed8bbe16ed10a0461bafdedb54936faee4cc510b1709a6296f66421c5362/pathlib_abc-0.5.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b8/db/14bafcb4af2139e046d03fd00dea7873e48eafe18b7d2797e73d6681f210/prometheus_client-0.23.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/84/03/0d3ce49e2505ae70cf43bc5bb3033955d2fc9f932163e84dc0779cc47f48/prompt_toolkit-3.0.52-py3-none-any.whl
@@ -1094,7 +1091,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/ab/d9/a29dfa84363e88b053bf85a8b7f212a04f0d7343a4d24933baa45c06e08b/types_python_dateutil-2.9.0.20250822-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c2/14/e2a54fabd4f08cd7af1c07030603c3356b74da07f7cc056e600436edfa17/tzlocal-5.3.1-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/98/0d/0f991e576e886022e100fe6a0d6966c041fac5c8322bb34fea8dfd66399d/universal_pathlib-0.3.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/e5/4d/2e577f6db7aa0f932d19f799c18f604b2b302c65f733419b900ec07dbade/universal_pathlib-0.2.6-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a7/c2/fe1e52489ae3122415c51f387e221dd0773709bad6c6cdaa599e8a2c5185/urllib3-2.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/af/b5/123f13c975e9f27ab9c0770f514345bd406d0e8d3b7a0723af9d43f710af/wcwidth-0.2.14-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/9f/81/5d931d78d0eb732b95dc3ddaeeb71c8bb572fb01356e9133916cd729ecdd/wrapt-1.17.3-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
@@ -2135,7 +2132,7 @@ packages:
   requires_python: '>=3.9'
 - pypi: ./
   name: fmriprep
-  version: 25.3.0.dev5+g8720e1331
+  version: 25.2.3.dev0+g96b3ecf08.d20251014
   sha256: d28c31a592813a8c5bcc0eb1c87fbe0b48a74921fd21a6e204a83c4f8b3213f3
   requires_dist:
   - acres>=0.2.0
@@ -2206,7 +2203,7 @@ packages:
   editable: true
 - pypi: ./
   name: fmriprep
-  version: 25.3.0.dev5+g8720e1331
+  version: 25.2.3.dev0+g96b3ecf08.d20251014
   sha256: d28c31a592813a8c5bcc0eb1c87fbe0b48a74921fd21a6e204a83c4f8b3213f3
   requires_dist:
   - acres>=0.2.0
@@ -5284,11 +5281,6 @@ packages:
   purls: []
   size: 455420
   timestamp: 1751292466873
-- pypi: https://files.pythonhosted.org/packages/db/c6/ed8bbe16ed10a0461bafdedb54936faee4cc510b1709a6296f66421c5362/pathlib_abc-0.5.1-py3-none-any.whl
-  name: pathlib-abc
-  version: 0.5.1
-  sha256: 96bfbcc9828bc2d5f7d53e6c3e66314773dd6c119dad46ab6de20bb869dc6324
-  requires_python: '>=3.9'
 - pypi: https://files.pythonhosted.org/packages/d2/07/a7aefd5b3ee565b4d959bcf7061666c7fbf66ed83e58d07cdcdca35c9b33/patool-4.0.1-py2.py3-none-any.whl
   name: patool
   version: 4.0.1
@@ -6733,36 +6725,35 @@ packages:
   - pkg:pypi/unicodedata2?source=hash-mapping
   size: 404974
   timestamp: 1756494558558
-- pypi: https://files.pythonhosted.org/packages/98/0d/0f991e576e886022e100fe6a0d6966c041fac5c8322bb34fea8dfd66399d/universal_pathlib-0.3.0-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/e5/4d/2e577f6db7aa0f932d19f799c18f604b2b302c65f733419b900ec07dbade/universal_pathlib-0.2.6-py3-none-any.whl
   name: universal-pathlib
-  version: 0.3.0
-  sha256: 5643d62584254457473f30b4f02127a7d40d7a7d902cefd8838a7350c99e41a4
+  version: 0.2.6
+  sha256: 700dec2b58ef34b87998513de6d2ae153b22f083197dfafb8544744edabd1b18
   requires_dist:
-  - fsspec>=2024.5.0
-  - pathlib-abc==0.5.1
+  - fsspec>=2022.1.0,!=2024.3.1
   - pytest>=8 ; extra == 'tests'
   - pytest-sugar>=0.9.7 ; extra == 'tests'
   - pytest-cov>=4.1.0 ; extra == 'tests'
   - pytest-mock>=3.12.0 ; extra == 'tests'
   - pylint>=2.17.4 ; extra == 'tests'
   - mypy>=1.10.0 ; extra == 'tests'
-  - pydantic>=2 ; extra == 'tests'
   - pytest-mypy-plugins>=3.1.2 ; extra == 'tests'
   - packaging ; extra == 'tests'
-  - mypy>=1.10.0 ; extra == 'typechecking'
-  - pytest-mypy-plugins>=3.1.2 ; extra == 'typechecking'
-  - fsspec[adl,gcs,github,http,s3,smb,ssh]>=2024.5.0 ; extra == 'dev'
-  - s3fs>=2024.5.0 ; extra == 'dev'
-  - gcsfs>=2024.5.0 ; extra == 'dev'
-  - adlfs>=2024 ; extra == 'dev'
-  - webdav4[fsspec] ; extra == 'dev'
+  - adlfs ; extra == 'dev'
+  - aiohttp ; extra == 'dev'
+  - requests ; extra == 'dev'
+  - gcsfs ; extra == 'dev'
+  - s3fs ; extra == 'dev'
   - moto[s3,server] ; extra == 'dev'
+  - webdav4[fsspec] ; extra == 'dev'
+  - paramiko ; extra == 'dev'
   - wsgidav ; extra == 'dev'
   - cheroot ; extra == 'dev'
+  - pydantic ; extra == 'dev'
+  - pydantic-settings ; extra == 'dev'
+  - smbprotocol ; extra == 'dev'
   - typing-extensions ; python_full_version < '3.11' and extra == 'dev'
-  - pydantic ; extra == 'dev-third-party'
-  - pydantic-settings ; extra == 'dev-third-party'
-  requires_python: '>=3.9'
+  requires_python: '>=3.8'
 - pypi: https://files.pythonhosted.org/packages/a7/c2/fe1e52489ae3122415c51f387e221dd0773709bad6c6cdaa599e8a2c5185/urllib3-2.5.0-py3-none-any.whl
   name: urllib3
   version: 2.5.0
