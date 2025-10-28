@@ -1,3 +1,12 @@
+25.2.3 (October 17, 2025)
+=========================
+Bug-fix release in the 25.2.x series.
+
+This fix addresses an incompatibility between the PyBIDS and universal-pathlib dependencies.
+The only change is reverting universal-pathlib to a compatible version in the lock file,
+which will also fix the container.
+
+
 25.2.2 (October 06, 2025)
 =========================
 Bug-fix release in the 25.2.x series.
