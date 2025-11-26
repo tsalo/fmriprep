@@ -30,7 +30,7 @@ jobs:
           docker system prune -af
 
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 200
           fetch-tags: true
