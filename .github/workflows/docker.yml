@@ -24,6 +24,11 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: Prune container
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/hostedtoolcache
+          docker system prune -af
+
       - name: Checkout repository
         uses: actions/checkout@v5
         with:

@@ -633,6 +633,7 @@ It is released under the [CC0]\
     all_estimators, estimator_map = map_fieldmap_estimation(
         layout=config.execution.layout,
         subject_id=subject_id,
+        session_id=session_id,
         bold_data=bold_runs,
         ignore_fieldmaps='fieldmaps' in config.workflow.ignore,
         use_syn=config.workflow.use_syn_sdc,
@@ -834,6 +835,16 @@ tasks and sessions), the following preprocessing was performed.
         fieldmap_id = estimator_map.get(bold_file)
         jacobian = False
 
+        if len(bold_series) == 2:
+            # This should only be reached if two-echo data are provided and echo-idx is not.
+            # Raise an error in this case, until we figure out how to support two-echo data.
+            bold_series_str = '\n\t'.join(bold_series)
+            raise RuntimeError(
+                'This BOLD series contains two echoes, which fMRIPrep does not support:\n'
+                f'\t{bold_series_str}\n'
+                'Please set "--echo-idx" to process one echo at a time.'
+            )
+
         if fieldmap_id:
             if 'fmap-jacobian' in config.workflow.force:
                 jacobian = True
@@ -933,6 +944,7 @@ tasks and sessions), the following preprocessing was performed.
 def map_fieldmap_estimation(
     layout: bids.BIDSLayout,
     subject_id: str,
+    session_id: str | list[str] | None,
     bold_data: list[list[str]],
     ignore_fieldmaps: bool,
     use_syn: bool | str,
@@ -953,6 +965,7 @@ def map_fieldmap_estimation(
     fmap_estimators = find_estimators(
         layout=layout,
         subject=subject_id,
+        sessions=[session_id] if isinstance(session_id, str) else session_id,
         fmapless=bool(use_syn) or (ignore_fieldmaps and force_syn),
         force_fmapless=force_syn or (ignore_fieldmaps and use_syn),
         bids_filters=filters,
