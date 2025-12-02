@@ -100,7 +100,7 @@ def init_bold_t2s_wf(
 
     workflow.__desc__ = f"""\
 A T2<sup>★</sup> map was estimated from the preprocessed EPI echoes using tedana's t2smap
-workflow [@tedana], by voxel-wise fitting the maximal number of echoes with reliable signal in
+workflow [@DuPre2021], by voxel-wise fitting the maximal number of echoes with reliable signal in
 that voxel to a monoexponential signal decay model with {fit_str}.
 The calculated T2<sup>★</sup> map was then used to optimally combine preprocessed BOLD across
 echoes following the method described in [@posse_t2s].
