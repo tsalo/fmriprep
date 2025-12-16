@@ -186,11 +186,12 @@ tCompCor components are then calculated from the top 2% variable
 voxels within the brain mask.
 For aCompCor, three probabilistic masks (CSF, WM and combined CSF+WM)
 are generated in anatomical space.
-The implementation differs from that of Behzadi et al. in that instead
+The implementation differs from that of Behzadi et al. in that, instead
 of eroding the masks by 2 pixels on BOLD space, a mask of pixels that
 likely contain a volume fraction of GM is subtracted from the aCompCor masks.
-This mask is obtained by thresholding the corresponding partial volume map at 0.05,
-and it ensures components are not extracted
+This mask is obtained by thresholding the corresponding partial volume map at 0.05
+and then dilating the mask by 3 voxels.
+This ensures that components are not extracted
 from voxels containing a minimal fraction of GM.
 Finally, these masks are resampled into BOLD space and binarized by
 thresholding at 0.99 (as in the original implementation).
