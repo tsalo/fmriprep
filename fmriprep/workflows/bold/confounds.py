@@ -53,7 +53,6 @@ def init_bold_confs_wf(
     regressors_all_comps: bool,
     regressors_dvars_th: float,
     regressors_fd_th: float,
-    freesurfer: bool = False,
     name: str = 'bold_confs_wf',
 ):
     """
@@ -113,9 +112,6 @@ def init_bold_confs_wf(
         Criterion for flagging DVARS outliers
     regressors_fd_th : :obj:`float`
         Criterion for flagging framewise displacement outliers
-    freesurfer : :obj:`bool`
-        Set to ``True`` if the input volume fractions for the anatomical
-        component-based noise correction maps come from FreeSurfer's ``aseg``.
     name : :obj:`str`
         Name of workflow (default: ``bold_confs_wf``)
 
@@ -168,12 +164,6 @@ def init_bold_confs_wf(
 
     from ...interfaces.confounds import aCompCorMasks
 
-    gm_desc = (
-        "dilating a GM mask extracted from the FreeSurfer's *aseg* segmentation"
-        if freesurfer
-        else 'thresholding the corresponding partial volume map at 0.05'
-    )
-
     workflow = Workflow(name=name)
     workflow.__desc__ = f"""\
 Several confounding time-series were calculated based on the
@@ -199,7 +189,8 @@ are generated in anatomical space.
 The implementation differs from that of Behzadi et al. in that instead
 of eroding the masks by 2 pixels on BOLD space, a mask of pixels that
 likely contain a volume fraction of GM is subtracted from the aCompCor masks.
-This mask is obtained by {gm_desc}, and it ensures components are not extracted
+This mask is obtained by thresholding the corresponding partial volume map at 0.05,
+and it ensures components are not extracted
 from voxels containing a minimal fraction of GM.
 Finally, these masks are resampled into BOLD space and binarized by
 thresholding at 0.99 (as in the original implementation).
@@ -274,7 +265,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
     rmsd = pe.Node(FSLRMSDeviation(), name='rmsd')
 
     # Generate aCompCor probseg maps
-    acc_masks = pe.Node(aCompCorMasks(is_aseg=freesurfer), name='acc_masks')
+    acc_masks = pe.Node(aCompCorMasks(), name='acc_masks')
 
     # Resample probseg maps in BOLD space via BOLD-to-T1w transform
     acc_msk_tfm = pe.MapNode(
@@ -536,8 +527,7 @@ the edge of the brain, as proposed by [@patriat_improved_2017].
         # aCompCor
         (inputnode, acompcor, [('bold', 'realigned_file'),
                                ('skip_vols', 'ignore_initial_volumes')]),
-        (inputnode, acc_masks, [('t1w_tpms', 'in_vfs'),
-                                (('bold', _get_zooms), 'bold_zooms')]),
+        (inputnode, acc_masks, [('t1w_tpms', 'in_vfs')]),
         (inputnode, acc_msk_tfm, [('boldref2anat_xfm', 'transforms'),
                                   ('bold_mask', 'reference_image')]),
         (inputnode, acc_msk_brain, [('bold_mask', 'in_mask')]),
