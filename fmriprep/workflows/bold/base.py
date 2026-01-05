@@ -374,6 +374,7 @@ configured with cubic B-spline interpolation.
         for node in workflow.list_node_names():
             if node.split('.')[-1].startswith('ds_report'):
                 workflow.get_node(node).inputs.base_directory = fmriprep_dir
+                workflow.get_node(node).inputs.source_file = bold_file
         return workflow
 
     # Pass along BOLD reference as a source file for provenance
