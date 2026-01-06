@@ -23,7 +23,39 @@
 """Utilities for confounds manipulation."""
 
 
-def acompcor_masks(in_files):
+def mask2vf(in_file, zooms=None, out_file=None):
+    """
+    Convert a binary mask on a volume fraction map.
+    The algorithm simply applies a Gaussian filter with the kernel size scaled
+    by the zooms given as argument.
+    """
+    import nibabel as nb
+    import numpy as np
+    from scipy.ndimage import gaussian_filter
+
+    img = nb.load(in_file)
+    imgzooms = np.array(img.header.get_zooms()[:3], dtype=float)
+    if zooms is None:
+        zooms = imgzooms
+
+    zooms = np.array(zooms, dtype=float)
+    sigma = 0.5 * (zooms / imgzooms)
+
+    data = gaussian_filter(img.get_fdata(dtype=np.float32), sigma=sigma)
+
+    max_data = np.percentile(data[data > 0], 99)
+    data = np.clip(data / max_data, a_min=0, a_max=1)
+
+    if out_file is None:
+        return data
+
+    hdr = img.header.copy()
+    hdr.set_data_dtype(np.float32)
+    nb.Nifti1Image(data.astype(np.float32), img.affine, hdr).to_filename(out_file)
+    return out_file
+
+
+def acompcor_masks(in_files, is_aseg=False, zooms=None):
     """
     Generate aCompCor masks.
 
@@ -66,10 +98,16 @@ def acompcor_masks(in_files):
         This should be equivalent to eroding the masks, except that the erosion
         only happens at direct interfaces with GM.
 
+    When the probseg maps provene from FreeSurfer's ``recon-all`` (i.e., they are
+    discrete), binary maps are *transformed* into some sort of partial volume maps
+    by means of a Gaussian smoothing filter with sigma adjusted by the size of the
+    BOLD data.
+
     """
     from pathlib import Path
 
     import nibabel as nb
+    import numpy as np
     from scipy.ndimage import binary_dilation
     from skimage.morphology import ball
 
@@ -79,9 +117,27 @@ def acompcor_masks(in_files):
     wm_vf = nb.load(in_files[1])
     csf_vf = nb.load(csf_file)
 
-    gm_data = gm_vf.get_fdata() > 0.05
-    wm_data = wm_vf.get_fdata()
-    csf_data = csf_vf.get_fdata()
+    # Prepare target zooms
+    imgzooms = np.array(gm_vf.header.get_zooms()[:3], dtype=float)
+    if zooms is None:
+        zooms = imgzooms
+    zooms = np.array(zooms, dtype=float)
+
+    if not is_aseg:
+        gm_data = gm_vf.get_fdata() > 0.05
+        wm_data = wm_vf.get_fdata()
+        csf_data = csf_vf.get_fdata()
+    else:
+        csf_file = mask2vf(
+            csf_file,
+            zooms=zooms,
+            out_file=str(Path('acompcor_csf.nii.gz').absolute()),
+        )
+        csf_data = nb.load(csf_file).get_fdata()
+        wm_data = mask2vf(in_files[1], zooms=zooms)
+
+        # We do not have partial volume maps (recon-all route)
+        gm_data = np.asanyarray(gm_vf.dataobj, np.uint8) > 0
 
     # Dilate the GM mask
     gm_data = binary_dilation(gm_data, structure=ball(3))
