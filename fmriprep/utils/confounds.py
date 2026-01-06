@@ -26,8 +26,10 @@
 def mask2vf(in_file, zooms=None, out_file=None):
     """
     Convert a binary mask on a volume fraction map.
+
     The algorithm simply applies a Gaussian filter with the kernel size scaled
     by the zooms given as argument.
+
     """
     import nibabel as nb
     import numpy as np
