@@ -445,8 +445,8 @@ No action is required by users, as this module is included in *fMRIPrep*.
 Details about the BIDS specification for field maps can be found at
 <https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html#types-of-fieldmaps>
 
-**NOTE** SDCFlows prefers `B0FieldIdentifier`/`B0FieldSource` and will use that
-to the exclusion of `IntendedFor`, if it is present anywhere in the dataset.
+**NOTE** SDCFlows prefers ``B0FieldIdentifier``/``B0FieldSource`` and will use that
+to the exclusion of ``IntendedFor``, if it is present anywhere in the dataset.
 
 For more detailed documentation on
 :abbr:`SDC (susceptibility-derived distortion correction)`
@@ -597,7 +597,7 @@ HCP Grayordinates
     )
 
 If CIFTI output is enabled, the motion-corrected functional timeseries (in T1w space) is
-resampled onto the subject-native surface, optionally using the `HCP Pipelines_`'s
+resampled onto the subject-native surface, optionally using the `HCP Pipelines`_'s
 "goodvoxels" masking method to exclude voxels with local peaks of temporal variation.
 After dilating the surface-sampled time series to fill sampling holes, the result is
 resampled to the ``fsLR`` mesh (with the left and right hemisphere aligned).
@@ -627,7 +627,7 @@ Confounds estimation
     )
 
 Given a motion-corrected fMRI, a brain mask, ``mcflirt`` movement parameters and a
-segmentation, the `discover_wf` sub-workflow calculates potential
+segmentation, the ``discover_wf`` sub-workflow calculates potential
 confounds per volume.
 
 Calculated confounds include the mean global signal, mean tissue class signal,
