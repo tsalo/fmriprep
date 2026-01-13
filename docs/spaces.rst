@@ -45,7 +45,7 @@ Therefore, *fMRIPrep* will run nonlinear registration processes against the temp
 T1w image corresponding to all the standard spaces supplied with the argument
 ``--output-spaces``.
 By default, *fMRIPrep* will resample the preprocessed data on those spaces (labeling the
-corresponding outputs with the `space-<template-identifier>` BIDS entity) but keeping
+corresponding outputs with the ``space-<template-identifier>`` BIDS entity) but keeping
 the original resolution of the BOLD data to produce smaller files, more consistent with
 the original data gridding.
 However, many users will be interested in utilizing a coarse gridding (typically 2mm isotropic)
