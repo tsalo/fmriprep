@@ -94,6 +94,7 @@ extend-select = [
 ]
 ignore = [
   "S311",  # We are not using random for cryptographic purposes
+  "B905",
 ]
 
 [tool.ruff.lint.flake8-quotes]
