@@ -257,6 +257,13 @@ def _build_parser(**kwargs):
         'found, the behavior will be similar to "first-lex" for each session.',
     )
     g_bids.add_argument(
+        '--track-sessions',
+        action=BooleanOptionalAction,
+        default=True,
+        help='Track and append session IDs. If disabled, sessions will not be '
+        'tracked nor appended to FreeSurfer subject ID.',
+    )
+    g_bids.add_argument(
         '--bids-filter-file',
         dest='bids_filters',
         action='store',
@@ -978,6 +985,7 @@ applied."""
         subject_list,
         session_list,
         config.workflow.subject_anatomical_reference,
+        config.workflow.track_sessions,
     )
     config.execution.processing_groups = subject_session_list
     config.execution.participant_label = sorted(subject_list)
@@ -989,11 +997,16 @@ def create_processing_groups(
     subject_list: list,
     session_list: list | str | None,
     subject_anatomical_reference: str,
+    track_sessions: bool,
 ) -> list[tuple[str]]:
     """Generate a list of subject-session pairs to be processed."""
     from bids.layout import Query
 
     subject_session_list = []
+
+    sessionwise = subject_anatomical_reference == 'sessionwise'
+    if not sessionwise and not track_sessions:
+        config.loggers.cli.warning('Session information will not be preserved.')
 
     for subject in subject_list:
         sessions = (
@@ -1005,7 +1018,7 @@ def create_processing_groups(
             or None
         )
 
-        if subject_anatomical_reference == 'sessionwise':
+        if sessionwise:
             if sessions is None:
                 config.loggers.cli.warning(
                     '`--subject-anatomical-reference sessionwise` was requested, but no sessions '
@@ -1014,7 +1027,9 @@ def create_processing_groups(
                 subject_session_list.append((subject, None))
             else:
                 subject_session_list.extend((subject, session) for session in sessions)
+
+        # first-lex / unbiased
         else:
-            subject_session_list.append((subject, sessions))
+            subject_session_list.append((subject, sessions if track_sessions else None))
 
     return subject_session_list
