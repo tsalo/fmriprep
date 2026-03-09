@@ -348,6 +348,7 @@ def test_fmriprep_wf_builds(bids_root_factory, layout_id, subject_anatomical_ref
     bids_dir = bids_root_factory(layout_id)
     with mock_config(bids_dir=bids_dir):
         config.workflow.subject_anatomical_reference = subject_anatomical_reference
+        config._create_processing_groups()
         assert init_fmriprep_wf()
 
 
