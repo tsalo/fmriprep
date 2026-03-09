@@ -23,7 +23,6 @@
 """Parser."""
 
 import sys
-import typing as ty
 from pathlib import Path
 
 from .. import config
