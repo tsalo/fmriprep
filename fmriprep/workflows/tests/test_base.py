@@ -58,8 +58,10 @@ def _make_bids_root(tmp_path_factory, layout_id: str):
 @pytest.fixture(scope='module')
 def bids_root_factory(tmp_path_factory):
     """Factory fixture — call with any layout to get a BIDS root."""
+
     def _factory(layout):
         return _make_bids_root(tmp_path_factory, layout)
+
     return _factory
 
 
@@ -338,3 +340,29 @@ def test_get_estimator_multiple_b0fields(tmp_path):
     # Always get an iterable; don't care if it's a list or tuple
     assert get_estimator(layout, bold_files[0]) == ['epi', 'phasediff']
     assert get_estimator(layout, bold_files[1]) == ('epi',)
+
+
+@pytest.mark.parametrize('layout_id', ['no_session', 'single_session', 'homogeneous_sessions'])
+@pytest.mark.parametrize('subject_anatomical_reference', ['first-lex', 'sessionwise', 'unbiased'])
+def test_fmriprep_wf_builds(bids_root_factory, layout_id, subject_anatomical_reference):
+    bids_dir = bids_root_factory(layout_id)
+    with mock_config(bids_dir=bids_dir):
+        config.workflow.subject_anatomical_reference = subject_anatomical_reference
+        assert init_fmriprep_wf()
+
+
+def test_fmriprep_wf_heterogeneous_sessions(bids_root_factory):
+    """Test on a heterogenous sessions layout, and test track_sessions behavior"""
+    bids_dir = bids_root_factory('heterogeneous_sessions')
+    with mock_config(bids_dir=bids_dir):
+        config.workflow.track_sessions = True
+        procs = config._create_processing_groups()
+        assert procs == [('01', ['anat', 'fmri'])]
+        wf = init_fmriprep_wf()
+        assert wf.get_node('sub_01_ses_anat-fmri_wf')
+
+        config.workflow.track_sessions = False
+        procs = config._create_processing_groups()
+        assert procs == [('01', None)]
+        wf = init_fmriprep_wf()
+        assert wf.get_node('sub_01_wf')
