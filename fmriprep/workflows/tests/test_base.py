@@ -34,33 +34,40 @@ def _reset_sdcflows_registry():
 
 
 @pytest.fixture(scope='module')
-def bids_root(tmp_path_factory):
+def _layout_cache():
+    """Cache layouts across tests to avoid regenerating BIDS directories."""
+    return {}
+
+
+@pytest.fixture(scope='module')
+def bids_root(tmp_path_factory, _layout_cache):
     """Default fixture using the "no_session" layout."""
-    return _make_bids_root(tmp_path_factory, 'no_session')
+    return _make_bids_root(tmp_path_factory, 'no_session', _layout_cache)
 
 
-def _make_bids_root(tmp_path_factory, layout_id: str):
+def _make_bids_root(tmp_path_factory, layout_id: str, cache: dict):
     """Helper to create a BIDS directory from a layout spec."""
+    if layout_id in cache:
+        return cache[layout_id]
+
     base = tmp_path_factory.mktemp('base')
     bids_dir = base / layout_id
-    if bids_dir.exists():
-        return bids_dir
 
-    # Otherwise generate once
     layout = get_layout(layout_id)
     generate_bids_skeleton(bids_dir, layout)
     img = nb.Nifti1Image(np.zeros((10, 10, 10, 10)), np.eye(4))
     for bold_path in bids_dir.glob('sub-01/**/*.nii.gz'):
         img.to_filename(bold_path)
+    cache[layout_id] = bids_dir
     return bids_dir
 
 
 @pytest.fixture(scope='module')
-def bids_root_factory(tmp_path_factory):
+def bids_root_factory(tmp_path_factory, _layout_cache):
     """Factory fixture — call with any layout to get a BIDS root."""
 
     def _factory(layout):
-        return _make_bids_root(tmp_path_factory, layout)
+        return _make_bids_root(tmp_path_factory, layout, _layout_cache)
 
     return _factory
 
