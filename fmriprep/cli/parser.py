@@ -979,57 +979,6 @@ applied."""
     if config.execution.participant_label is None:
         config.execution.participant_label = subject_list
 
-    session_list = config.execution.session_label or []
-    subject_session_list = create_processing_groups(
-        config.execution.layout,
-        subject_list,
-        session_list,
-        config.workflow.subject_anatomical_reference,
-        config.workflow.track_sessions,
-    )
-    config.execution.processing_groups = subject_session_list
     config.execution.participant_label = sorted(subject_list)
     config.workflow.skull_strip_template = config.workflow.skull_strip_template[0]
-
-
-def create_processing_groups(
-    layout: 'BIDSLayout',
-    subject_list: list,
-    session_list: list | str | None,
-    subject_anatomical_reference: str,
-    track_sessions: bool,
-) -> list[tuple[str]]:
-    """Generate a list of subject-session pairs to be processed."""
-    from bids.layout import Query
-
-    subject_session_list = []
-
-    sessionwise = subject_anatomical_reference == 'sessionwise'
-    if not sessionwise and not track_sessions:
-        config.loggers.cli.warning('Session information will not be preserved.')
-
-    for subject in subject_list:
-        sessions = (
-            layout.get_sessions(
-                scope='raw',
-                subject=subject,
-                session=session_list or Query.OPTIONAL,
-            )
-            or None
-        )
-
-        if sessionwise:
-            if sessions is None:
-                config.loggers.cli.warning(
-                    '`--subject-anatomical-reference sessionwise` was requested, but no sessions '
-                    f'found for subject {subject}... treating as single-session.'
-                )
-                subject_session_list.append((subject, None))
-            else:
-                subject_session_list.extend((subject, session) for session in sessions)
-
-        # first-lex / unbiased
-        else:
-            subject_session_list.append((subject, sessions if track_sessions else None))
-
-    return subject_session_list
+    config._create_processing_groups()
