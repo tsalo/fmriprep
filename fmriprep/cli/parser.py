@@ -28,9 +28,6 @@ from pathlib import Path
 
 from .. import config
 
-if ty.TYPE_CHECKING:
-    pass
-
 
 def _build_parser(**kwargs):
     """Build parser object.
