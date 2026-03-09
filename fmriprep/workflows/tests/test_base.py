@@ -355,6 +355,7 @@ def test_fmriprep_wf_heterogeneous_sessions(bids_root_factory):
     """Test on a heterogeneous sessions layout, and test track_sessions behavior"""
     bids_dir = bids_root_factory('heterogeneous_sessions')
     with mock_config(bids_dir=bids_dir):
+        config.workflow.bold2anat_init = 't1w'
         config.workflow.track_sessions = True
         procs = config._create_processing_groups()
         assert procs == [('01', ['anat', 'fmri'])]
