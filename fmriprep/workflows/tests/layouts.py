@@ -138,8 +138,10 @@ def get_layout(layout_id: str):
     """Get a fresh layout spec by ID."""
     try:
         return _LAYOUT_FACTORIES[layout_id]()
-    except KeyError:
-        raise ValueError(f'Unknown layout: {layout_id!r}. Choose from {list(_LAYOUT_FACTORIES)}')
+    except KeyError as exc:
+        raise ValueError(
+            f'Unknown layout: {layout_id!r}. Choose from {list(_LAYOUT_FACTORIES)}'
+        ) from exc
 
 
 __all__ = ['get_layout']

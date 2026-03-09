@@ -35,7 +35,7 @@ def _reset_sdcflows_registry():
 
 @pytest.fixture(scope='module')
 def bids_root(tmp_path_factory):
-    """Default fixture using BASE_LAYOUT."""
+    """Default fixture using the "no_session" layout."""
     return _make_bids_root(tmp_path_factory, 'no_session')
 
 
@@ -352,7 +352,7 @@ def test_fmriprep_wf_builds(bids_root_factory, layout_id, subject_anatomical_ref
 
 
 def test_fmriprep_wf_heterogeneous_sessions(bids_root_factory):
-    """Test on a heterogenous sessions layout, and test track_sessions behavior"""
+    """Test on a heterogeneous sessions layout, and test track_sessions behavior"""
     bids_dir = bids_root_factory('heterogeneous_sessions')
     with mock_config(bids_dir=bids_dir):
         config.workflow.track_sessions = True
