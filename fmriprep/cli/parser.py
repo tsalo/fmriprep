@@ -23,13 +23,9 @@
 """Parser."""
 
 import sys
-import typing as ty
 from pathlib import Path
 
 from .. import config
-
-if ty.TYPE_CHECKING:
-    from bids import BIDSLayout
 
 
 def _build_parser(**kwargs):
@@ -255,6 +251,13 @@ def _build_parser(**kwargs):
         '(previously "--longitudinal")\n'
         '\t"sessionwise" will independently process each session. If multiple runs are '
         'found, the behavior will be similar to "first-lex" for each session.',
+    )
+    g_bids.add_argument(
+        '--track-sessions',
+        action=BooleanOptionalAction,
+        default=True,
+        help='Track and append session IDs. If disabled, sessions will not be '
+        'tracked nor appended to FreeSurfer subject ID.',
     )
     g_bids.add_argument(
         '--bids-filter-file',
@@ -972,49 +975,6 @@ applied."""
     if config.execution.participant_label is None:
         config.execution.participant_label = subject_list
 
-    session_list = config.execution.session_label or []
-    subject_session_list = create_processing_groups(
-        config.execution.layout,
-        subject_list,
-        session_list,
-        config.workflow.subject_anatomical_reference,
-    )
-    config.execution.processing_groups = subject_session_list
     config.execution.participant_label = sorted(subject_list)
     config.workflow.skull_strip_template = config.workflow.skull_strip_template[0]
-
-
-def create_processing_groups(
-    layout: 'BIDSLayout',
-    subject_list: list,
-    session_list: list | str | None,
-    subject_anatomical_reference: str,
-) -> list[tuple[str]]:
-    """Generate a list of subject-session pairs to be processed."""
-    from bids.layout import Query
-
-    subject_session_list = []
-
-    for subject in subject_list:
-        sessions = (
-            layout.get_sessions(
-                scope='raw',
-                subject=subject,
-                session=session_list or Query.OPTIONAL,
-            )
-            or None
-        )
-
-        if subject_anatomical_reference == 'sessionwise':
-            if sessions is None:
-                config.loggers.cli.warning(
-                    '`--subject-anatomical-reference sessionwise` was requested, but no sessions '
-                    f'found for subject {subject}... treating as single-session.'
-                )
-                subject_session_list.append((subject, None))
-            else:
-                subject_session_list.extend((subject, session) for session in sessions)
-        else:
-            subject_session_list.append((subject, sessions))
-
-    return subject_session_list
+    config._create_processing_groups()
