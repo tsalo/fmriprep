@@ -29,7 +29,7 @@ from pathlib import Path
 from .. import config
 
 if ty.TYPE_CHECKING:
-    from bids import BIDSLayout
+    pass
 
 
 def _build_parser(**kwargs):

@@ -11,9 +11,9 @@ from sdcflows.fieldmaps import clear_registry
 from sdcflows.utils.wrangler import find_estimators
 
 from ... import config
-from .layouts import get_layout
 from ..base import get_estimator, init_fmriprep_wf
 from ..tests import mock_config
+from .layouts import get_layout
 
 
 @pytest.fixture(scope='module', autouse=True)
