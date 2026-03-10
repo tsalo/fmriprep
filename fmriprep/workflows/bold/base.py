@@ -714,7 +714,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 template = ref_.space
                 density = ref_.spec.get('density') or ref_.spec.get('den') or None
                 if density is None:
-                    config.loggers.warning(f'Cannot resample {ref_} without density specified.')
+                    config.loggers.workflow.warning(
+                        f'Cannot resample {ref_} without density specified.'
+                    )
                     continue
 
                 resample_surfaces_wf = init_resample_surfaces_wf(
@@ -877,8 +879,10 @@ def _get_wf_name(bold_fname, prefix):
     from nipype.utils.filemanip import split_filename
 
     fname = split_filename(bold_fname)[1]
-    fname_nosub = '_'.join(fname.split('_')[1:-1])
-    return f'{prefix}_{fname_nosub.replace("-", "_")}_wf'
+    fname_sanitized = '_'.join(fname.split('_')[1:-1])
+    for char in '-+':
+        fname_sanitized = fname_sanitized.replace(char, '_')
+    return f'{prefix}_{fname_sanitized}_wf'
 
 
 def extract_entities(file_list):
