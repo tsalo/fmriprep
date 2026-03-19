@@ -869,6 +869,7 @@ tasks and sessions), the following preprocessing was performed.
                         derivatives_dir=deriv_dir,
                         entities=entities,
                         fieldmap_id=fieldmap_id,
+                        dismiss_entities=dismiss_echo(['part']),
                     )
                 )
 

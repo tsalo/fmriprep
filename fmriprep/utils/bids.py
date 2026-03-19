@@ -55,6 +55,7 @@ def collect_derivatives(
     fieldmap_id: str | None = None,
     spec: dict | None = None,
     patterns: list[str] | None = None,
+    dismiss_entities: list[str] | None = None,
 ):
     """Gather existing derivatives and compose a cache."""
     if spec is None or patterns is None:
@@ -69,6 +70,9 @@ def collect_derivatives(
 
     derivs_cache = defaultdict(list, {})
     layout = _get_layout(derivatives_dir)
+
+    if dismiss_entities:
+        entities = {k: v for k, v in entities.items() if k not in dismiss_entities}
 
     # search for both boldrefs
     for k, q in spec['baseline'].items():
