@@ -861,6 +861,8 @@ tasks and sessions), the following preprocessing was performed.
             from fmriprep.utils.bids import collect_derivatives, extract_entities
 
             entities = extract_entities(bold_series)
+            dismiss_entities = dismiss_echo(['part'])
+            entities = {k: v for k, v in entities.items() if k not in dismiss_entities}
 
             for deriv_dir in config.execution.derivatives.values():
                 functional_cache.update(
